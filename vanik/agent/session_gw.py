@@ -11,9 +11,13 @@ from typing import Any
 from uuid import uuid4
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
+
+CORS_ORIGINS = ["https://akeru.dev", "http://localhost:3000", "http://127.0.0.1:3000"]
 
 from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
 from agent.health import build_health_snapshot
@@ -38,7 +42,7 @@ def _session_payload(session: SessionState) -> dict[str, Any]:
     }
 
 
-async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
+def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
     if session.is_closed:
         return
     if buffered:
@@ -47,11 +51,28 @@ async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool 
     session.event_queue.put(event)
 
 
+_WELCOME_MESSAGE = "Welcome. Send a message to get started."
+
+
+async def emit_welcome(session: SessionState) -> None:
+    """Emit a static welcome sequence (thinking on → tokens → thinking off → done). No agent call. Unbuffered so reconnect does not replay it."""
+    if session.is_closed:
+        return
+    _emit(session, {"type": "thinking", "visible": True}, buffered=False)
+    words = _WELCOME_MESSAGE.split()
+    for idx, word in enumerate(words):
+        suffix = "" if idx == len(words) - 1 else " "
+        _emit(session, {"type": "token", "content": word + suffix}, buffered=False)
+        await asyncio.sleep(0)
+    _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+    _emit(session, {"type": "done", "query_id": None, "anchor": None}, buffered=False)
+
+
 async def _stream_narrative_tokens(session: SessionState, narrative: str) -> None:
     words = narrative.split(" ")
     for idx, token in enumerate(words):
         suffix = "" if idx == len(words) - 1 else " "
-        await _emit(session, {"type": "token", "content": token + suffix})
+        _emit(session, {"type": "token", "content": token + suffix})
 
 
 def _landed_cost_from_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -95,7 +116,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
             "options": result.get("options", []),
         }
         session.state = "awaiting_gate_response"
-        await _emit(
+        _emit(
             session,
             {
                 "type": "gate",
@@ -110,7 +131,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
         missing = result.get("missing", [])
         field = missing[0] if missing else "unknown"
         session.state = "awaiting_clarification"
-        await _emit(
+        _emit(
             session,
             {
                 "type": "clarify",
@@ -122,7 +143,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
 
     if not result.get("ok"):
         session.state = "active"
-        await _emit(
+        _emit(
             session,
             {
                 "type": "error",
@@ -158,7 +179,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     )
 
     session.state = "active"
-    await _emit(session, {"type": "done", "query_id": query_id, "anchor": anchor})
+    _emit(session, {"type": "done", "query_id": query_id, "anchor": anchor})
     with session.events_lock:
         session.last_response_events.clear()
 
@@ -186,7 +207,7 @@ async def _run_agent_job(
         if session.is_closed:
             return
         session.state = "active"
-        await _emit(
+        _emit(
             session,
             {
                 "type": "error",
@@ -198,7 +219,7 @@ async def _run_agent_job(
     finally:
         if session.is_closed:
             return
-        await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+        _emit(session, {"type": "thinking", "visible": False}, buffered=False)
 
 
 def _spawn_agent_job(
@@ -231,7 +252,8 @@ async def create_session(request: Request) -> JSONResponse:
         except json.JSONDecodeError:
             seed = {}
     session = store.create(seed=seed)
-    return JSONResponse({"session_id": session.session_id, "created_at": session.created_at})
+    asyncio.create_task(emit_welcome(session))
+    return JSONResponse({"session_id": session.session_id, "created_at": session.created_at}, status_code=201)
 
 
 async def get_session(request: Request) -> JSONResponse:
@@ -259,7 +281,7 @@ async def post_session_message(request: Request) -> JSONResponse:
         return _json_error("invalid_message", "Body requires role='user' and non-empty content")
 
     store.append_message(session_id, "user", content)
-    await _emit(session, {"type": "thinking", "visible": True}, buffered=False)
+    _emit(session, {"type": "thinking", "visible": True}, buffered=False)
 
     if session.pending_gate:
         pending = dict(session.pending_gate)
@@ -489,7 +511,19 @@ routes = [
     Route("/health", health, methods=["GET"]),
 ]
 
-app = Starlette(debug=False, routes=routes)
+app = Starlette(
+    debug=False,
+    routes=routes,
+    middleware=[
+        Middleware(
+            CORSMiddleware,
+            allow_origins=CORS_ORIGINS,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+            expose_headers=["*"],
+        ),
+    ],
+)
 
 
 def main() -> None:

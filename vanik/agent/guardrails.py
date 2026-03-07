@@ -11,7 +11,13 @@ def _is_valid_hs(code: Any) -> bool:
 
 
 def _is_optional_rate(value: Any) -> bool:
-    return value is None or isinstance(value, (int, float))
+    """Accept None or a numeric rate in [0.0, 100.0] for compliance."""
+    if value is None:
+        return True
+    if not isinstance(value, (int, float)):
+        return False
+    rate = float(value)
+    return 0.0 <= rate <= 100.0
 
 
 def validate_agent_output(payload: dict[str, Any]) -> tuple[bool, str | None]:
