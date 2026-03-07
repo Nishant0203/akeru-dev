@@ -39,10 +39,11 @@ def _session_payload(session: SessionState) -> dict[str, Any]:
 
 
 async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
+    if session.is_closed:
+        return
     if buffered:
-        session.last_response_events.append(event)
-        if len(session.last_response_events) > 500:
-            session.last_response_events = session.last_response_events[-500:]
+        with session.events_lock:
+            session.last_response_events.append(event)
     session.event_queue.put(event)
 
 
@@ -83,6 +84,8 @@ def _build_anchor_from_result(session: SessionState, query: str, result: dict[st
 
 
 async def _handle_agent_result(session: SessionState, user_query: str, result: dict[str, Any]) -> None:
+    if session.is_closed:
+        return
     status = result.get("status")
 
     if status == "awaiting_confirmation":
@@ -139,6 +142,10 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     query_id = deterministic_query_id(session.session_id, session.history_turn_count, user_query)
     anchor = _build_anchor_from_result(session, user_query, result, query_id)
 
+    # Skip audit and done event if session was closed while we were streaming (orphaned job).
+    if session.is_closed:
+        return
+
     append_query(
         {
             "query_id": query_id,
@@ -152,7 +159,8 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
 
     session.state = "active"
     await _emit(session, {"type": "done", "query_id": query_id, "anchor": anchor})
-    session.last_response_events.clear()
+    with session.events_lock:
+        session.last_response_events.clear()
 
 
 async def _run_agent_job(
@@ -171,8 +179,12 @@ async def _run_agent_job(
             precomputed_entities=precomputed_entities,
             gate_options=gate_options,
         )
+        if session.is_closed:
+            return
         await _handle_agent_result(session, user_query, result)
     except Exception as exc:  # pragma: no cover - defensive path
+        if session.is_closed:
+            return
         session.state = "active"
         await _emit(
             session,
@@ -184,6 +196,8 @@ async def _run_agent_job(
             },
         )
     finally:
+        if session.is_closed:
+            return
         await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
 
 
@@ -272,7 +286,8 @@ async def resume_session(request: Request) -> JSONResponse:
         return _json_error("session_not_found", "Session not found", status=404)
 
     session.state = "reconnect"
-    replay_count = len(session.last_response_events)
+    with session.events_lock:
+        replay_count = len(session.last_response_events)
     return JSONResponse(
         {
             "session_id": session.session_id,
@@ -311,24 +326,41 @@ async def stream_events(request: Request) -> StreamingResponse | JSONResponse:
     if session is None:
         return _json_error("session_not_found", "Session not found", status=404)
 
+    with session.sse_lock:
+        if session.has_active_sse:
+            return _json_error(
+                "sse_already_connected",
+                "An SSE stream is already active for this session.",
+                status=409,
+            )
+        session.has_active_sse = True
+
     session.state = "active"
 
     async def event_stream() -> Any:
-        for event in list(session.last_response_events):
-            yield _encode_sse(event)
+        try:
+            with session.events_lock:
+                replay_events = list(session.last_response_events)
+            for event in replay_events:
+                yield _encode_sse(event)
 
-        while True:
-            if await request.is_disconnected():
-                session.state = "idle"
-                break
+            while True:
+                if session.is_closed:
+                    break
+                if await request.is_disconnected():
+                    session.state = "idle"
+                    break
 
-            try:
-                event = await asyncio.to_thread(session.event_queue.get, True, 15)
-            except Empty:
-                yield b": keepalive\n\n"
-                continue
+                try:
+                    event = await asyncio.to_thread(session.event_queue.get, True, 15)
+                except Empty:
+                    yield b": keepalive\n\n"
+                    continue
 
-            yield _encode_sse(event)
+                yield _encode_sse(event)
+        finally:
+            with session.sse_lock:
+                session.has_active_sse = False
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -406,22 +438,22 @@ async def api_query(request: Request) -> JSONResponse:
                 "mfn_rate_pct": lc.get("uk_mfn_rate_pct"),
                 "estimated_duty_usd": duty_estimate(lc.get("uk_mfn_rate_pct")),
                 "fta_available": False,
-                "source": "UK Trade Tariff API",
-                "measure_type": "103",
+                "source": lc.get("uk_source"),
+                "measure_type": lc.get("uk_measure_type"),
             },
             "IN_to_EU": {
                 "mfn_rate_pct": lc.get("eu_mfn_rate_pct"),
                 "estimated_duty_usd": duty_estimate(lc.get("eu_mfn_rate_pct")),
                 "fta_available": False,
-                "source": "EU XI Tariff API",
-                "measure_type": "105",
+                "source": lc.get("eu_source"),
+                "measure_type": lc.get("eu_measure_type"),
             },
             "world_to_IN": {
                 "mfn_rate_pct": lc.get("india_mfn_rate_pct"),
                 "igst_flag": "18% or 28% depending on sub-classification — not included",
-                "source": "WTO Timeseries API",
-                "indicator": "HS_A_0010",
-                "year": 2023,
+                "source": lc.get("in_source"),
+                "indicator": lc.get("in_indicator"),
+                "year": lc.get("in_year"),
             },
         },
         "audit": {

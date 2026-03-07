@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from queue import Queue
@@ -19,10 +20,14 @@ class SessionState:
     state: str = "created"
     messages: list[dict[str, str]] = field(default_factory=list)
     pending_gate: dict[str, Any] | None = None
-    last_response_events: list[dict[str, Any]] = field(default_factory=list)
+    last_response_events: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=500))
     history_turn_count: int = 0
     last_active: datetime = field(default_factory=lambda: datetime.now(UTC))
     event_queue: Queue[dict[str, Any]] = field(default_factory=Queue)
+    events_lock: Any = field(default_factory=Lock, repr=False)
+    sse_lock: Any = field(default_factory=Lock, repr=False)
+    has_active_sse: bool = False
+    is_closed: bool = False
 
 
 class InMemorySessionStore:
@@ -73,6 +78,7 @@ class InMemorySessionStore:
             state = self._items.pop(session_id, None)
             if state:
                 state.state = "closing"
+                state.is_closed = True
             return state
 
     def set_state(self, session_id: str, value: str) -> None:

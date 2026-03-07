@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import warnings
 
 from mcp_servers.vanik_api.tools.lookup_mfn import get_mfn_rate
 from mcp_servers.vanik_api.tools.search_hs_schedule import search_hs_schedule
@@ -188,6 +189,11 @@ async def vanik_agent(
         }
 
     if gate_selection == _AUTO_GATE_SELECTION:
+        warnings.warn(
+            "_AUTO_GATE_SELECTION (__auto__) is deprecated; gate should always require explicit confirmation.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         confirmed_code = str(options[0]["commodity_code"])
     else:
         try:
