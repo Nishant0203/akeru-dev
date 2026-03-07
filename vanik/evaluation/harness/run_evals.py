@@ -9,8 +9,10 @@ from pathlib import Path
 def run() -> dict:
     """Load ground truth records and return a stub report."""
     records_file = Path(__file__).resolve().parents[1] / "ground_truth" / "records.json"
-    records = json.loads(records_file.read_text())
+    if not records_file.exists():
+        return {"total_records": 0, "passed": 0, "failed": 0, "note": "No ground truth records yet."}
 
+    records = json.loads(records_file.read_text())
     return {
         "total_records": len(records),
         "passed": 0,
