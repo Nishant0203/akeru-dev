@@ -9,6 +9,7 @@ from mcp_servers.vanik_api.tools.search_hs_schedule import search_hs_schedule
 from nes.orchestrator import ms_extract
 
 from agent.confirmation_gate import format_options, resolve_selection
+from agent.guardrails import validate_agent_output
 from agent.synthesiser import build
 
 MCP_TIMEOUT = 8.0
@@ -83,7 +84,12 @@ async def _lookup_and_synthesise(
             "errors": [errors["GB"], errors["EU"], errors["IN"]],
         }
 
-    return build(
+    description = ""
+    terms = entities.get("product_terms")
+    if isinstance(terms, list) and terms:
+        description = str(terms[0])
+
+    synthesized = build(
         commodity_code=confirmed_code,
         uk_rate=uk_rate or {},
         eu_rate=eu_rate or {},
@@ -93,21 +99,33 @@ async def _lookup_and_synthesise(
         hs_code_source=hs_code_source,
         origin=str(entities.get("origin") or "").upper(),
         destination=str(entities.get("destination") or "").upper(),
+        description=description,
     )
+
+    valid, reason = validate_agent_output(synthesized)
+    if not valid:
+        return {
+            "ok": False,
+            "status": "guardrail_violation",
+            "message": "Generated response failed output guardrail validation.",
+            "error": {"code": "output_guardrail_violation", "message": reason or "unknown"},
+        }
+
+    return synthesized
 
 
 async def vanik_agent(
     user_query: str,
     hs_code_provided: str | None = None,
     *,
-    gate_selection: str | None = _AUTO_GATE_SELECTION,
+    gate_selection: str | None = None,
     precomputed_entities: dict | None = None,
     gate_options: list[dict] | None = None,
 ) -> dict:
     """Run full lifecycle: Manifest Search -> search -> gate -> lookup -> synthesis.
 
     Gate behaviour:
-    - gate_selection == "__auto__": select first option (legacy behaviour)
+    - gate_selection == "__auto__": select first option (legacy compatibility)
     - gate_selection is None: return awaiting_confirmation payload
     - otherwise: parse user gate selection and continue
     """
@@ -119,15 +137,6 @@ async def vanik_agent(
         }
 
     entities = dict(precomputed_entities or await ms_extract(user_query))
-
-    missing = _missing_route_fields(entities)
-    if missing:
-        return {
-            "ok": False,
-            "status": "needs_clarification",
-            "missing": missing,
-            "message": "Please provide origin and destination country codes (e.g., IN, GB).",
-        }
 
     if hs_code_provided or entities.get("hs_code_provided"):
         confirmed_code = hs_code_provided or entities.get("hs_code_provided")
@@ -146,6 +155,15 @@ async def vanik_agent(
             human_confirmed=human_confirmed,
             hs_code_source=hs_code_source,
         )
+
+    missing = _missing_route_fields(entities)
+    if missing:
+        return {
+            "ok": False,
+            "status": "needs_clarification",
+            "missing": missing,
+            "message": "Please provide origin and destination country codes (e.g., IN, GB).",
+        }
 
     options = gate_options
     if options is None:

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from queue import Queue
 from threading import Lock
 from typing import Any
 
@@ -22,7 +22,7 @@ class SessionState:
     last_response_events: list[dict[str, Any]] = field(default_factory=list)
     history_turn_count: int = 0
     last_active: datetime = field(default_factory=lambda: datetime.now(UTC))
-    event_queue: asyncio.Queue[dict[str, Any]] = field(default_factory=asyncio.Queue)
+    event_queue: Queue[dict[str, Any]] = field(default_factory=Queue)
 
 
 class InMemorySessionStore:
