@@ -4,7 +4,9 @@ from mcp_servers.vanik_api.clients.wto import get_india_mfn_rate
 from mcp_servers.vanik_api.config import settings
 
 
-def test_wto_parses_rate_from_mock_payload() -> None:
+def test_wto_parses_rate_from_mock_payload(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "wto_api_key_primary", "test-primary")
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"Dataset": [{"value": "15.0"}]})
 
@@ -15,7 +17,10 @@ def test_wto_parses_rate_from_mock_payload() -> None:
     assert res.mfn_rate_pct == 15.0
 
 
-def test_wto_uses_secondary_key_on_primary_auth_failure() -> None:
+def test_wto_uses_secondary_key_on_primary_auth_failure(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "wto_api_key_primary", "test-primary")
+    monkeypatch.setattr(settings, "wto_api_key_secondary", "test-secondary")
+
     calls: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
