@@ -167,7 +167,8 @@
     </div>
   </div>
 
-  <!-- Set window.VANIK_API_URL to gateway base URL when frontend and API are on different origins (e.g. akeru.dev vs api.akeru.dev). Unset => same-origin. -->
+  <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
+  <!-- Override above in dev if needed. Unset => same-origin. -->
   <script>
     (function () {
       const VANIK_API = window.VANIK_API_URL || "";
