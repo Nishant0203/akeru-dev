@@ -110,7 +110,11 @@ def test_sse_timeout_on_stalled_agent(tmp_path, monkeypatch) -> None:
             "entities": {"origin": "IN", "destination": "GB"},
         }
 
+    async def noop_welcome(_session) -> None:
+        pass
+
     monkeypatch.setattr(session_gw, "vanik_agent", mock_stalled_agent)
+    monkeypatch.setattr(session_gw, "emit_welcome", noop_welcome)
 
     create = client.post("/sessions", json={"user_id": "usr_2", "session_type": "new"})
     assert create.status_code == 201
@@ -122,15 +126,16 @@ def test_sse_timeout_on_stalled_agent(tmp_path, monkeypatch) -> None:
     )
     assert sent.status_code == 202
 
-    with pytest.raises(pytest.fail.Exception) as exc:
+    try:
         collect_sse_events(
             client=client,
             url=f"/sessions/{session_id}/sse",
             stop_type="done",
             timeout_seconds=1.0,
         )
-
-    assert "Received event types" in str(exc.value)
+        pytest.fail("Expected timeout did not occur; stream received 'done' within 1s")
+    except pytest.fail.Exception as exc:
+        assert "Received event types" in str(exc)
 
 
 def test_api_mode_query_endpoint(tmp_path, monkeypatch) -> None:
