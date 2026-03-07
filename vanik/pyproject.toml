@@ -15,6 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
+  "uvicorn>=0.30.0",
   "ruff>=0.6.0",
 ]
 
