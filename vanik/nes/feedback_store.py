@@ -112,7 +112,7 @@ def v3_invocations_24h() -> int:
 
 
 def fallback_rate_24h(total_calls_24h: int | None = None) -> float:
-    """Fallback ratio for last 24h."""
+    """Fallback ratio for last 24h. Returns a value in [0.0, 1.0]. Callers that display as percentage must multiply by 100."""
     denominator = total_calls_24h if total_calls_24h is not None else total_ms_calls_24h()
     if denominator <= 0:
         return 0.0

@@ -62,6 +62,17 @@ def _is_circuit_counted_failure(exc: VanikAPIError) -> bool:
     return exc.code in {"upstream_unreachable", "upstream_error", "parse_error"}
 
 
+def _as_ratio(value: float) -> float:
+    """Normalize fallback-rate values to a 0..1 ratio."""
+    ratio = float(value)
+    if ratio < 0:
+        return 0.0
+    if ratio > 1.0:
+        # Backward-compatible guard if caller accidentally returns a percentage.
+        ratio = ratio / 100.0
+    return min(ratio, 1.0)
+
+
 def _fetch_live_rate(hs_code: str, destination: str) -> dict:
     if destination == "IN":
         record = get_india_mfn_rate(hs_code[:6])
@@ -181,8 +192,9 @@ def get_health() -> dict:
         "v3_invocations_24h": None,
     }
     if callable(fallback_rate_24h) and callable(v3_invocations_24h):
+        ratio = _as_ratio(float(fallback_rate_24h()))
         ms_block = {
-            "fallback_rate_24h_pct": round(float(fallback_rate_24h()) * 100.0, 2),
+            "fallback_rate_24h_pct": round(ratio * 100.0, 2),
             "v3_invocations_24h": int(v3_invocations_24h()),
         }
 
