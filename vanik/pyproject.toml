@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "vanik"
 version = "0.1.0"
@@ -28,3 +32,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*", "config*", "evaluation*", "mcp_servers*", "nes*"]
