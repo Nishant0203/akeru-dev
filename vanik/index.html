@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vanik · akeru</title>
+<meta name="description" content="Vanik — trade corridor intelligence. Duty rates, HS codes, landed cost.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:         #04060C;
+  --surface:    rgba(10, 14, 26, 0.95);
+  --surface-2:  rgba(16, 20, 36, 0.8);
+  --ink:        #E2DDD6;
+  --ink-mid:    rgba(226,221,214,0.5);
+  --ink-dim:    rgba(226,221,214,0.28);
+  --ink-ghost:  rgba(226,221,214,0.12);
+  --gold:       #B89A5A;
+  --gold-dim:   rgba(184,154,90,0.35);
+  --gold-ghost: rgba(184,154,90,0.12);
+  --blue-dim:   rgba(180,200,255,0.18);
+  --err:        rgba(220, 100, 80, 0.75);
+  --err-bg:     rgba(220, 100, 80, 0.08);
+  --border:     rgba(226,221,214,0.07);
+  --border-gold:rgba(184,154,90,0.2);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  overflow: hidden;
+}
+
+/* ── Noise overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  pointer-events: none;
+}
+
+/* ── Ambient glow ── */
+body::after {
+  content: '';
+  position: fixed;
+  top: -20vh;
+  left: 30%;
+  width: 40vw;
+  height: 60vh;
+  background: radial-gradient(ellipse at center, rgba(180,200,255,0.025) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Layout ── */
+#app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+#header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+#back-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.25s;
+}
+
+#back-link:hover { color: var(--ink-mid); }
+
+.back-arrow {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.header-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+.header-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+
+.header-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+}
+
+/* ── Messages ── */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184,154,90,0.12) transparent;
+}
+
+#messages::-webkit-scrollbar { width: 2px; }
+#messages::-webkit-scrollbar-thumb { background: rgba(184,154,90,0.15); border-radius: 1px; }
+
+/* ── Message rows ── */
+.msg-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 28px;
+  animation: msgIn 0.35s ease forwards;
+  opacity: 0;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* User message */
+.msg-user {
+  align-self: flex-end;
+  max-width: 68%;
+}
+
+.msg-user .msg-label {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--ink-ghost);
+  text-align: right;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.msg-user .msg-content {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--ink-mid);
+  text-align: right;
+  letter-spacing: 0.01em;
+}
+
+/* Assistant message */
+.msg-assistant {
+  align-self: flex-start;
+  width: 100%;
+  position: relative;
+  padding-left: 16px;
+}
+
+.msg-assistant::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold-dim), transparent);
+}
+
+.msg-assistant .msg-label {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--gold-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.msg-assistant .msg-content {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 300;
+  line-height: 1.85;
+  color: rgba(226,221,214,0.72);
+  letter-spacing: 0.015em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Thinking ── */
+.thinking-row {
+  align-self: flex-start;
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.thinking-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--border-gold);
+}
+
+.thinking-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.thinking-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.thinking-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  animation: dotPulse 1.4s ease infinite;
+}
+
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 60%, 100% { opacity: 0.2; transform: scale(1); }
+  30% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ── Gate widget ── */
+.gate-row {
+  align-self: flex-start;
+  width: 100%;
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.gate-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold-dim), transparent);
+}
+
+.gate-prompt {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.gate-message {
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--ink-mid);
+  margin-bottom: 16px;
+  letter-spacing: 0.01em;
+}
+
+.gate-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gate-option {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.gate-option:hover {
+  border-color: var(--border-gold);
+  background: var(--gold-ghost);
+}
+
+.gate-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.gate-desc {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--ink-dim);
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+
+/* ── Error / clarify banner ── */
+.err-row {
+  align-self: flex-start;
+  width: 100%;
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.err-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--err);
+  opacity: 0.5;
+}
+
+.err-content {
+  background: var(--err-bg);
+  border: 1px solid rgba(220,100,80,0.18);
+  border-radius: 3px;
+  padding: 10px 14px;
+  font-size: 10.5px;
+  font-weight: 300;
+  line-height: 1.65;
+  color: rgba(220, 160, 140, 0.85);
+  letter-spacing: 0.01em;
+}
+
+/* ── Input area ── */
+#input-area {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 16px 28px 20px;
+  background: var(--surface);
+}
+
+#input-area.hidden { display: none; }
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+#chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+  line-height: 1.6;
+}
+
+#chat-input:focus { border-color: var(--gold-dim); }
+#chat-input::placeholder { color: var(--ink-ghost); }
+
+#send-btn {
+  background: none;
+  border: 1px solid var(--border-gold);
+  border-radius: 2px;
+  color: var(--gold-dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+#send-btn:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--gold-ghost);
+}
+
+#send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.input-hint {
+  margin-top: 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--ink-ghost);
+}
+
+/* ── Welcome state ── */
+#welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 28px;
+  gap: 20px;
+  opacity: 0;
+  animation: centreFadeIn 1.8s ease 0.3s forwards;
+}
+
+@keyframes centreFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#welcome.hidden { display: none; }
+
+.welcome-star {
+  font-size: 28px;
+  color: rgba(180,200,255,0.4);
+  margin-bottom: 4px;
+  animation: starBreathe 3s ease infinite;
+}
+
+@keyframes starBreathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.75; }
+}
+
+.welcome-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+.welcome-desc {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 1.9;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  max-width: 380px;
+}
+
+.welcome-example {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--gold-dim);
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  margin-top: 4px;
+}
+
+.welcome-example:hover {
+  border-color: var(--border-gold);
+  color: var(--gold);
+}
+
+/* ── Connecting state ── */
+#connecting {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+#connecting.hidden { display: none; }
+
+.connecting-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-ghost);
+  text-transform: uppercase;
+}
+
+/* ── Mobile ── */
+@media (max-width: 560px) {
+  #header { padding: 16px 20px 14px; }
+  #messages { padding: 24px 20px 16px; }
+  #input-area { padding: 14px 20px 18px; }
+  #welcome { padding: 32px 20px; }
+  .msg-assistant, .gate-row, .err-row, .thinking-row { padding-left: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="header">
+    <div class="header-left">
+      <a href="/" id="back-link">
+        <span class="back-arrow">←</span>
+        akeru
+      </a>
+      <div class="header-sep"></div>
+      <span class="header-title">Vanik</span>
+    </div>
+    <span class="header-sub">trade intelligence</span>
+  </header>
+
+  <!-- Connecting -->
+  <div id="connecting">
+    <div class="thinking-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <span class="connecting-label">connecting</span>
+  </div>
+
+  <!-- Welcome (shown after session ready, before first message) -->
+  <div id="welcome" class="hidden">
+    <div class="welcome-star">✦</div>
+    <div class="welcome-name">Vanik</div>
+    <div class="welcome-desc">
+      duty rates · HS classification · trade corridors<br>
+      ask about landed cost, tariff schedules, or commodity codes
+    </div>
+    <div class="welcome-example" id="example-query">
+      what is the duty rate for ceramic tiles from India to the UK?
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="messages" class="hidden"></div>
+
+  <!-- Input -->
+  <div id="input-area" class="hidden">
+    <div class="input-row">
+      <input
+        type="text"
+        id="chat-input"
+        placeholder="ask about a product, corridor, or HS code…"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <button id="send-btn" type="button">send</button>
+    </div>
+    <div class="input-hint">↵ return to send</div>
+  </div>
+
+</div>
+
+<script>
+window.VANIK_API_URL = "https://api.akeru.dev";
+
+(function () {
+  var VANIK_API = window.VANIK_API_URL || "";
+
+  var connectingEl = document.getElementById('connecting');
+  var welcomeEl    = document.getElementById('welcome');
+  var messagesEl   = document.getElementById('messages');
+  var inputArea    = document.getElementById('input-area');
+  var inputEl      = document.getElementById('chat-input');
+  var sendBtn      = document.getElementById('send-btn');
+  var exampleEl    = document.getElementById('example-query');
+
+  var sessionId    = null;
+  var eventSource  = null;
+  var streamRow    = null;
+  var streamContent = null;
+  var thinkingRow  = null;
+  var hasMessages  = false;
+
+  // ── State transitions ────────────────────
+  function showConnecting() {
+    connectingEl.classList.remove('hidden');
+    welcomeEl.classList.add('hidden');
+    messagesEl.classList.add('hidden');
+    inputArea.classList.add('hidden');
+  }
+
+  function showWelcome() {
+    connectingEl.classList.add('hidden');
+    welcomeEl.classList.remove('hidden');
+    messagesEl.classList.add('hidden');
+    inputArea.classList.add('hidden');
+  }
+
+  function showMessages() {
+    connectingEl.classList.add('hidden');
+    welcomeEl.classList.add('hidden');
+    messagesEl.classList.remove('hidden');
+  }
+
+  function showInput(show) {
+    inputArea.classList.toggle('hidden', !show);
+    if (show) {
+      inputEl.focus();
+    }
+  }
+
+  // ── Message rendering ────────────────────
+  function addUserMessage(text) {
+    hasMessages = true;
+    showMessages();
+    var row = document.createElement('div');
+    row.className = 'msg-row msg-user';
+    row.innerHTML =
+      '<div class="msg-label">you</div>' +
+      '<div class="msg-content">' + escapeHtml(text) + '</div>';
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function startAssistantStream() {
+    hasMessages = true;
+    showMessages();
+    streamRow = document.createElement('div');
+    streamRow.className = 'msg-row msg-assistant';
+    streamRow.innerHTML = '<div class="msg-label">vanik</div><div class="msg-content"></div>';
+    streamContent = streamRow.querySelector('.msg-content');
+    messagesEl.appendChild(streamRow);
+    scrollBottom();
+  }
+
+  function appendToken(text) {
+    if (!streamRow) startAssistantStream();
+    streamContent.textContent += text;
+    scrollBottom();
+  }
+
+  function showThinking(show) {
+    if (show && !thinkingRow) {
+      showMessages(); // ensure messages area visible before appending
+      thinkingRow = document.createElement('div');
+      thinkingRow.className = 'thinking-row';
+      thinkingRow.innerHTML =
+        '<div class="thinking-inner">' +
+        '<span class="thinking-label">thinking</span>' +
+        '<div class="thinking-dots"><span></span><span></span><span></span></div>' +
+        '</div>';
+      messagesEl.appendChild(thinkingRow);
+      scrollBottom();
+    } else if (!show && thinkingRow) {
+      thinkingRow.remove();
+      thinkingRow = null;
+    }
+  }
+
+  function renderGate(data) {
+    streamRow = null; streamContent = null;
+    var options = data.options || [];
+    var msg     = data.message || "Select a commodity or provide a 10-digit code.";
+
+    var row = document.createElement('div');
+    row.className = 'gate-row';
+    row.innerHTML =
+      '<div class="gate-prompt">classification gate</div>' +
+      '<div class="gate-message">' + escapeHtml(msg) + '</div>' +
+      '<div class="gate-options">' +
+      options.map(function(opt, i) {
+        var code = String(opt.commodity_code || opt.code || '');
+        var desc = String(opt.description   || opt.label || '').slice(0, 80);
+        return '<button class="gate-option" data-idx="' + i + '">' +
+          (code ? '<span class="gate-code">' + escapeHtml(code) + '</span>' : '') +
+          (desc ? '<span class="gate-desc">' + escapeHtml(desc) + '</span>' : '') +
+          '</button>';
+      }).join('') +
+      '</div>';
+
+    row.querySelectorAll('.gate-option').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx  = parseInt(btn.dataset.idx, 10);
+        var opt  = options[idx];
+        var code = String(opt.commodity_code || opt.code || '');
+        var desc = String(opt.description    || opt.label || '');
+        sendMessage(code || desc);
+      });
+    });
+
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function renderError(msg, type) {
+    streamRow = null; streamContent = null;
+    var row = document.createElement('div');
+    row.className = 'err-row';
+    var label = type === 'clarify' ? 'clarification needed' : 'error';
+    row.innerHTML =
+      '<div class="err-content">' +
+      '<span style="color:rgba(220,100,80,0.6);letter-spacing:0.15em;font-size:8px;text-transform:uppercase;">' + label + ' · </span>' +
+      escapeHtml(msg || 'Something went wrong.') +
+      '</div>';
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
+
+  // ── SSE ─────────────────────────────────
+  function connectSSE() {
+    if (!sessionId || eventSource) return;
+    var url = VANIK_API + '/sessions/' + encodeURIComponent(sessionId) + '/sse';
+    eventSource = new EventSource(url);
+    eventSource.onmessage = onSSEEvent;
+    eventSource.onerror = function() {
+      if (eventSource) { eventSource.close(); eventSource = null; }
+      showThinking(false);
+      // Only show error if we were mid-stream (not a normal post-done close)
+      if (streamRow || thinkingRow) {
+        streamRow = null; streamContent = null;
+        renderError('Connection interrupted. Please try again.', 'error');
+        showInput(true);
+      }
+    };
+  }
+
+  function onSSEEvent(e) {
+    var data;
+    try { data = JSON.parse(e.data); } catch (_) { return; }
+    var type = data.type;
+
+    if (type === 'thinking') {
+      showThinking(data.visible === true);
+    } else if (type === 'token') {
+      showThinking(false);
+      appendToken(data.content || '');
+    } else if (type === 'gate') {
+      showThinking(false);
+      streamRow = null; streamContent = null;
+      renderGate(data);
+      showInput(false);
+    } else if (type === 'done') {
+      showThinking(false);
+      streamRow = null; streamContent = null;
+      showInput(true);
+      if (eventSource) { eventSource.close(); eventSource = null; }
+    } else if (type === 'error' || type === 'clarify') {
+      showThinking(false);
+      renderError(data.message, type);
+      showInput(true);
+      if (eventSource) { eventSource.close(); eventSource = null; }
+    }
+  }
+
+  // ── Send ─────────────────────────────────
+  function sendMessage(text) {
+    text = String(text).trim();
+    if (!sessionId || !text) return;
+    addUserMessage(text);
+    showInput(false);
+    sendBtn.disabled = true;
+
+    // Reconnect SSE if needed
+    if (!eventSource) connectSSE();
+
+    fetch(VANIK_API + '/sessions/' + encodeURIComponent(sessionId) + '/msg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'user', content: text }),
+    })
+      .then(function(r) {
+        if (r.status !== 202) return r.json().then(function(j) { return Promise.reject(j); });
+        showThinking(true);
+      })
+      .catch(function(err) {
+        renderError(err && err.message ? err.message : 'Failed to send message.', 'error');
+        showInput(true);
+      })
+      .finally(function() { sendBtn.disabled = false; });
+  }
+
+  // ── Init ─────────────────────────────────
+  showConnecting();
+
+  fetch(VANIK_API + '/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+    .then(function(r) {
+      if (r.status !== 201) return r.json().then(function(j) { return Promise.reject(j); });
+      return r.json();
+    })
+    .then(function(body) {
+      sessionId = body.session_id;
+      connectSSE();
+      // Wait for welcome SSE — fall back to welcome screen after 3s if nothing arrives
+      var welcomeTimer = setTimeout(function() { showWelcome(); showInput(true); }, 3000);
+      if (eventSource) {
+        eventSource.onmessage = function(e) {
+          var data;
+          try { data = JSON.parse(e.data); } catch (_) { return; }
+          if (data.type === 'token' || data.type === 'done') {
+            clearTimeout(welcomeTimer);
+            if (data.type === 'token') {
+              showMessages();
+              startAssistantStream();
+              appendToken(data.content || '');
+            }
+            if (data.type === 'done') {
+              // Welcome stream complete — close SSE, show welcome + input
+              if (eventSource) { eventSource.close(); eventSource = null; }
+              showWelcome();
+              showInput(true);
+            }
+            // Hand off to normal handler for subsequent events
+            if (eventSource) eventSource.onmessage = onSSEEvent;
+          } else {
+            onSSEEvent(e);
+          }
+        };
+      }
+    })
+    .catch(function(err) {
+      connectingEl.classList.add('hidden');
+      messagesEl.classList.remove('hidden');
+      renderError(err && err.message ? err.message : 'Could not connect to Vanik.', 'error');
+    });
+
+  // Example query click — pre-fill input, stay on welcome until user sends
+  exampleEl.addEventListener('click', function() {
+    inputEl.value = exampleEl.textContent.trim();
+    inputEl.focus();
+  });
+
+  // Input handlers
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(inputEl.value);
+      inputEl.value = '';
+    }
+  });
+
+  sendBtn.addEventListener('click', function() {
+    sendMessage(inputEl.value);
+    inputEl.value = '';
+  });
+
+})();
+</script>
+</body>
+</html>
