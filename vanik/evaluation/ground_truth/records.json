@@ -1,0 +1,24 @@
+[
+  {
+    "record_id": "IN_UK_EU_870830_SI_001",
+    "hs_code_6": "870830",
+    "description": "Brakes and servo-brakes; parts thereof",
+    "corridors": [
+      {
+        "origin": "IN",
+        "destination": "GB",
+        "commodity_code_10": "8708301090",
+        "mfn_rate_pct": 2.0,
+        "measure_type": "103",
+        "source": "UK Trade Tariff API",
+        "verified_date": "2025-03-02"
+      }
+    ],
+    "india_import_rate": {
+      "hs_code_6": "870830",
+      "mfn_rate_pct": 15.0,
+      "year": 2023,
+      "source": "WTO Timeseries API"
+    }
+  }
+]
