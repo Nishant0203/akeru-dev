@@ -73,6 +73,7 @@ class CircuitBreaker:
     def allow_request(self) -> bool:
         now = datetime.now(UTC)
         with self._lock:
+            self._prune(now)
             if self._state == "open":
                 assert self._opened_at is not None
                 if (now - self._opened_at).total_seconds() >= self.probe_timeout_seconds:

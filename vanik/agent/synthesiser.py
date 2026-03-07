@@ -21,6 +21,7 @@ def build(
     hs_code_source: str,
     origin: str,
     destination: str,
+    description: str = "",
 ) -> dict:
     """Build narrative + structured LandedCost output."""
     destination = destination.upper()
@@ -59,6 +60,7 @@ def build(
             "data": {
                 "vanik.compliance.LandedCost": {
                     "hs_code": commodity_code,
+                    "description": description,
                     "origin": origin,
                     "destination": destination,
                     "mfn_rate_pct": selected_rate,

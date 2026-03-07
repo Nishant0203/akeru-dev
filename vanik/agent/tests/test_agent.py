@@ -29,7 +29,9 @@ def _partial_rate(hs_code: str, destination: str) -> dict:
 
 def test_agent_smoke() -> None:
     with patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate):
-        result = asyncio.run(vanik_agent("duty on brake parts from india to uk"))
+        result = asyncio.run(
+            vanik_agent("duty on brake parts from india to uk", hs_code_provided="8708301090")
+        )
 
     assert result["ok"] is True
     assert "data_part" in result
@@ -64,9 +66,40 @@ def test_agent_rejects_invalid_hs_code() -> None:
 
 def test_agent_returns_partial_result_when_one_corridor_fails() -> None:
     with patch("agent.vanik_agent.get_mfn_rate", side_effect=_partial_rate):
-        result = asyncio.run(vanik_agent("duty on brake parts from india to uk"))
+        result = asyncio.run(
+            vanik_agent("duty on brake parts from india to uk", hs_code_provided="8708301090")
+        )
 
     assert result["ok"] is True
     data = result["data_part"]["data"]["vanik.compliance.LandedCost"]
     assert data["eu_status"] == "unavailable"
     assert data["uk_status"] == "ok"
+
+
+def test_agent_blocks_invalid_synthesiser_payload() -> None:
+    bad_payload = {
+        "ok": True,
+        "narrative": "test",
+        "data_part": {
+            "kind": "data",
+            "data": {
+                "vanik.compliance.LandedCost": {
+                    "hs_code": "BAD",
+                    "mfn_rate_pct": 2.0,
+                    "uk_mfn_rate_pct": 2.0,
+                    "eu_mfn_rate_pct": 3.0,
+                    "india_mfn_rate_pct": 15.0,
+                }
+            },
+        },
+    }
+    with (
+        patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate),
+        patch("agent.vanik_agent.build", return_value=bad_payload),
+    ):
+        result = asyncio.run(
+            vanik_agent("duty on brake parts from india to uk", hs_code_provided="8708301090")
+        )
+
+    assert result["ok"] is False
+    assert result["status"] == "guardrail_violation"

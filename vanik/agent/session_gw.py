@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
+from queue import Empty
 from typing import Any
+from uuid import uuid4
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -40,7 +43,7 @@ async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool 
         session.last_response_events.append(event)
         if len(session.last_response_events) > 500:
             session.last_response_events = session.last_response_events[-500:]
-    await session.event_queue.put(event)
+    session.event_queue.put(event)
 
 
 async def _stream_narrative_tokens(session: SessionState, narrative: str) -> None:
@@ -70,7 +73,7 @@ def _build_anchor_from_result(session: SessionState, query: str, result: dict[st
         user_id=session.user_id,
         label=label,
         hs_code=hs_code,
-        description="",
+        description=str(lc.get("description", "")),
         corridor=f"{origin} -> {destination}",
         prior_query=query,
         rates_summary=rates_summary,
@@ -152,6 +155,60 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     session.last_response_events.clear()
 
 
+async def _run_agent_job(
+    *,
+    session: SessionState,
+    user_query: str,
+    gate_selection: str | None,
+    precomputed_entities: dict[str, Any] | None = None,
+    gate_options: list[dict[str, Any]] | None = None,
+) -> None:
+    """Run one agent turn asynchronously so POST /msg can return 202 immediately."""
+    try:
+        result = await vanik_agent(
+            user_query,
+            gate_selection=gate_selection,
+            precomputed_entities=precomputed_entities,
+            gate_options=gate_options,
+        )
+        await _handle_agent_result(session, user_query, result)
+    except Exception as exc:  # pragma: no cover - defensive path
+        session.state = "active"
+        await _emit(
+            session,
+            {
+                "type": "error",
+                "code": "agent_execution_error",
+                "message": "Agent execution failed.",
+                "details": {"error": str(exc)},
+            },
+        )
+    finally:
+        await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+
+
+def _spawn_agent_job(
+    *,
+    session: SessionState,
+    user_query: str,
+    gate_selection: str | None,
+    precomputed_entities: dict[str, Any] | None = None,
+    gate_options: list[dict[str, Any]] | None = None,
+) -> None:
+    def _runner() -> None:
+        asyncio.run(
+            _run_agent_job(
+                session=session,
+                user_query=user_query,
+                gate_selection=gate_selection,
+                precomputed_entities=precomputed_entities,
+                gate_options=gate_options,
+            )
+        )
+
+    threading.Thread(target=_runner, daemon=True).start()
+
+
 async def create_session(request: Request) -> JSONResponse:
     seed: dict[str, Any] = {}
     if request.headers.get("content-type", "").startswith("application/json"):
@@ -192,18 +249,19 @@ async def post_session_message(request: Request) -> JSONResponse:
 
     if session.pending_gate:
         pending = dict(session.pending_gate)
-        result = await vanik_agent(
-            pending.get("query", ""),
+        _spawn_agent_job(
+            session=session,
+            user_query=pending.get("query", ""),
             gate_selection=content,
             precomputed_entities=pending.get("entities", {}),
             gate_options=pending.get("options", []),
         )
-        await _handle_agent_result(session, pending.get("query", ""), result)
     else:
-        result = await vanik_agent(content, gate_selection=None)
-        await _handle_agent_result(session, content, result)
-
-    await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+        _spawn_agent_job(
+            session=session,
+            user_query=content,
+            gate_selection=None,
+        )
     return JSONResponse({"ok": True, "accepted": True}, status_code=202)
 
 
@@ -265,8 +323,8 @@ async def stream_events(request: Request) -> StreamingResponse | JSONResponse:
                 break
 
             try:
-                event = await asyncio.wait_for(session.event_queue.get(), timeout=15)
-            except TimeoutError:
+                event = await asyncio.to_thread(session.event_queue.get, True, 15)
+            except Empty:
                 yield b": keepalive\n\n"
                 continue
 
@@ -337,7 +395,7 @@ async def api_query(request: Request) -> JSONResponse:
             return None
         return round(quantity_val * unit_val * (rate / 100.0), 2)
 
-    api_session_id = "api"
+    api_session_id = f"api:{uuid4().hex}"
     query_id = deterministic_query_id(api_session_id, 1, query)
 
     payload = {

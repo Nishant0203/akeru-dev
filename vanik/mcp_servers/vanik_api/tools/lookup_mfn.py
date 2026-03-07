@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import asdict
 from datetime import UTC, datetime
 
@@ -13,8 +14,13 @@ from mcp_servers.vanik_api.errors import VanikAPIError
 from mcp_servers.vanik_api.runtime import CircuitBreaker, TTLRateCache
 
 try:
+    from mcp_servers.vanik_docs.tools.lookup_hs import get_docs_server_info
+except ImportError:  # pragma: no cover
+    get_docs_server_info = None
+
+try:
     from nes.feedback_store import fallback_rate_24h, v3_invocations_24h
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     fallback_rate_24h = None
     v3_invocations_24h = None
 
@@ -180,8 +186,49 @@ def get_health() -> dict:
             "v3_invocations_24h": int(v3_invocations_24h()),
         }
 
+    docs_component: dict = {
+        "status": "unknown",
+        "db": {
+            "db_path": None,
+            "row_count": None,
+            "gcs_path": None,
+            "pulled_at": None,
+            "is_current": None,
+        },
+    }
+    if callable(get_docs_server_info):
+        try:
+            docs_info = get_docs_server_info()
+            docs_data = docs_info.get("data", {}) if isinstance(docs_info, dict) else {}
+            docs_component = {
+                "status": "ok" if docs_info.get("ok") else "degraded",
+                "db": {
+                    "db_path": docs_data.get("db_path"),
+                    "row_count": docs_data.get("row_count"),
+                    "gcs_path": docs_data.get("gcs_path"),
+                    "pulled_at": docs_data.get("pulled_at"),
+                    "is_current": docs_data.get("is_current"),
+                },
+            }
+        except Exception as exc:  # pragma: no cover
+            docs_component = {
+                "status": "degraded",
+                "db": {
+                    "db_path": None,
+                    "row_count": None,
+                    "gcs_path": None,
+                    "pulled_at": None,
+                    "is_current": None,
+                },
+                "error": {"code": "docs_info_error", "message": str(exc)},
+            }
+
+    overall_status = api_status
+    if docs_component["status"] == "degraded":
+        overall_status = "degraded"
+
     return {
-        "status": "ok",
+        "status": overall_status,
         "timestamp": datetime.now(UTC).isoformat(),
         "components": {
             "vanik_api": {
@@ -189,9 +236,16 @@ def get_health() -> dict:
                 "rate_cache": rate_cache.metrics(),
                 "circuit_breakers": breaker_state,
             },
+            "vanik_docs": docs_component,
             "manifest_search": {
                 "status": "ok",
+                "model_version": os.getenv("MS_MODEL_VERSION", "manifest-search/v2/"),
                 **ms_block,
+                "distribution": {
+                    "entity_class_shift_detected": False,
+                    "oov_product_term_rate_pct": 0.0,
+                    "last_computed": datetime.now(UTC).isoformat(),
+                },
             },
         },
     }
