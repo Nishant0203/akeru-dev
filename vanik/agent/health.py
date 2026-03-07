@@ -10,15 +10,28 @@ from agent.anchor_store import info as anchor_store_info
 from agent.query_log import info as query_log_info
 from mcp_servers.vanik_api.tools.lookup_mfn import get_health as get_vanik_api_health
 from mcp_servers.vanik_docs.tools.lookup_hs import get_docs_server_info
-from nes.feedback_store import fallback_rate_24h, v3_invocations_24h
+
+try:
+    from nes.feedback_store import fallback_rate_24h, v3_invocations_24h
+except ImportError:  # pragma: no cover - optional dependency
+    fallback_rate_24h = None
+    v3_invocations_24h = None
 
 
-def _fallback_rate_pct() -> float:
+def _fallback_rate_pct() -> float | None:
+    if fallback_rate_24h is None:
+        return None
     try:
         ratio = float(fallback_rate_24h())
     except TypeError:
         ratio = float(fallback_rate_24h(None))
     return round(ratio * 100.0, 2)
+
+
+def _v3_invocations_24h() -> int | None:
+    if v3_invocations_24h is None:
+        return None
+    return int(v3_invocations_24h())
 
 
 def build_health_snapshot() -> dict[str, Any]:
@@ -32,7 +45,7 @@ def build_health_snapshot() -> dict[str, Any]:
         "status": "ok",
         "model_version": os.getenv("MS_MODEL_VERSION", "manifest-search/v2/"),
         "fallback_rate_24h_pct": _fallback_rate_pct(),
-        "v3_invocations_24h": int(v3_invocations_24h()),
+        "v3_invocations_24h": _v3_invocations_24h(),
         "distribution": {
             "entity_class_shift_detected": False,
             "oov_product_term_rate_pct": 0.0,

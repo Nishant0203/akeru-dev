@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vanik – akeru.dev</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a1f;
+      --text: #e8e8ed;
+      --muted: #888;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --border: #2a2a32;
+      --card: #222228;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; }
+    .star-open {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: background .2s, transform .15s;
+    }
+    .star-open:hover { background: var(--accent-hover); transform: scale(1.05); }
+    .chat-panel {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+    .chat-panel.hidden { display: none; }
+    .chat-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+    .chat-header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .chat-close {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+    .chat-close:hover { color: var(--text); }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .message-assistant {
+      max-width: 85%;
+      align-self: flex-start;
+    }
+    .streaming-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    .thinking {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .thinking-dots::after { content: ""; animation: dots 1s steps(4, end) infinite; }
+    @keyframes dots { 0%, 20% { content: "."; } 40% { content: ".."; } 60%, 100% { content: "..."; } }
+    .gate-widget {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      max-width: 100%;
+    }
+    .gate-widget .gate-message { margin-bottom: 0.75rem; color: var(--muted); font-size: 0.9rem; }
+    .gate-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .gate-option {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: border-color .15s, background .15s;
+    }
+    .gate-option:hover { border-color: var(--accent); background: rgba(99, 102, 241, 0.08); }
+    .gate-option code { font-size: 0.85em; }
+    .chat-input-area {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .chat-input-area.hidden { display: none; }
+    .chat-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+    }
+    .chat-input:focus { outline: none; border-color: var(--accent); }
+    .chat-send {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .chat-send:hover { background: var(--accent-hover); }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-banner { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 0.75rem; color: #fca5a5; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <button type="button" class="star-open" id="star-open" aria-label="Open Vanik chat">★</button>
+
+  <div class="chat-panel hidden" id="chat-panel">
+    <header class="chat-header">
+      <h1>Vanik</h1>
+      <button type="button" class="chat-close" id="chat-close" aria-label="Close">×</button>
+    </header>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area hidden" id="chat-input-area">
+      <div class="chat-input-row">
+        <input type="text" class="chat-input" id="chat-input" placeholder="Ask about duty, HS codes, corridors…" autocomplete="off" />
+        <button type="button" class="chat-send" id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const VANIK_API = window.VANIK_API_URL || "";
+      const $ = (id) => document.getElementById(id);
+
+      const panel = $("chat-panel");
+      const messagesEl = $("chat-messages");
+      const inputArea = $("chat-input-area");
+      const input = $("chat-input");
+      const sendBtn = $("chat-send");
+      let sessionId = null;
+      let eventSource = null;
+      let streamingEl = null;
+      let thinkingEl = null;
+
+      function showThinking(show) {
+        if (show && !thinkingEl) {
+          thinkingEl = document.createElement("div");
+          thinkingEl.className = "thinking thinking-dots";
+          thinkingEl.textContent = "Thinking";
+          messagesEl.appendChild(thinkingEl);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        } else if (!show && thinkingEl) {
+          thinkingEl.remove();
+          thinkingEl = null;
+        }
+      }
+
+      function appendToken(content) {
+        if (!streamingEl) {
+          streamingEl = document.createElement("div");
+          streamingEl.className = "message-assistant streaming-text";
+          messagesEl.appendChild(streamingEl);
+        }
+        streamingEl.textContent += content;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function renderGate(event) {
+        const widget = document.createElement("div");
+        widget.className = "gate-widget";
+        const msg = event.message || "Select one option or provide a 10-digit code.";
+        const options = event.options || [];
+        widget.innerHTML =
+          '<div class="gate-message">' + escapeHtml(msg) + '</div>' +
+          '<div class="gate-options">' +
+          options.map((opt) => {
+            const code = (opt.commodity_code || opt.code || "").toString();
+            const desc = (opt.description || opt.label || "").toString().slice(0, 60);
+            const label = code ? (desc ? code + " – " + desc : code) : desc || "Option";
+            return '<button type="button" class="gate-option" data-code="' + escapeHtml(code) + '">' + escapeHtml(label) + '</button>';
+          }).join("") +
+          "</div>";
+        options.forEach((opt, i) => {
+          const btn = widget.querySelectorAll(".gate-option")[i];
+          if (btn) btn.addEventListener("click", () => sendMessage(btn.dataset.code));
+        });
+        messagesEl.appendChild(widget);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function showInput(show) {
+        inputArea.classList.toggle("hidden", !show);
+        if (show) input.focus();
+      }
+
+      function onSSEEvent(event) {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch (_) {
+          return;
+        }
+        const type = data.type;
+        if (type === "thinking") {
+          showThinking(data.visible === true);
+          return;
+        }
+        if (type === "token") {
+          appendToken(data.content || "");
+          return;
+        }
+        if (type === "gate") {
+          streamingEl = null;
+          renderGate(data);
+          showInput(false);
+          return;
+        }
+        if (type === "done") {
+          streamingEl = null;
+          showThinking(false);
+          showInput(true);
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          return;
+        }
+        if (type === "error" || type === "clarify") {
+          streamingEl = null;
+          showThinking(false);
+          const err = document.createElement("div");
+          err.className = "error-banner";
+          err.textContent = data.message || (type === "error" ? "Something went wrong." : "Please provide more details.");
+          messagesEl.appendChild(err);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          showInput(true);
+        }
+      }
+
+      function connectSSE() {
+        if (!sessionId || eventSource) return;
+        const url = VANIK_API + "/sessions/" + encodeURIComponent(sessionId) + "/sse";
+        eventSource = new EventSource(url);
+        eventSource.onmessage = onSSEEvent;
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+        };
+      }
+
+      function sendMessage(text) {
+        if (!sessionId || !text) return;
+        const url = VANIK_API + "/sessions/" + encodeURIComponent(sessionId) + "/msg";
+        sendBtn.disabled = true;
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "user", content: String(text).trim() }),
+        })
+          .then((r) => {
+            if (r.status !== 202) return r.json().then((j) => Promise.reject(j));
+            showInput(false);
+            connectSSE();
+          })
+          .catch((err) => {
+            const el = document.createElement("div");
+            el.className = "error-banner";
+            el.textContent = err?.message || "Failed to send.";
+            messagesEl.appendChild(el);
+            showInput(true);
+          })
+          .finally(() => { sendBtn.disabled = false; });
+        input.value = "";
+      }
+
+      $("star-open").addEventListener("click", () => {
+        panel.classList.remove("hidden");
+        messagesEl.innerHTML = "";
+        streamingEl = null;
+        thinkingEl = null;
+        showInput(false);
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        fetch(VANIK_API + "/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        })
+          .then((r) => {
+            if (r.status !== 201) return r.json().then((j) => Promise.reject(j));
+            return r.json();
+          })
+          .then((body) => {
+            sessionId = body.session_id;
+            connectSSE();
+          })
+          .catch((err) => {
+            const el = document.createElement("div");
+            el.className = "error-banner";
+            el.textContent = err?.message || "Could not start session.";
+            messagesEl.appendChild(el);
+            showInput(true);
+          });
+      });
+
+      $("chat-close").addEventListener("click", () => {
+        panel.classList.add("hidden");
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage(input.value);
+        }
+      });
+      sendBtn.addEventListener("click", () => sendMessage(input.value));
+    })();
+  </script>
+</body>
+</html>

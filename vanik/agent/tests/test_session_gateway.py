@@ -50,7 +50,7 @@ def test_session_message_gate_then_selection(tmp_path, monkeypatch) -> None:
 
     with patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate):
         create = client.post("/sessions", json={"user_id": "usr_1", "session_type": "new"})
-        assert create.status_code == 200
+        assert create.status_code == 201
         session_id = create.json()["session_id"]
 
         sent = client.post(
@@ -113,7 +113,7 @@ def test_sse_timeout_on_stalled_agent(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(session_gw, "vanik_agent", mock_stalled_agent)
 
     create = client.post("/sessions", json={"user_id": "usr_2", "session_type": "new"})
-    assert create.status_code == 200
+    assert create.status_code == 201
     session_id = create.json()["session_id"]
 
     sent = client.post(
