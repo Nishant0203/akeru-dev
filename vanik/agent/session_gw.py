@@ -51,7 +51,7 @@ def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True
     session.event_queue.put(event)
 
 
-_WELCOME_MESSAGE = "Welcome. Send a message to get started."
+_WELCOME_MESSAGE = "Welcome to Vanik. Ask me about import duties for any product — for example: brake callipers from India to UK."
 
 
 async def emit_welcome(session: SessionState) -> None:
