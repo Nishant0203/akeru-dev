@@ -15,7 +15,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-from agent.anchor_store import create_anchor, delete_anchor, get_anchor, list_anchors, rename_anchor
+from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
 from agent.health import build_health_snapshot
 from agent.query_log import append_query, deterministic_query_id
 from agent.session_store import SessionState, store
