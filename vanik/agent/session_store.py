@@ -48,6 +48,7 @@ class InMemorySessionStore:
         for session_id in expired:
             session = self._items.pop(session_id)
             session.state = "expired"
+            session.is_closed = True
 
     def create(self, seed: dict[str, Any] | None = None) -> SessionState:
         with self._lock:
