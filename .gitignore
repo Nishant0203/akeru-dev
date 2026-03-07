@@ -1,5 +1,13 @@
 .DS_Store
 
+# Env files (keep examples tracked)
+.env
+.env.local
+.env.*
+*.env
+!vanik/.env.example
+!vanik/config/.env.example
+
 # Python
 __pycache__/
 *.py[cod]

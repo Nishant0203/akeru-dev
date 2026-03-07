@@ -5,9 +5,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-DEFAULT_WTO_API_KEY_PRIMARY = "00f6f3818f8a459e9353ff5b6404dfaa"
-DEFAULT_WTO_API_KEY_SECONDARY = "bd1c83d01aad435c802ce7bfbec71dd5"
-
 
 @dataclass(slots=True)
 class Settings:
@@ -44,8 +41,8 @@ def load_settings() -> Settings:
         embedding_provider=os.getenv("EMBEDDING_PROVIDER", "openai"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
         wto_base_url=os.getenv("WTO_BASE_URL", "https://api.wto.org/timeseries/v1"),
-        wto_api_key_primary=os.getenv("WTO_API_KEY", DEFAULT_WTO_API_KEY_PRIMARY),
-        wto_api_key_secondary=os.getenv("WTO_SECONDARY_API_KEY", DEFAULT_WTO_API_KEY_SECONDARY),
+        wto_api_key_primary=os.getenv("WTO_API_KEY"),
+        wto_api_key_secondary=os.getenv("WTO_SECONDARY_API_KEY"),
         wto_timeout_seconds=float(os.getenv("WTO_TIMEOUT_SECONDS", "20")),
         wto_indicator=os.getenv("WTO_MFN_INDICATOR", "HS_A_0010"),
         wto_reporter_code=os.getenv("WTO_REPORTER_CODE", "356"),
