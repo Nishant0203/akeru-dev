@@ -1,4 +1,9 @@
-"""Manifest Search (MS) compatibility wrapper."""
+# DO NOT USE — retained for reference only. Will be removed or replaced before LLM activation.
+# This module is a ghost extraction path: not called by orchestrator or any production code.
+# The " in " pattern is dangerous (e.g. "arrive in June", "manufactured in China" → origin=IN).
+# Use orchestrator.ms_extract / v2_ner / v3_llm instead.
+
+"""Manifest Search (MS) compatibility wrapper — legacy only."""
 
 from __future__ import annotations
 

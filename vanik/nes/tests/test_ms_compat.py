@@ -1,4 +1,4 @@
-from nes.extractor import extract_entities
+from nes._legacy_extractor import extract_entities
 
 
 def test_extract_hs_code() -> None:

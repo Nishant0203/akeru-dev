@@ -79,6 +79,23 @@ def insert_tariff_rows(rows: list[dict[str, Any]], doc_type: str = "cbic") -> in
     return len(normalized)
 
 
+def search_tariff_rows_by_description(term: str, limit: int = 10) -> list[dict[str, Any]]:
+    """Search tariff_rows by description LIKE %term%. Returns list of dicts with hs_code, description, etc."""
+    t = f"%{term.strip()}%" if term else "%"
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT doc_type, hs_code, description, bcd_rate_pct, unit, notes, created_at
+            FROM tariff_rows
+            WHERE description LIKE ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (t, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def lookup_hs(hs_code: str, doc_type: str = "cbic") -> list[dict[str, Any]]:
     """Lookup rows by exact HS code and doc type."""
     if doc_type not in {"cbic", "taric"}:

@@ -49,6 +49,7 @@ def ner_is_sufficient(entities: dict) -> tuple[bool, FailureReason | None]:
     if not entities.get("origin") and not entities.get("destination"):
         return False, "no_corridor"
 
+    # Known false positive: any 6-digit number (e.g. order ID, quantity 200000) triggers hs_code_missed.
     raw_query = str(entities.get("_raw", ""))
     if raw_query and HS_PATTERN.search(raw_query) and not entities.get("hs_code_provided"):
         return False, "hs_code_missed"
