@@ -37,3 +37,15 @@ def test_sufficiency_accepts_single_origin_candidate() -> None:
     )
     assert ok is True
     assert reason is None
+
+
+def test_sufficiency_flags_partial_corridor_as_insufficient() -> None:
+    ok, reason = ner_is_sufficient(
+        {
+            "product_terms": ["brake callipers"],
+            "origin": "IN",
+            "destination": None,
+        }
+    )
+    assert ok is False
+    assert reason == "no_corridor"

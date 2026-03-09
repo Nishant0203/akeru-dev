@@ -19,6 +19,7 @@ async def ms_extract(raw_query: str) -> dict:
         return v2_entities
 
     v3_entities = await llm_extract(raw_query)
+    v3_entities["_raw"] = raw_query
     log_ms_invocation(raw_query=raw_query, used_v3=True)
     log_feedback(
         raw_query=raw_query,

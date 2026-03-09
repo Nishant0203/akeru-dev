@@ -46,7 +46,7 @@ def ner_is_sufficient(entities: dict) -> tuple[bool, FailureReason | None]:
     if len(candidate_origin_codes) > 1 and not explicit_origin_codes:
         return False, "ambiguous_origin"
 
-    if not entities.get("origin") and not entities.get("destination"):
+    if not entities.get("origin") or not entities.get("destination"):
         return False, "no_corridor"
 
     # Known false positive: any 6-digit number (e.g. order ID, quantity 200000) triggers hs_code_missed.

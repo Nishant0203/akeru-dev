@@ -54,6 +54,7 @@ async def _lookup_and_synthesise(
     confirmed_code: str,
     human_confirmed: bool,
     hs_code_source: str,
+    description: str | None = None,
 ) -> dict:
     hs6 = confirmed_code[:6]
 
@@ -85,10 +86,11 @@ async def _lookup_and_synthesise(
             "errors": [errors["GB"], errors["EU"], errors["IN"]],
         }
 
-    description = ""
-    terms = entities.get("product_terms")
-    if isinstance(terms, list) and terms:
-        description = str(terms[0])
+    resolved_description = description or ""
+    if not resolved_description:
+        terms = entities.get("product_terms")
+        if isinstance(terms, list) and terms:
+            resolved_description = str(terms[0])
 
     synthesized = build(
         commodity_code=confirmed_code,
@@ -100,7 +102,7 @@ async def _lookup_and_synthesise(
         hs_code_source=hs_code_source,
         origin=str(entities.get("origin") or "").upper(),
         destination=str(entities.get("destination") or "").upper(),
-        description=description,
+        description=resolved_description,
     )
 
     valid, reason = validate_agent_output(synthesized)
@@ -195,6 +197,7 @@ async def vanik_agent(
             stacklevel=2,
         )
         confirmed_code = str(options[0]["commodity_code"])
+        selected_description = str(options[0].get("description", ""))
     else:
         try:
             confirmed_code = resolve_selection(gate_selection, options)
@@ -208,10 +211,15 @@ async def vanik_agent(
                 "error": {"code": "invalid_gate_selection", "message": str(exc)},
                 "entities": entities,
             }
+        selected_description = next(
+            (str(option.get("description", "")) for option in options if str(option["commodity_code"]) == confirmed_code),
+            "",
+        )
 
     return await _lookup_and_synthesise(
         entities=entities,
         confirmed_code=confirmed_code,
         human_confirmed=True,
         hs_code_source="human_confirmed",
+        description=selected_description,
     )
