@@ -30,10 +30,10 @@ def resolve_selection(selection: str, options: list[dict]) -> str:
 
     Supports:
     - numeric index (1-based)
-    - direct 10-digit commodity code
+    - direct 6/8/10-digit HS code
     """
     token = selection.strip()
-    if token.isdigit() and len(token) == 10:
+    if token.isdigit() and len(token) in {6, 8, 10}:
         return token
 
     if token.isdigit():
@@ -41,4 +41,4 @@ def resolve_selection(selection: str, options: list[dict]) -> str:
         if 0 <= idx < len(options):
             return str(options[idx]["commodity_code"])
 
-    raise ValueError("Invalid gate selection. Enter an option number or a 10-digit code.")
+    raise ValueError("Invalid gate selection. Enter an option number or a 6/8/10-digit code.")

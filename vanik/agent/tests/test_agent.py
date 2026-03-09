@@ -76,6 +76,33 @@ def test_agent_returns_partial_result_when_one_corridor_fails() -> None:
     assert data["uk_status"] == "ok"
 
 
+def test_agent_uses_gate_option_description_in_synthesised_output() -> None:
+    entities = {
+        "product_terms": ["brake parts"],
+        "hs_code_provided": None,
+        "origin": "IN",
+        "destination": "GB",
+    }
+    options = [
+        {
+            "commodity_code": "8708301090",
+            "description": "Brake linings and pads for motor vehicles",
+        }
+    ]
+    with patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate):
+        result = asyncio.run(
+            vanik_agent(
+                "duty on brake parts from india to uk",
+                gate_selection="1",
+                precomputed_entities=entities,
+                gate_options=options,
+            )
+        )
+
+    data = result["data_part"]["data"]["vanik.compliance.LandedCost"]
+    assert data["description"] == "Brake linings and pads for motor vehicles"
+
+
 def test_agent_blocks_invalid_synthesiser_payload() -> None:
     bad_payload = {
         "ok": True,
