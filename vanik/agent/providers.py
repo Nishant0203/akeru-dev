@@ -1,9 +1,4 @@
-"""Model provider abstraction layer.
-
-TODO: Stub only. When LLM calls are wired, this must return an actual client
-(e.g. anthropic.Anthropic(), openai.OpenAI()) — not a dict. Do not route
-production extraction or completion through this until implemented.
-"""
+"""Model provider abstraction layer."""
 
 from __future__ import annotations
 
@@ -11,16 +6,43 @@ import os
 
 
 def get_completion_client() -> object:
-    """Stub: returns a dict. Replace with real client before LLM activation."""
-    provider = os.getenv("MODEL_PROVIDER", "anthropic")
+    """Return a real LLM client based on MODEL_PROVIDER."""
+    provider = os.getenv("MODEL_PROVIDER", "anthropic").strip().lower()
 
     if provider == "anthropic":
-        return {"provider": "anthropic"}
-    if provider == "openai":
-        return {
-            "provider": "openai",
-            "base": os.getenv("OPENAI_API_BASE"),
-            "deployment": os.getenv("OPENAI_DEPLOYMENT_NAME"),
-        }
+        try:
+            import anthropic  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "anthropic package not installed. Install project dependencies to use "
+                "MODEL_PROVIDER=anthropic."
+            ) from exc
 
-    raise ValueError(f"Unknown MODEL_PROVIDER: {provider}")
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY is not set. Add it to the Vanik runtime environment "
+                "before enabling MODEL_PROVIDER=anthropic."
+            )
+        return anthropic.Anthropic(api_key=api_key)
+
+    if provider == "openai":
+        try:
+            import openai  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "openai package not installed. Install project dependencies to use "
+                "MODEL_PROVIDER=openai."
+            ) from exc
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set. Add it to the Vanik runtime environment "
+                "before enabling MODEL_PROVIDER=openai."
+            )
+
+        base_url = os.getenv("OPENAI_API_BASE") or None
+        return openai.OpenAI(api_key=api_key, base_url=base_url)
+
+    raise ValueError(f"Unknown MODEL_PROVIDER: {provider!r}")
