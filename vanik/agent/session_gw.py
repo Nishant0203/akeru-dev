@@ -17,7 +17,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-CORS_ORIGINS = ["https://akeru.dev", "http://localhost:3000", "http://127.0.0.1:3000"]
+CORS_ORIGINS = [
+    "https://akeru.dev",
+    "https://www.akeru.dev",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
 from agent.health import build_health_snapshot
@@ -122,7 +127,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
                 "type": "gate",
                 "options": result.get("options", []),
                 "allow_manual": result.get("allow_manual_hs", True),
-                "message": result.get("message", "Select one option or provide a 10-digit code."),
+                "message": result.get("message", "Select one option or provide a 6/8/10-digit code."),
             },
         )
         return

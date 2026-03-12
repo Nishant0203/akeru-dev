@@ -184,7 +184,7 @@ async def vanik_agent(
         return {
             "ok": False,
             "status": "awaiting_confirmation",
-            "message": "Select one option or enter a 10-digit commodity code.",
+            "message": "Select one option or enter a 6/8/10-digit commodity code.",
             "options": options,
             "allow_manual_hs": True,
             "entities": entities,
