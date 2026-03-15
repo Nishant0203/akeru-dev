@@ -9,7 +9,10 @@ import threading
 
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda _: None  # noqa: ARG005
 
 # Load .env from vanik/ so ANTHROPIC_API_KEY, OPENAI_API_KEY, etc. are available at runtime
 _vanik_root = Path(__file__).resolve().parent.parent

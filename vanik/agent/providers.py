@@ -3,6 +3,16 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda _: None  # noqa: ARG005
+
+# Ensure .env is loaded when this module is used (e.g. by vanik_agent), not only when gateway runs
+_vanik_root = Path(__file__).resolve().parent.parent
+load_dotenv(_vanik_root / ".env")
 
 
 def get_completion_client() -> object:

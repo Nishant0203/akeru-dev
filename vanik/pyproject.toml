@@ -15,6 +15,7 @@ dependencies = [
   "anthropic",
   "openai>=1.0.0",
   "google-generativeai>=0.8.0",
+  "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +28,7 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = "-q"
+testpaths = ["agent/tests", "nes/tests", "mcp_servers/vanik_api/tests", "mcp_servers/vanik_docs/tests"]
 
 [tool.ruff]
 line-length = 100
