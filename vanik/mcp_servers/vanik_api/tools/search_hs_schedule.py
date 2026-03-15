@@ -33,11 +33,7 @@ def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[d
                 for r in rows
             ]
 
-    # Stub when DB unavailable or no matches
+    # Stub when DB unavailable or no matches — return empty so gate shows "no match"
+    # Do NOT return hardcoded candidates; they mislead users with wrong HS codes.
     _ = embed(query)
-    candidates = [
-        {"commodity_code": "8708301090", "description": "Brakes and servo-brakes: disc brakes"},
-        {"commodity_code": "8708309000", "description": "Brakes and servo-brakes: other"},
-        {"commodity_code": "8708991000", "description": "Other parts and accessories (residual)"},
-    ]
-    return candidates[:top_k]
+    return []

@@ -12,7 +12,11 @@ except ImportError:
 
 # Ensure .env is loaded when this module is used (e.g. by vanik_agent), not only when gateway runs
 _vanik_root = Path(__file__).resolve().parent.parent
-load_dotenv(_vanik_root / ".env")
+_env_file = _vanik_root / ".env"
+_alt_env = _vanik_root / "Vanik_connections.env"
+load_dotenv(_env_file)
+if not _env_file.exists() and _alt_env.exists():
+    load_dotenv(_alt_env)
 
 
 def get_completion_client() -> object:

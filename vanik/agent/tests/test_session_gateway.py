@@ -45,10 +45,21 @@ def _build_test_client(tmp_path, monkeypatch) -> TestClient:
     return TestClient(session_gw.app)
 
 
+def _stub_gate_options() -> list:
+    """Return stub HS options so agent reaches confirmation gate (DB-empty returns [])."""
+    return [
+        {"commodity_code": "8708301090", "description": "Brakes and servo-brakes: disc brakes"},
+        {"commodity_code": "8708309000", "description": "Brakes and servo-brakes: other"},
+    ]
+
+
 def test_session_message_gate_then_selection(tmp_path, monkeypatch) -> None:
     client = _build_test_client(tmp_path, monkeypatch)
 
-    with patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate):
+    with (
+        patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate),
+        patch("agent.vanik_agent.search_hs_schedule", return_value=_stub_gate_options()),
+    ):
         create = client.post("/sessions", json={"user_id": "usr_1", "session_type": "new"})
         assert create.status_code == 201
         session_id = create.json()["session_id"]

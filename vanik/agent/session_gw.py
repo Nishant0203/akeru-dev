@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import threading
 
@@ -16,7 +17,11 @@ except ImportError:
 
 # Load .env from vanik/ so ANTHROPIC_API_KEY, OPENAI_API_KEY, etc. are available at runtime
 _vanik_root = Path(__file__).resolve().parent.parent
-load_dotenv(_vanik_root / ".env")
+_env_file = _vanik_root / ".env"
+_alt_env = _vanik_root / "Vanik_connections.env"
+load_dotenv(_env_file)
+if not _env_file.exists() and _alt_env.exists():
+    load_dotenv(_alt_env)
 from queue import Empty
 from typing import Any
 from uuid import uuid4
@@ -41,6 +46,8 @@ from agent.health import build_health_snapshot
 from agent.query_log import append_query, deterministic_query_id
 from agent.session_store import SessionState, store
 from agent.vanik_agent import vanik_agent
+
+logger = logging.getLogger(__name__)
 
 
 def _json_error(code: str, message: str, status: int = 400) -> JSONResponse:
@@ -235,6 +242,7 @@ async def _run_agent_job(
             return
         await _handle_agent_result(session, user_query, result)
     except Exception as exc:  # pragma: no cover - defensive path
+        logger.exception("Agent execution failed: %s", exc)
         if session.is_closed:
             return
         session.state = "active"

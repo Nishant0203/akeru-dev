@@ -38,7 +38,15 @@ def test_agent_smoke() -> None:
 
 
 def test_agent_can_pause_for_confirmation_gate() -> None:
-    result = asyncio.run(vanik_agent("duty on brake parts from india to uk", gate_selection=None))
+    # Stub options so agent reaches gate (search_hs_schedule returns [] when DB empty)
+    _stub_options = [
+        {"commodity_code": "8708301090", "description": "Brakes and servo-brakes: disc brakes"},
+        {"commodity_code": "8708309000", "description": "Brakes and servo-brakes: other"},
+    ]
+    with patch("agent.vanik_agent.search_hs_schedule", return_value=_stub_options):
+        result = asyncio.run(
+            vanik_agent("duty on brake parts from india to uk", gate_selection=None)
+        )
     assert result["status"] == "awaiting_confirmation"
     assert result["options"]
 
