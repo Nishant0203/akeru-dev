@@ -43,8 +43,35 @@ def _search_api(query: str, top_k: int) -> list[dict[str, Any]]:
     data_block = data.get("data", {})
 
     if isinstance(data_block, dict):
-        # Exact match — expand to heading
         attrs = data_block.get("attributes", {})
+        search_type = attrs.get("type", "")
+
+        # Fuzzy match — extract commodities directly
+        if search_type == "fuzzy_match":
+            matches = attrs.get("goods_nomenclature_match", {})
+            results: list[dict[str, Any]] = []
+            seen: set[str] = set()
+            for item in matches.get("commodities", [])[: top_k * 2]:
+                src = item.get("_source", {})
+                code = src.get("goods_nomenclature_item_id", "")
+                desc = src.get("description", "")
+                if code and desc and code not in seen:
+                    results.append({"commodity_code": code, "description": desc})
+                    seen.add(code)
+                if len(results) >= top_k:
+                    break
+            return results
+
+        # Exact match — expand to heading
+        if search_type == "exact_match":
+            entry = attrs.get("entry", {})
+            code = entry.get("id", "")
+            if code and entry.get("endpoint") == "commodities":
+                heading = code[:4]
+                results = _fetch_heading_commodities(heading, top_k)
+                return results if results else [{"commodity_code": code, "description": query}]
+
+        # Legacy: no type, try entry for exact match
         entry = attrs.get("entry", {})
         code = entry.get("id", "")
         if code and entry.get("endpoint") == "commodities":
@@ -66,28 +93,24 @@ def _search_api(query: str, top_k: int) -> list[dict[str, Any]]:
 
 
 def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[dict[str, Any]]:
-    """Search UK Trade Tariff API for commodity codes. Full phrase first, then per-word."""
+    """Search UK Trade Tariff API. Full phrase first; if few results, also try fuzzy with words."""
     query = " ".join(product_terms) if isinstance(product_terms, list) else product_terms
     query = (query or "").strip()
     if not query:
         return []
 
     try:
-        # Try full phrase first
         results = _search_api(query, top_k)
+        seen_codes = {r.get("commodity_code", "") for r in results}
 
-        # If multiple words, also search each word (len > 3) and merge for related headings
+        # If exact match returned few options, also try fuzzy with meaningful words
         words = [w for w in query.split() if len(w) > 3]
-        if len(words) > 1:
-            seen_codes = {r.get("commodity_code", "") for r in results}
-            for word in words:
-                for r in _search_api(word, top_k):
-                    code = r.get("commodity_code", "")
-                    if code and code not in seen_codes:
-                        results.append(r)
-                        seen_codes.add(code)
-                if len(results) >= top_k * 2:
-                    break
+        if len(words) > 1 and len(results) < top_k:
+            for r in _search_api(" ".join(words), top_k):
+                code = r.get("commodity_code", "")
+                if code and code not in seen_codes:
+                    results.append(r)
+                    seen_codes.add(code)
 
         return results[:top_k]
 
