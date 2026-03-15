@@ -6,6 +6,17 @@ import asyncio
 import json
 import os
 import threading
+
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda _: None  # noqa: ARG005
+
+# Load .env from vanik/ so ANTHROPIC_API_KEY, OPENAI_API_KEY, etc. are available at runtime
+_vanik_root = Path(__file__).resolve().parent.parent
+load_dotenv(_vanik_root / ".env")
 from queue import Empty
 from typing import Any
 from uuid import uuid4
@@ -25,6 +36,7 @@ CORS_ORIGINS = [
 ]
 
 from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
+from agent.guardrails import validate_agent_output
 from agent.health import build_health_snapshot
 from agent.query_log import append_query, deterministic_query_id
 from agent.session_store import SessionState, store
@@ -155,6 +167,20 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
                 "code": status or "agent_error",
                 "message": result.get("message", "Unable to complete query."),
                 "details": result.get("errors") or result.get("error"),
+            },
+        )
+        return
+
+    valid, reason = validate_agent_output(result)
+    if not valid:
+        session.state = "active"
+        _emit(
+            session,
+            {
+                "type": "error",
+                "code": "guardrail_violation",
+                "message": "Generated response failed output guardrail validation.",
+                "details": {"reason": reason or "unknown"},
             },
         )
         return

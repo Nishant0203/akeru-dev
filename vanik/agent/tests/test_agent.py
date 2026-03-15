@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from agent.vanik_agent import vanik_agent
 
@@ -122,7 +122,7 @@ def test_agent_blocks_invalid_synthesiser_payload() -> None:
     }
     with (
         patch("agent.vanik_agent.get_mfn_rate", side_effect=_fake_rate),
-        patch("agent.vanik_agent.build", return_value=bad_payload),
+        patch("agent.vanik_agent.build", new_callable=AsyncMock, return_value=bad_payload),
     ):
         result = asyncio.run(
             vanik_agent("duty on brake parts from india to uk", hs_code_provided="8708301090")

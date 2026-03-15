@@ -10,6 +10,7 @@ from mcp_servers.vanik_api.tools.search_hs_schedule import search_hs_schedule
 from nes.orchestrator import ms_extract
 
 from agent.confirmation_gate import format_options, resolve_selection
+from agent.errors import msg
 from agent.guardrails import validate_agent_output
 from agent.synthesiser import build
 
@@ -78,12 +79,16 @@ async def _lookup_and_synthesise(
     in_rate, in_error = normalize(in_raw, "IN")
 
     errors = {"GB": uk_error, "EU": eu_error, "IN": in_error}
+    _lang = entities.get("_lang") or "en"
+    failed_corridors = [c for c in ("GB", "EU", "IN") if errors.get(c)]
+
     if all(errors.values()):
         return {
             "ok": False,
             "status": "upstream_error",
             "hs_code": confirmed_code,
             "errors": [errors["GB"], errors["EU"], errors["IN"]],
+            "message": msg("upstream_error_all", _lang),
         }
 
     resolved_description = description or ""
@@ -92,7 +97,7 @@ async def _lookup_and_synthesise(
         if isinstance(terms, list) and terms:
             resolved_description = str(terms[0])
 
-    synthesized = build(
+    synthesized = await build(
         commodity_code=confirmed_code,
         uk_rate=uk_rate or {},
         eu_rate=eu_rate or {},
@@ -103,6 +108,8 @@ async def _lookup_and_synthesise(
         origin=str(entities.get("origin") or "").upper(),
         destination=str(entities.get("destination") or "").upper(),
         description=resolved_description,
+        lang=_lang,
+        failed_corridors=failed_corridors,
     )
 
     valid, reason = validate_agent_output(synthesized)
@@ -136,20 +143,29 @@ async def vanik_agent(
         return {
             "ok": False,
             "status": "invalid_input",
-            "message": f"HS code '{hs_code_provided}' is not a valid 6/8/10-digit code",
+            "message": msg("invalid_hs_format", "en", code=hs_code_provided or ""),
         }
 
     entities = dict(precomputed_entities or await ms_extract(user_query))
+
+    if entities.get("_extraction_error"):
+        _lang = entities.get("_lang") or "en"
+        return {
+            "ok": False,
+            "status": "extraction_error",
+            "message": msg("extraction_service_unavailable", _lang),
+        }
 
     if hs_code_provided or entities.get("hs_code_provided"):
         confirmed_code = hs_code_provided or entities.get("hs_code_provided")
         human_confirmed = False
         hs_code_source = "caller_supplied" if hs_code_provided else "query_supplied"
         if not is_valid_hs_format(str(confirmed_code)):
+            _lang = entities.get("_lang") or "en"
             return {
                 "ok": False,
                 "status": "invalid_input",
-                "message": f"HS code '{confirmed_code}' is not a valid 6/8/10-digit code",
+                "message": msg("invalid_hs_format", _lang, code=str(confirmed_code)),
             }
 
         return await _lookup_and_synthesise(
@@ -161,11 +177,18 @@ async def vanik_agent(
 
     missing = _missing_route_fields(entities)
     if missing:
+        _lang = entities.get("_lang") or "en"
+        if not entities.get("origin") and not entities.get("destination"):
+            key = "needs_clarification_both"
+        elif not entities.get("origin"):
+            key = "needs_clarification_origin"
+        else:
+            key = "needs_clarification_destination"
         return {
             "ok": False,
             "status": "needs_clarification",
             "missing": missing,
-            "message": "Please provide origin and destination country codes (e.g., IN, GB).",
+            "message": msg(key, _lang),
         }
 
     options = gate_options
@@ -173,18 +196,20 @@ async def vanik_agent(
         options = format_options(search_hs_schedule(product_terms=entities["product_terms"]))
 
     if not options:
+        _lang = entities.get("_lang") or "en"
         return {
             "ok": False,
             "status": "no_match",
-            "message": "No close HS match found. Provide a simpler product term or enter a 10-digit code.",
+            "message": msg("no_match", _lang),
             "allow_manual_hs": True,
         }
 
     if gate_selection is None:
+        _lang = entities.get("_lang") or "en"
         return {
             "ok": False,
             "status": "awaiting_confirmation",
-            "message": "Select one option or enter a 6/8/10-digit commodity code.",
+            "message": msg("gate_prompt", _lang),
             "options": options,
             "allow_manual_hs": True,
             "entities": entities,
@@ -202,13 +227,15 @@ async def vanik_agent(
         try:
             confirmed_code = resolve_selection(gate_selection, options)
         except ValueError as exc:
+            _lang = entities.get("_lang") or "en"
+            err_msg = msg("invalid_gate_selection", _lang)
             return {
                 "ok": False,
                 "status": "awaiting_confirmation",
-                "message": str(exc),
+                "message": err_msg,
                 "options": options,
                 "allow_manual_hs": True,
-                "error": {"code": "invalid_gate_selection", "message": str(exc)},
+                "error": {"code": "invalid_gate_selection", "message": err_msg},
                 "entities": entities,
             }
         selected_description = next(
