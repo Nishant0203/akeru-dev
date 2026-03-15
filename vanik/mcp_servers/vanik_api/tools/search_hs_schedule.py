@@ -8,37 +8,90 @@ import urllib.request
 from typing import Any
 
 
+def _api_get(url: str) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": "vanik/1.0"})
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        return json.loads(resp.read())
+
+
+def _fetch_heading_commodities(heading_code: str, top_k: int) -> list[dict[str, Any]]:
+    """Fetch all declarable commodity codes under a heading."""
+    url = f"https://www.trade-tariff.service.gov.uk/api/v2/headings/{heading_code}"
+    data = _api_get(url)
+    results: list[dict[str, Any]] = []
+    for item in data.get("included", []):
+        if item.get("type") != "commodity":
+            continue
+        attrs = item.get("attributes", {})
+        code = attrs.get("goods_nomenclature_item_id", "")
+        desc = attrs.get("description", "")
+        declarable = attrs.get("declarable", False)
+        if code and desc and declarable:
+            results.append({"commodity_code": code, "description": desc})
+        if len(results) >= top_k:
+            break
+    return results
+
+
+def _search_api(query: str, top_k: int) -> list[dict[str, Any]]:
+    """Single search query against UK Trade Tariff API."""
+    url = (
+        "https://www.trade-tariff.service.gov.uk/api/v2/search?"
+        + urllib.parse.urlencode({"q": query})
+    )
+    data = _api_get(url)
+    data_block = data.get("data", {})
+
+    if isinstance(data_block, dict):
+        # Exact match — expand to heading
+        attrs = data_block.get("attributes", {})
+        entry = attrs.get("entry", {})
+        code = entry.get("id", "")
+        if code and entry.get("endpoint") == "commodities":
+            heading = code[:4]
+            results = _fetch_heading_commodities(heading, top_k)
+            return results if results else [{"commodity_code": code, "description": query}]
+
+    if isinstance(data_block, list):
+        results = []
+        for item in data_block[:top_k]:
+            attrs = item.get("attributes", {})
+            code = attrs.get("goods_nomenclature_item_id", "")
+            desc = attrs.get("description", "")
+            if code and desc:
+                results.append({"commodity_code": code, "description": desc})
+        return results
+
+    return []
+
+
 def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[dict[str, Any]]:
-    """Search UK Trade Tariff API for commodity codes."""
+    """Search UK Trade Tariff API for commodity codes. Full phrase first, then per-word."""
     query = " ".join(product_terms) if isinstance(product_terms, list) else product_terms
     query = (query or "").strip()
     if not query:
         return []
 
     try:
-        url = "https://www.trade-tariff.service.gov.uk/api/v2/search?" + urllib.parse.urlencode(
-            {"q": query}
-        )
-        req = urllib.request.Request(url, headers={"User-Agent": "vanik/1.0"})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data = json.loads(resp.read())
+        # Try full phrase first
+        results = _search_api(query, top_k)
 
-        results = []
-        for item in data.get("data", [])[:top_k]:
-            attrs = item.get("attributes", {})
-            code = attrs.get("goods_nomenclature_item_id", "")
-            desc = attrs.get("description", "")
-            if code and desc:
-                results.append(
-                    {
-                        "commodity_code": code,
-                        "description": desc,
-                    }
-                )
-        return results
+        # If multiple words, also search each word (len > 3) and merge for related headings
+        words = [w for w in query.split() if len(w) > 3]
+        if len(words) > 1:
+            seen_codes = {r.get("commodity_code", "") for r in results}
+            for word in words:
+                for r in _search_api(word, top_k):
+                    code = r.get("commodity_code", "")
+                    if code and code not in seen_codes:
+                        results.append(r)
+                        seen_codes.add(code)
+                if len(results) >= top_k * 2:
+                    break
+
+        return results[:top_k]
 
     except Exception:
-        # Fallback to DB if API unavailable
         try:
             from mcp_servers.vanik_docs.db import search_tariff_rows_by_description
 
