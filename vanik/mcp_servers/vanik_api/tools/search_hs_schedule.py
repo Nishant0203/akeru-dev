@@ -1,39 +1,51 @@
-"""Tool: search_hs_schedule (DB description search when available, else stub)."""
+"""Tool: search_hs_schedule — UK Trade Tariff API search."""
 
 from __future__ import annotations
 
+import json
+import urllib.parse
+import urllib.request
 from typing import Any
-
-try:
-    from mcp_servers.vanik_docs.db import search_tariff_rows_by_description
-except ImportError:  # pragma: no cover - vanik_docs optional
-    search_tariff_rows_by_description = None
-
-
-def embed(text: str) -> list[float]:
-    """Placeholder embedding call."""
-    if not text.strip():
-        return []
-    return [0.1, 0.2, 0.3]
 
 
 def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[dict[str, Any]]:
-    """Return top-k HS candidates from vanik_docs DB (LIKE on description) or stub."""
+    """Search UK Trade Tariff API for commodity codes."""
     query = " ".join(product_terms) if isinstance(product_terms, list) else product_terms
     query = (query or "").strip()
+    if not query:
+        return []
 
-    if search_tariff_rows_by_description and query:
-        rows = search_tariff_rows_by_description(query, limit=top_k)
-        if rows:
+    try:
+        url = "https://www.trade-tariff.service.gov.uk/api/v2/search?" + urllib.parse.urlencode(
+            {"q": query}
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "vanik/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read())
+
+        results = []
+        for item in data.get("data", [])[:top_k]:
+            attrs = item.get("attributes", {})
+            code = attrs.get("goods_nomenclature_item_id", "")
+            desc = attrs.get("description", "")
+            if code and desc:
+                results.append(
+                    {
+                        "commodity_code": code,
+                        "description": desc,
+                    }
+                )
+        return results
+
+    except Exception:
+        # Fallback to DB if API unavailable
+        try:
+            from mcp_servers.vanik_docs.db import search_tariff_rows_by_description
+
+            rows = search_tariff_rows_by_description(query, limit=top_k)
             return [
-                {
-                    "commodity_code": r.get("hs_code", ""),
-                    "description": r.get("description") or "",
-                }
+                {"commodity_code": r.get("hs_code", ""), "description": r.get("description", "")}
                 for r in rows
             ]
-
-    # Stub when DB unavailable or no matches — return empty so gate shows "no match"
-    # Do NOT return hardcoded candidates; they mislead users with wrong HS codes.
-    _ = embed(query)
-    return []
+        except Exception:
+            return []
