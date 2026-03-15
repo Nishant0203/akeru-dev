@@ -35,6 +35,16 @@ If a field cannot be determined, use null."""
 
 _USER_TMPL = "Query: {query}"
 
+_CREDENTIAL_ERRORS = (
+    "api_key", "authentication", "unauthorized",
+    "permission", "api key", "invalid x-api-key",
+)
+
+
+def _is_credential_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(k in msg for k in _CREDENTIAL_ERRORS)
+
 
 def _empty_result() -> dict:
     return {
@@ -76,7 +86,12 @@ async def llm_extract(raw_query: str) -> dict:
     if not text:
         return _empty_result()
 
-    client = get_completion_client()
+    try:
+        client = get_completion_client()
+    except RuntimeError as exc:
+        logger.error("v3_llm client init failed: %s", exc)
+        return {"_extraction_error": "configuration", "product_terms": [text]}
+
     raw = ""
     try:
         response = await asyncio.to_thread(
@@ -92,7 +107,10 @@ async def llm_extract(raw_query: str) -> dict:
         logger.warning("v3_llm JSON parse failed: %s - raw: %r", exc, raw)
         result = {}
     except Exception as exc:
-        logger.error("v3_llm call failed: %s", exc)
+        if _is_credential_error(exc):
+            logger.error("v3_llm credential error: %s", exc)
+            return {"_extraction_error": "credential", "product_terms": [text]}
+        logger.error("v3_llm call failed (transient): %s", exc)
         result = {}
 
     return {

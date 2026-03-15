@@ -1,8 +1,14 @@
-"""Output formatter/synthesiser stub."""
+"""Output formatter/synthesiser."""
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import UTC, datetime
+
+logger = logging.getLogger(__name__)
+
+_HINDI_SYSTEM = """You are a trade compliance assistant. Given a short English sentence describing MFN tariff rates for an HS code, translate it into fluent Hindi (Devanagari script). Return ONLY the Hindi translation — no preamble, no explanation."""
 
 
 def _rate_or_unavailable(rate: dict, err: dict | None) -> tuple[float | None, str | None]:
@@ -11,7 +17,17 @@ def _rate_or_unavailable(rate: dict, err: dict | None) -> tuple[float | None, st
     return rate.get("mfn_rate_pct"), None
 
 
-def build(
+def _extract_text_content(response: object) -> str:
+    parts = getattr(response, "content", []) or []
+    chunks: list[str] = []
+    for part in parts:
+        text = getattr(part, "text", None)
+        if text:
+            chunks.append(text)
+    return "".join(chunks).strip()
+
+
+async def build(
     commodity_code: str,
     uk_rate: dict,
     eu_rate: dict,
@@ -22,8 +38,10 @@ def build(
     origin: str,
     destination: str,
     description: str = "",
+    lang: str = "en",
+    failed_corridors: list[str] | None = None,
 ) -> dict:
-    """Build narrative + structured LandedCost output."""
+    """Build narrative + structured LandedCost output. Hindi path uses LLM for fluent text."""
     destination = destination.upper()
 
     uk_val, uk_note = _rate_or_unavailable(uk_rate, corridor_errors.get("GB"))
@@ -38,12 +56,38 @@ def build(
             return f"{value}%"
         return note or "unavailable"
 
-    narrative = (
+    narrative_en = (
         f"MFN rates for HS {commodity_code}: "
         f"GB {fmt(uk_val, uk_note)} (UK Trade Tariff API), "
         f"EU {fmt(eu_val, eu_note)} (EU XI Tariff API), "
         f"IN {fmt(in_val, in_note)} (WTO Timeseries API)."
     )
+
+    if failed_corridors:
+        narrative_en += (
+            " Rates for "
+            + ", ".join(failed_corridors)
+            + " could not be retrieved (timeout or API error)."
+        )
+
+    narrative = narrative_en
+    if lang == "hi":
+        try:
+            from agent.providers import get_completion_client
+
+            client = get_completion_client()
+            response = await asyncio.to_thread(
+                client.messages.create,
+                model="claude-haiku-4-5-20251001",
+                max_tokens=256,
+                system=_HINDI_SYSTEM,
+                messages=[{"role": "user", "content": narrative_en}],
+            )
+            hindi_text = _extract_text_content(response)
+            if hindi_text:
+                narrative = hindi_text
+        except Exception as exc:
+            logger.warning("synthesiser Hindi path failed, using English: %s", exc)
 
     return {
         "ok": True,
@@ -54,6 +98,8 @@ def build(
             "calculated_at": datetime.now(UTC).isoformat(),
             "sources": [uk_rate.get("source"), eu_rate.get("source"), in_rate.get("source")],
             "corridor_errors": corridor_errors,
+            "lang": lang,
+            "failed_corridors": failed_corridors or [],
         },
         "data_part": {
             "kind": "data",
