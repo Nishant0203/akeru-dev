@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>akeru · 明ける</title>
-<meta name="description" content="Mriga — the first stirring. A constellation of AI agents.">
+<meta name="description" content="Mrigashira — the fifth nakshatra. A constellation of AI agents.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Noto+Sans+Devanagari:wght@300;400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cormorant+Infant:ital,wght@1,300;1,400&family=DM+Mono:wght@300;400&family=Lora:ital,wght@1,400;1,500&family=Noto+Sans+Devanagari:wght@300;400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -94,7 +94,6 @@ header {
   pointer-events: auto;
   transition: color 0.3s;
 }
-
 #toggleBtn:hover { color: var(--ink); }
 
 .toggle-ring {
@@ -106,91 +105,6 @@ header {
   justify-content: center;
   font-size: 10px;
   flex-shrink: 0;
-}
-
-/* ── MOBILE header ── */
-@media (max-width: 560px) {
-  #ui {
-    padding: 28px 24px 32px;
-  }
-
-  header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .wordmark {
-    font-size: 14px;
-  }
-
-  .wm-kanji {
-    font-size: 16px;
-  }
-
-  #toggleBtn {
-    font-size: 9px;
-    letter-spacing: 0.08em;
-  }
-
-  .toggle-ring {
-    width: 18px; height: 18px;
-    font-size: 9px;
-  }
-}
-
-/* ── CENTRE ── */
-.centre {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  text-align: center;
-  opacity: 0;
-  animation: centreFadeIn 2.8s ease 0.6s forwards;
-}
-
-@keyframes centreFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.nakshatra-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  font-weight: 300;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-mid);
-}
-
-@media (max-width: 560px) {
-  .nakshatra-label { font-size: 9px; letter-spacing: 0.16em; }
-}
-
-.mriga-line {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: center;
-}
-
-.line-devanagari {
-  font-family: 'Noto Sans Devanagari', sans-serif;
-  font-size: clamp(24px, 4vw, 44px);
-  font-weight: 300;
-  color: var(--gold);
-  line-height: 1.3;
-}
-
-.line-english {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(15px, 2.2vw, 24px);
-  font-weight: 300;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  color: rgba(226,221,214,0.75);
-  line-height: 1.3;
 }
 
 /* ── FOOTER ── */
@@ -225,7 +139,67 @@ footer {
   color: rgba(226,221,214,0.18);
 }
 
+
+
+@keyframes hintFadeIn { to { opacity: 1; } }
+
+/* ── MEISSA TRIGGER — hit area, pointer cursor ── */
+#meissa-trigger {
+  position: fixed;
+  z-index: 30;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* ── INVOKE BAR — hidden until Meissa is hovered ── */
+#invoke-bar {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+#invoke-bar.hover-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.invoke-link {
+  display: block;
+  text-decoration: none;
+  font-family: 'Cormorant Infant', serif;
+  font-size: 24px;
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.invoke-link:hover {
+  color: #E2DDD6;
+}
+
+/* ── MOBILE ── */
 @media (max-width: 560px) {
+  #ui { padding: 28px 24px 32px; }
+  header { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .wordmark { font-size: 14px; }
+  .wm-kanji { font-size: 16px; }
+  #toggleBtn { font-size: 9px; letter-spacing: 0.08em; }
+  .toggle-ring { width: 18px; height: 18px; font-size: 9px; }
   .fn-name { font-size: 13px; }
 }
 
@@ -242,10 +216,7 @@ footer {
   padding: 40px 24px;
   background: rgba(4, 6, 12, 0.65);
 }
-
-#story.is-open {
-  display: flex;
-}
+#story.is-open { display: flex; }
 
 .glass {
   position: relative;
@@ -296,7 +267,6 @@ footer {
   padding: 0;
   transition: color 0.25s;
 }
-
 #closeBtn:hover { color: var(--ink); }
 
 .close-ring {
@@ -315,21 +285,11 @@ footer {
   scrollbar-width: thin;
   scrollbar-color: rgba(184,154,90,0.15) transparent;
 }
-
 .glass-body::-webkit-scrollbar { width: 3px; }
 .glass-body::-webkit-scrollbar-thumb { background: rgba(184,154,90,0.2); border-radius: 2px; }
 
-.story-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.story-rule {
-  height: 1px;
-  background: rgba(255,255,255,0.05);
-  border: none;
-}
+.story-inner { display: flex; flex-direction: column; gap: 32px; }
+.story-rule { height: 1px; background: rgba(255,255,255,0.05); border: none; }
 
 .s-label {
   font-family: 'DM Mono', monospace;
@@ -359,18 +319,9 @@ footer {
   color: rgba(226,221,214,0.4);
   letter-spacing: 0.02em;
 }
+.s-body em { font-style: italic; color: rgba(226,221,214,0.6); }
 
-.s-body em {
-  font-style: italic;
-  color: rgba(226,221,214,0.6);
-}
-
-.kanji-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 10px 0;
-}
+.kanji-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 
 .kanji-item {
   display: flex;
@@ -391,10 +342,7 @@ footer {
   line-height: 1;
 }
 
-.k-note {
-  color: rgba(226,221,214,0.2);
-  font-size: 9px;
-}
+.k-note { color: rgba(226,221,214,0.2); font-size: 9px; }
 
 .s-sanskrit {
   font-family: 'Cormorant Garamond', serif;
@@ -413,69 +361,19 @@ footer {
   color: var(--ink-ghost);
   margin-bottom: 12px;
 }
-
-/* ══════════════════════════════════════════
-   MEISSA TRIGGER — invisible hit area over Ori Meissa star
-══════════════════════════════════════════ */
-#meissa-trigger {
-  position: fixed;
-  z-index: 20;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  /* position set dynamically by JS */
-}
-
-/* Tooltip that appears on hover */
-#meissa-tooltip {
-  position: fixed;
-  z-index: 21;
-  transform: translate(-50%, 0);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  text-align: center;
-  /* position set dynamically by JS */
-}
-
-#meissa-trigger:hover ~ #meissa-tooltip,
-#meissa-tooltip.visible {
-  opacity: 1;
-}
-
-.tooltip-invoke {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(184,154,90,0.75);
-  white-space: nowrap;
-}
-
-.tooltip-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 11px;
-  font-weight: 300;
-  font-style: italic;
-  color: rgba(226,221,214,0.35);
-  margin-top: 3px;
-  letter-spacing: 0.04em;
-}
 </style>
 </head>
 <body>
 
 <canvas id="sky"></canvas>
 
-<!-- Invisible hit area over Ori Meissa — wired to /vanik -->
-<div id="meissa-trigger" aria-label="Invoke Vanik"></div>
-<div id="meissa-tooltip">
-  <div class="tooltip-invoke">invoke</div>
-  <div class="tooltip-name">Vanik · first agent</div>
+<div id="meissa-trigger" aria-label="λ Orionis — Meissa"></div>
+
+<div id="invoke-bar" role="group" aria-label="Invoke Vanik">
+  <a id="invoke-vanik-link" href="/vanik" class="invoke-link" title="Invoke Vanik">Invoke Vanik</a>
 </div>
+
+
 
 <div id="ui">
   <header>
@@ -484,31 +382,20 @@ footer {
       <div class="wm-sep"></div>
       <span class="wm-kanji">明ける</span>
     </div>
-
     <button id="toggleBtn">
       <span class="toggle-ring">◎</span>
       the story behind this
     </button>
   </header>
-
-  <div class="centre">
-    <div class="nakshatra-label">Mrigashira · 5th Nakshatra</div>
-    <div class="mriga-line">
-      <div class="line-devanagari">मृग उषसः पूर्वः</div>
-      <div class="line-english">The deer moves before the dawn.</div>
-    </div>
-  </div>
-
   <footer>
     <div>
-      <div class="fn-name">Mriga — the first stirring</div>
-      <div class="fn-stars">λ φ¹ φ² Orionis · forming</div>
-      <div class="fn-copy">© 2025 akeru · building with Claude</div>
+      <div class="fn-name">Mrigashira · 5th Nakshatra</div>
+      <div class="fn-stars">λ Meissa &thinsp;·&thinsp; मृगशिरा &thinsp;·&thinsp; φ¹ Orionis &thinsp;·&thinsp; φ² Orionis</div>
+      <div class="fn-copy">© 2025 akeru</div>
     </div>
   </footer>
 </div>
 
-<!-- STORY — hidden until toggle clicked -->
 <div id="story">
   <div class="glass">
     <div class="glass-bar">
@@ -520,34 +407,21 @@ footer {
     </div>
     <div class="glass-body">
       <div class="story-inner">
-
         <div>
           <div class="s-label">On the name</div>
           <div class="s-heading">akeru · 明ける</div>
           <div class="s-body"><em>akeru</em> is a Japanese verb that carries three meanings from a single sound.</div>
           <div class="kanji-list">
-            <div class="kanji-item">
-              <span class="k-char">開ける</span>
-              to open, to unlock, to reveal
-            </div>
-            <div class="kanji-item">
-              <span class="k-char">明ける</span>
-              to dawn, to grow light, to begin
-              <span class="k-note">· used here</span>
-            </div>
-            <div class="kanji-item">
-              <span class="k-char">空ける</span>
-              to empty, to clear space, to make room
-            </div>
+            <div class="kanji-item"><span class="k-char">開ける</span>to open, to unlock, to reveal</div>
+            <div class="kanji-item"><span class="k-char">明ける</span>to dawn, to grow light, to begin<span class="k-note">&nbsp;· used here</span></div>
+            <div class="kanji-item"><span class="k-char">空ける</span>to empty, to clear space, to make room</div>
           </div>
           <div class="s-body">
             The kanji 明 is read as sun (日) and moon (月) together — the light that comes from both celestial bodies at once. The canonical phrase is 夜が明ける, <em>yoru ga akeru</em> — the night dawns, the long dark ends.<br><br>
             All three meanings are active in this platform. It opens paths into ideas that are difficult to navigate alone. It illuminates what is still largely opaque. It clears space for thinking that has not yet happened.
           </div>
         </div>
-
         <hr class="story-rule">
-
         <div>
           <div class="s-label">On Mriga</div>
           <div class="s-heading">The seeker before the dawn</div>
@@ -559,9 +433,7 @@ footer {
             Those stars rise in the eastern sky before the sun. The seeker precedes the light. Mriga does not announce the dawn. It is already in motion when the dawn arrives.
           </div>
         </div>
-
         <hr class="story-rule">
-
         <div>
           <div class="s-label">Why these two</div>
           <div class="s-heading">What is Akeru</div>
@@ -570,71 +442,75 @@ footer {
             Each agent exists to make an abstract technical concept in AI architecture tangible and explorable.
             The platform's purpose is to demonstrate ideas about agent design
             — multi-agent orchestration, evaluation methodology, compute on edge, small language models, A2A communication, MCP data connectors —
-            through working systems that visitors can observe, interact with, and probe. Sanskrit and Japanese share the same conceptual frame in akeru because the work itself exists at that intersection.<br><br>
+            through working systems that visitors can observe, interact with, and probe. Sanskrit and Japanese share the same conceptual frame in akeru because the work itself exists at that intersection.
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// ── Story toggle ─────────────────────────────
+window.VANIK_API_URL = "https://api.akeru.dev";
+
+(function () {
+'use strict';
+
+  var VANIK_API = window.VANIK_API_URL || "";
+
+  // Invocation is tied to the phrase "Invoke Vanik": the link targets the chat page (same origin).
+  var invokeLink = document.getElementById('invoke-vanik-link');
+  if (invokeLink) {
+    invokeLink.href = (window.location.origin || '') + '/vanik';
+  }
+
+/* ═══════════════════════════════════════════════════════════════
+   STORY TOGGLE
+═══════════════════════════════════════════════════════════════ */
 var story     = document.getElementById('story');
 var toggleBtn = document.getElementById('toggleBtn');
 var closeBtn  = document.getElementById('closeBtn');
 
-toggleBtn.onclick = function() {
-  story.classList.add('is-open');
-  story.querySelector('.glass-body').scrollTop = 0;
-};
-
-closeBtn.onclick = function() {
-  story.classList.remove('is-open');
-};
-
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') story.classList.remove('is-open');
-});
-
-story.addEventListener('click', function(e) {
-  if (e.target === story) story.classList.remove('is-open');
-});
+toggleBtn.onclick = function () { story.classList.add('is-open'); story.querySelector('.glass-body').scrollTop = 0; };
+closeBtn.onclick  = function () { story.classList.remove('is-open'); };
+story.addEventListener('click', function (e) { if (e.target === story) story.classList.remove('is-open'); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') story.classList.remove('is-open'); });
 
 
-// ── Starfield ────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS & RESIZE
+═══════════════════════════════════════════════════════════════ */
 var canvas = document.getElementById('sky');
 var ctx    = canvas.getContext('2d');
-var W, H;
+var CW, CH;      // canvas pixel dimensions (dpr-scaled)
+var VW, VH;      // viewport CSS dimensions
 
-function resize() {
+function resize () {
   var dpr = window.devicePixelRatio || 1;
-  W = canvas.width  = window.innerWidth  * dpr;
-  H = canvas.height = window.innerHeight * dpr;
-  canvas.style.width  = window.innerWidth  + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-  positionMeissaOverlay();
+  VW = window.innerWidth;
+  VH = window.innerHeight;
+  CW = canvas.width  = VW * dpr;
+  CH = canvas.height = VH * dpr;
+  canvas.style.width  = VW + 'px';
+  canvas.style.height = VH + 'px';
 }
 resize();
 window.addEventListener('resize', resize);
 
-// ── [1] Background field stars
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND FIELD STARS  (original logic preserved)
+═══════════════════════════════════════════════════════════════ */
 var field = [];
 for (var i = 0; i < 420; i++) {
-  var isBright = Math.random() < 0.08;
+  var isBright  = Math.random() < 0.08;
   var speedTier = Math.random();
-  var ts = speedTier < 0.2
-    ? 0.002 + Math.random() * 0.003
-    : speedTier < 0.85
-      ? 0.006 + Math.random() * 0.01
-      : 0.02  + Math.random() * 0.025;
-  var ta = speedTier < 0.2
-    ? 0.04 + Math.random() * 0.08
-    : speedTier < 0.85
-      ? 0.08 + Math.random() * 0.18
-      : 0.25 + Math.random() * 0.35;
-
+  var ts = speedTier < 0.2  ? 0.002 + Math.random() * 0.003
+         : speedTier < 0.85 ? 0.006 + Math.random() * 0.01
+                             : 0.02  + Math.random() * 0.025;
+  var ta = speedTier < 0.2  ? 0.04  + Math.random() * 0.08
+         : speedTier < 0.85 ? 0.08  + Math.random() * 0.18
+                             : 0.25  + Math.random() * 0.35;
   field.push({
     x:    Math.random(),
     y:    Math.pow(Math.random(), 1.4) * 0.93,
@@ -644,33 +520,14 @@ for (var i = 0; i < 420; i++) {
     ts:   ts,
     ta:   ta,
     warm: Math.random() < 0.08,
-    shimmer: false,
     shimmerLife: 0
   });
 }
 
 var nextShimmer = 8000 + Math.random() * 22000;
-var shimmerStar = null;
+var shimmerIdx  = null;
 
-// ── Mrigashira — three principal stars
-var mriga = [
-  { xf: 0.52, yf: 0.30, r: 2.8, col: '210,225,255', pulse: 0,             ps: 0.018 },
-  { xf: 0.44, yf: 0.24, r: 1.8, col: '225,225,245', pulse: Math.PI * 0.6, ps: 0.015 },
-  { xf: 0.50, yf: 0.22, r: 1.6, col: '220,230,250', pulse: Math.PI * 1.3, ps: 0.013 }
-];
-positionMeissaOverlay(); // now safe — mriga is defined
-
-// Orion context
-var orion = [
-  { xf: 0.56, yf: 0.36, r: 0.9, a: 0.28 },
-  { xf: 0.40, yf: 0.38, r: 0.7, a: 0.18 },
-  { xf: 0.60, yf: 0.27, r: 0.7, a: 0.22 },
-  { xf: 0.47, yf: 0.41, r: 0.6, a: 0.16 },
-  { xf: 0.38, yf: 0.29, r: 0.65,a: 0.18 },
-  { xf: 0.55, yf: 0.20, r: 0.6, a: 0.13 }
-];
-
-// Milky Way
+/* ── Milky Way blobs ── */
 var milky = [];
 for (var m = 0; m < 18; m++) {
   milky.push({
@@ -682,217 +539,481 @@ for (var m = 0; m < 18; m++) {
   });
 }
 
-// Shooting star
-var shoot = null;
-var nextShoot = 5000 + Math.random() * 12000;
-var t = 0, last = 0;
+/* ── Orion context stars ── */
+var orion = [
+  { xf: 0.56, yf: 0.36, r: 0.9, a: 0.28 },
+  { xf: 0.40, yf: 0.38, r: 0.7, a: 0.18 },
+  { xf: 0.60, yf: 0.27, r: 0.7, a: 0.22 },
+  { xf: 0.47, yf: 0.41, r: 0.6, a: 0.16 },
+  { xf: 0.38, yf: 0.29, r: 0.65,a: 0.18 },
+  { xf: 0.55, yf: 0.20, r: 0.6, a: 0.13 }
+];
 
-// ── Meissa overlay — positions hit target and tooltip over the star
-function positionMeissaOverlay() {
-  if (!mriga) return;  // guard: mriga not yet defined on initial resize call
-  var trigger  = document.getElementById('meissa-trigger');
-  var tooltip  = document.getElementById('meissa-tooltip');
-  var sx = mriga[0].xf * window.innerWidth;
-  var sy = mriga[0].yf * window.innerHeight;
-  trigger.style.left = sx + 'px';
-  trigger.style.top  = sy + 'px';
-  tooltip.style.left = sx + 'px';
-  tooltip.style.top  = (sy + 28) + 'px';
+/* ── Shooting star ── */
+var shoot     = null;
+var nextShoot = 5000 + Math.random() * 12000;
+
+
+/* ═══════════════════════════════════════════════════════════════
+   3-D PHYSICS CONSTELLATION
+═══════════════════════════════════════════════════════════════ */
+// Local-space rest positions (in abstract units; SCALE maps to CSS px)
+// λ Meissa sits top-centre; φ¹ bottom-left; φ² bottom-right
+var S = [
+  { label: 'λ', sub: 'मृगशिरस्', rest: [  0, -130,  22], pos: [  0, -130,  22], vel: [0,0,0], mass: 2.6, r: 2.9, col: '215,230,255' },
+  { label: 'φ¹', sub: null,       rest: [-115,  95, -18], pos: [-115,  95, -18], vel: [0,0,0], mass: 1.7, r: 1.9, col: '225,225,245' },
+  { label: 'φ²', sub: null,       rest: [ 110,  90,  14], pos: [ 110,  90,  14], vel: [0,0,0], mass: 1.9, r: 1.7, col: '220,230,250' }
+];
+
+// Springs: one per pair — stores rest length and live tension
+var SP = [];
+for (var si = 0; si < S.length; si++) {
+  for (var sj = si + 1; sj < S.length; sj++) {
+    var ra = S[si].rest, rb = S[sj].rest;
+    SP.push({
+      a: si, b: sj,
+      len0: Math.hypot(rb[0]-ra[0], rb[1]-ra[1], rb[2]-ra[2]),
+      tension: 0
+    });
+  }
 }
 
-// Tooltip show/hide via JS for reliability
+// Physics constants
+var K_HOME   = 0.085;   // spring back to rest
+var K_LINK   = 0.018;   // inter-star spring
+var DAMP     = 0.910;
+var BREATH_A = 8.0;
+var BREATH_W = 0.17;
+var NOISE    = 0.09;
+
+// Rotation state — pre-dawn orientation:
+// Mrigashira rises in the east before the sun; the head (λ Meissa) leads upward.
+// rotX: slight upward pitch (ascending above eastern horizon)
+// rotY: eastward lean as the constellation climbs
+var AUTO_SPIN = 0.000055;   // near-still — sky barely moves before dawn
+var rotX = -0.24, rotY = 0.32;
+var vRotX = 0,   vRotY = AUTO_SPIN;
+
+// Pointer
+var PTR = { down: false, px: 0, py: 0, star: -1 };
+var interacted = false;
+
+/* ── Matrix helpers (row-major 3×3 stored as flat array) ── */
+function rotMat (rx, ry) {
+  var cx = Math.cos(rx), sx = Math.sin(rx);
+  var cy = Math.cos(ry), sy = Math.sin(ry);
+  return [
+     cy,     sy*sx,  sy*cx,
+     0,      cx,    -sx,
+    -sy,     cy*sx,  cy*cx
+  ];
+}
+function mv3 (M, v) {
+  return [
+    M[0]*v[0] + M[1]*v[1] + M[2]*v[2],
+    M[3]*v[0] + M[4]*v[1] + M[5]*v[2],
+    M[6]*v[0] + M[7]*v[1] + M[8]*v[2]
+  ];
+}
+function mvT3 (M, v) {   // M^T × v  (= M^-1 for rotation matrices)
+  return [
+    M[0]*v[0] + M[3]*v[1] + M[6]*v[2],
+    M[1]*v[0] + M[4]*v[1] + M[7]*v[2],
+    M[2]*v[0] + M[5]*v[1] + M[8]*v[2]
+  ];
+}
+
+var FL = 680;   // focal length (CSS px)
+
+function project (local, M) {
+  var dpr = window.devicePixelRatio || 1;
+  var sc  = Math.min(VW, VH) * 0.00185;
+  var w   = mv3(M, local);
+  var p   = FL / (FL + w[2] * sc);
+  var originY = VH * 0.5 + VH * 0.10;  // push centre down — brings λ Meissa to page centre
+  return {
+    x:   (VW * 0.5  + w[0] * sc * p) * dpr,   // canvas px
+    y:   (originY   + w[1] * sc * p) * dpr,
+    cx:   VW * 0.5  + w[0] * sc * p,            // CSS px (for DOM overlay)
+    cy:   originY   + w[1] * sc * p,
+    p:   p,
+    sc:  sc
+  };
+}
+
+function physStep (t) {
+  for (var i = 0; i < S.length; i++) {
+    var s = S[i];
+    if (s._grabbed) continue;
+
+    // Home spring
+    var fx = (s.rest[0] - s.pos[0]) * K_HOME;
+    var fy = (s.rest[1] - s.pos[1]) * K_HOME;
+    var fz = (s.rest[2] - s.pos[2]) * K_HOME;
+
+    // Breathing oscillation (different phase per star)
+    var ph = t * BREATH_W + i * 2.094;
+    fx += Math.sin(ph * 1.31) * BREATH_A * 0.015;
+    fy += Math.cos(ph * 0.79) * BREATH_A * 0.015;
+    fz += Math.sin(ph * 1.07) * BREATH_A * 0.007;
+
+    // Brownian
+    fx += (Math.random() - 0.5) * NOISE;
+    fy += (Math.random() - 0.5) * NOISE;
+    fz += (Math.random() - 0.5) * NOISE * 0.35;
+
+    s.vel[0] = (s.vel[0] + fx / s.mass) * DAMP;
+    s.vel[1] = (s.vel[1] + fy / s.mass) * DAMP;
+    s.vel[2] = (s.vel[2] + fz / s.mass) * DAMP;
+    s.pos[0] += s.vel[0];
+    s.pos[1] += s.vel[1];
+    s.pos[2] += s.vel[2];
+  }
+
+  // Inter-star springs
+  for (var k = 0; k < SP.length; k++) {
+    var sp = SP[k];
+    var sa = S[sp.a], sb = S[sp.b];
+    var dx = sb.pos[0] - sa.pos[0];
+    var dy = sb.pos[1] - sa.pos[1];
+    var dz = sb.pos[2] - sa.pos[2];
+    var dist = Math.hypot(dx, dy, dz) || 1e-9;
+    var stretch = (dist - sp.len0) / sp.len0;
+    sp.tension = stretch;
+    var f = stretch * K_LINK;
+    var nx = dx/dist, ny = dy/dist, nz = dz/dist;
+    if (!sa._grabbed) {
+      sa.vel[0] += nx * f / sa.mass;
+      sa.vel[1] += ny * f / sa.mass;
+      sa.vel[2] += nz * f / sa.mass;
+    }
+    if (!sb._grabbed) {
+      sb.vel[0] -= nx * f / sb.mass;
+      sb.vel[1] -= ny * f / sb.mass;
+      sb.vel[2] -= nz * f / sb.mass;
+    }
+  }
+}
+
+/* ── Render constellation on canvas ── */
+function drawConstellation (M) {
+  var dpr = window.devicePixelRatio || 1;
+  var proj = S.map(function (s) {
+    var p = project(s.pos, M);
+    p.speed = Math.hypot(s.vel[0], s.vel[1], s.vel[2]);
+    return p;
+  });
+
+  /* ── Lines ── */
+  for (var k = 0; k < SP.length; k++) {
+    var sp = SP[k];
+    var pa = proj[sp.a], pb = proj[sp.b];
+    var ten = Math.abs(sp.tension);
+
+    // Outer diffuse glow (gold-tinted)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(184,154,90,' + Math.min(0.06 + ten * 1.2, 0.3).toFixed(3) + ')';
+    ctx.lineWidth = (5.0 + ten * 18) * dpr;
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+
+    // Mid blue glow
+    ctx.strokeStyle = 'rgba(160,200,255,' + Math.min(0.07 + ten * 2.0, 0.55).toFixed(3) + ')';
+    ctx.lineWidth = (2.2 + ten * 9) * dpr;
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+
+    // Bright core line
+    ctx.strokeStyle = 'rgba(210,225,255,' + Math.min(0.20 + ten * 3.5, 0.80).toFixed(3) + ')';
+    ctx.lineWidth = 0.8 * dpr;
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── Stars ── */
+  S.forEach(function (star, i) {
+    var p   = proj[i];
+    var spd = p.speed;
+    var brt = Math.min(1, 0.72 + spd * 5.0);
+    if (i === 0) proj[0].brt = brt;   // expose λ brightness for invoke pulse
+    var r   = star.r * dpr * Math.max(p.p, 0.4);
+    var isLambda = (i === 0);
+
+    // Outer halo — gold-tinted for λ, blue for others
+    var outerCol = isLambda ? '184,154,90' : '130,180,250';
+    var outerA   = isLambda ? 0.12 : 0.10;
+    var g0 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * (isLambda ? 14 : 9));
+    g0.addColorStop(0, 'rgba(' + outerCol + ',' + (outerA * brt).toFixed(3) + ')');
+    g0.addColorStop(1, 'rgba(' + outerCol + ',0)');
+    ctx.beginPath(); ctx.arc(p.x, p.y, r * (isLambda ? 14 : 9), 0, Math.PI * 2);
+    ctx.fillStyle = g0; ctx.fill();
+
+    // Inner glow
+    var g1 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
+    g1.addColorStop(0,    'rgba(235,242,255,' + (0.65 * brt).toFixed(3) + ')');
+    g1.addColorStop(0.45, 'rgba(' + star.col + ',' + (0.22 * brt).toFixed(3) + ')');
+    g1.addColorStop(1,    'rgba(' + star.col + ',0)');
+    ctx.beginPath(); ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2);
+    ctx.fillStyle = g1; ctx.fill();
+
+    // Core disc — slight off-centre highlight
+    var g2 = ctx.createRadialGradient(p.x - r*0.28, p.y - r*0.28, 0, p.x, p.y, r);
+    g2.addColorStop(0,   'rgba(255,255,255,' + brt.toFixed(3) + ')');
+    g2.addColorStop(0.5, 'rgba(' + star.col + ',0.90)');
+    g2.addColorStop(1,   'rgba(' + star.col + ',0.60)');
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = g2; ctx.fill();
+
+    // Diffraction cross on λ
+    if (isLambda) {
+      var sl  = r * 6.5;
+      var soa = (0.11 + 0.06 * brt) * brt;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(215,230,255,' + soa.toFixed(3) + ')';
+      ctx.lineWidth   = 0.7 * dpr;
+      ctx.beginPath(); ctx.moveTo(p.x - sl, p.y); ctx.lineTo(p.x + sl, p.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - sl); ctx.lineTo(p.x, p.y + sl); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Labels — Greek letters only
+    var fsize = Math.round(13 * dpr);
+    ctx.font = '300 ' + fsize + "px 'DM Mono', monospace";
+    ctx.fillStyle = isLambda ? 'rgba(180,200,255,0.78)' : 'rgba(180,200,255,0.60)';
+    if (isLambda) {
+      // λ: right of the star, slightly below centre
+      ctx.fillText(star.label, p.x + 26*dpr, p.y + fsize * 0.4);
+      // Hindi मृगशिरा — above the star, centred, gold
+      var hfsize = Math.round(11 * dpr);
+      ctx.font = '300 ' + hfsize + "px 'Noto Sans Devanagari', sans-serif";
+      ctx.fillStyle = 'rgba(184,154,90,0.60)';
+      ctx.textAlign = 'center';
+      ctx.fillText('मृगशिरा', p.x, p.y - r * 2.8 - 8*dpr);
+      ctx.textAlign = 'left';
+    } else {
+      var off = (i === 1) ? [-28*dpr, -8*dpr] : [14*dpr, -8*dpr];
+      ctx.fillText(star.label, p.x + off[0], p.y + off[1]);
+    }
+  });
+
+  ctx.textAlign = 'left';
+
+  // Return CSS position of λ and its live brightness for invoke pulse sync
+  return { cx: proj[0].cx, cy: proj[0].cy, brt: proj[0].brt };
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MEISSA DOM OVERLAY
+═══════════════════════════════════════════════════════════════ */
 var meissaTrigger = document.getElementById('meissa-trigger');
-var meissaTooltip = document.getElementById('meissa-tooltip');
+var invokeBar     = document.getElementById('invoke-bar');
+var invokeReady   = false;
 
-meissaTrigger.addEventListener('mouseenter', function() {
-  meissaTooltip.classList.add('visible');
+// Show invoke bar on hover over Meissa star
+meissaTrigger.addEventListener('mouseenter', function () {
+  invokeBar.classList.add('hover-show');
 });
-meissaTrigger.addEventListener('mouseleave', function() {
-  meissaTooltip.classList.remove('visible');
+meissaTrigger.addEventListener('mouseleave', function (e) {
+  // Keep visible if cursor moved onto the invoke bar itself
+  if (!invokeBar.contains(e.relatedTarget)) {
+    invokeBar.classList.remove('hover-show');
+  }
 });
-meissaTrigger.addEventListener('click', function() {
-  window.location.href = '/vanik';
+invokeBar.addEventListener('mouseleave', function (e) {
+  if (e.relatedTarget !== meissaTrigger) {
+    invokeBar.classList.remove('hover-show');
+  }
 });
 
-// Touch support — tap Meissa on mobile
-meissaTrigger.addEventListener('touchend', function(e) {
+function updateMeissaOverlay (cx, cy) {
+  // Star hit-area
+  meissaTrigger.style.left = cx + 'px';
+  meissaTrigger.style.top  = cy + 'px';
+
+  // Invoke bar: centered above the star, clear of the glow
+  invokeBar.style.left = cx + 'px';
+  invokeBar.style.top  = (cy - 30) + 'px';
+
+  // Mark ready after first frame (prevents flash at 0,0 on load)
+  if (!invokeReady) { invokeReady = true; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   INPUT — ROTATION + STAR DRAG
+═══════════════════════════════════════════════════════════════ */
+function nearStar (mx, my) {
+  var M = rotMat(rotX, rotY);
+  for (var i = 0; i < S.length; i++) {
+    var p = project(S[i].pos, M);
+    if (Math.hypot(mx - p.cx, my - p.cy) < 34) return i;
+  }
+  return -1;
+}
+
+function onDown (mx, my) {
+  PTR.down = true; PTR.px = mx; PTR.py = my;
+  PTR.star = nearStar(mx, my);
+  if (PTR.star >= 0) { S[PTR.star]._grabbed = true; canvas.style.cursor = 'grabbing'; }
+  vRotX = 0; vRotY = 0;
+  if (!interacted) { interacted = true; }
+}
+
+function onMove (mx, my) {
+  if (!PTR.down) {
+    canvas.style.cursor = nearStar(mx, my) >= 0 ? 'grab' : 'default';
+    return;
+  }
+  var dx = mx - PTR.px, dy = my - PTR.py;
+  PTR.px = mx; PTR.py = my;
+
+  if (PTR.star >= 0) {
+    var st = S[PTR.star];
+    var M  = rotMat(rotX, rotY);
+    var w  = mv3(M, st.pos);
+    var sc = Math.min(VW, VH) * 0.00185;
+    var persp = FL / (FL + w[2] * sc);
+    var ld = mvT3(M, [dx / (persp * sc), dy / (persp * sc), 0]);
+    st.pos[0] += ld[0]; st.pos[1] += ld[1]; st.pos[2] += ld[2] * 0.07;
+    st.vel[0]  = ld[0] * 0.5; st.vel[1] = ld[1] * 0.5; st.vel[2] = ld[2] * 0.04;
+  } else {
+    vRotX = dy * 0.0065; vRotY = dx * 0.0065;
+    rotX += vRotX; rotY += vRotY;
+  }
+}
+
+function onUp () {
+  if (PTR.star >= 0) { S[PTR.star]._grabbed = false; PTR.star = -1; }
+  PTR.down = false; canvas.style.cursor = 'default';
+}
+
+canvas.addEventListener('mousedown', function (e) { onDown(e.clientX, e.clientY); });
+window.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup',   onUp);
+
+var lastTouch = null;
+canvas.addEventListener('touchstart', function (e) {
   e.preventDefault();
-  window.location.href = '/vanik';
-});
+  var t = e.touches[0]; lastTouch = { x: t.clientX, y: t.clientY };
+  onDown(t.clientX, t.clientY);
+}, { passive: false });
+canvas.addEventListener('touchmove', function (e) {
+  e.preventDefault();
+  var t = e.touches[0];
+  onMove(t.clientX, t.clientY);
+  lastTouch = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+canvas.addEventListener('touchend', function (e) {
+  e.preventDefault(); onUp(); lastTouch = null;
+}, { passive: false });
 
 
-function tick(now) {
-  var dt = now - last; last = now;
+/* ═══════════════════════════════════════════════════════════════
+   MAIN LOOP
+═══════════════════════════════════════════════════════════════ */
+var frameT = 0, lastFrameTs = 0, tickCount = 0;
+
+function tick (now) {
+  var dt  = now - lastFrameTs; lastFrameTs = now;
+  frameT += 0.001;   // smooth physics time in seconds
+  tickCount++;
+
   var dpr = window.devicePixelRatio || 1;
 
-  ctx.clearRect(0, 0, W, H);
+  // ── Rotation inertia ──────────────────────────────
+  if (!PTR.down || PTR.star >= 0) {
+    rotX += vRotX; rotY += vRotY;
+    vRotY += (AUTO_SPIN - vRotY) * 0.005;
+    vRotX *= 0.972;
+  }
 
-  // Sky gradient
-  var bg = ctx.createLinearGradient(0, 0, 0, H);
+  var M = rotMat(rotX, rotY);
+
+  // ── Physics ───────────────────────────────────────
+  physStep(frameT);
+
+  // ── Clear ─────────────────────────────────────────
+  ctx.clearRect(0, 0, CW, CH);
+
+  // ── Sky gradient ──────────────────────────────────
+  var bg = ctx.createLinearGradient(0, 0, 0, CH);
   bg.addColorStop(0.00, 'rgba(2,4,10,1)');
   bg.addColorStop(0.55, 'rgba(4,6,14,1)');
   bg.addColorStop(0.80, 'rgba(6,9,22,1)');
   bg.addColorStop(0.92, 'rgba(10,14,35,1)');
   bg.addColorStop(1.00, 'rgba(14,18,42,1)');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
 
-  // Milky Way
+  // ── Milky Way ─────────────────────────────────────
   for (var mi = 0; mi < milky.length; mi++) {
     var b = milky[mi];
-    var bx = b.xf*W, by = b.yf*H, brx = b.rx*W, bry = b.ry*H;
+    var bx = b.xf*CW, by = b.yf*CH, brx = b.rx*CW, bry = b.ry*CH;
     var g = ctx.createRadialGradient(bx, by, 0, bx, by, Math.max(brx, bry));
     g.addColorStop(0, 'rgba(180,185,210,' + b.a + ')');
     g.addColorStop(1, 'rgba(180,185,210,0)');
-    ctx.save();
-    ctx.scale(1, bry / brx);
-    ctx.beginPath();
-    ctx.arc(bx, by * brx / bry, brx, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.restore();
+    ctx.save(); ctx.scale(1, bry / brx);
+    ctx.beginPath(); ctx.arc(bx, by * brx / bry, brx, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill(); ctx.restore();
   }
 
-  // Shimmer timer
+  // ── Shimmer timer ─────────────────────────────────
   nextShimmer -= dt;
-  if (nextShimmer < 0 && shimmerStar === null) {
-    var candidates = [];
+  if (nextShimmer < 0 && shimmerIdx === null) {
+    var cands = [];
     for (var ci = 0; ci < field.length; ci++) {
-      if (field[ci].r > 0.4 && field[ci].r < 0.8) candidates.push(ci);
+      if (field[ci].r > 0.4 && field[ci].r < 0.8) cands.push(ci);
     }
-    if (candidates.length > 0) {
-      shimmerStar = candidates[Math.floor(Math.random() * candidates.length)];
-      field[shimmerStar].shimmerLife = 1.0;
+    if (cands.length > 0) {
+      shimmerIdx = cands[Math.floor(Math.random() * cands.length)];
+      field[shimmerIdx].shimmerLife = 1.0;
     }
     nextShimmer = 12000 + Math.random() * 25000;
   }
-
-  if (shimmerStar !== null) {
-    field[shimmerStar].shimmerLife -= dt * 0.0006;
-    if (field[shimmerStar].shimmerLife <= 0) {
-      field[shimmerStar].shimmerLife = 0;
-      shimmerStar = null;
-    }
+  if (shimmerIdx !== null) {
+    field[shimmerIdx].shimmerLife -= dt * 0.0006;
+    if (field[shimmerIdx].shimmerLife <= 0) { field[shimmerIdx].shimmerLife = 0; shimmerIdx = null; }
   }
 
-  // Field stars
+  // ── Field stars ───────────────────────────────────
   for (var fi = 0; fi < field.length; fi++) {
     var s = field[fi];
     s.tw += s.ts;
     var sa = s.a * (1 - s.ta + s.ta * Math.sin(s.tw));
-
-    if (fi === shimmerStar && s.shimmerLife > 0) {
-      var boost = s.shimmerLife * 0.7;
-      sa = Math.min(1.0, sa + boost);
-    }
-
-    var sx = s.x * W, sy = s.y * H, sr = s.r * dpr;
+    if (fi === shimmerIdx && s.shimmerLife > 0) sa = Math.min(1.0, sa + s.shimmerLife * 0.7);
+    var sx = s.x * CW, sy = s.y * CH, sr = s.r * dpr;
     var hue = s.warm ? 'rgba(255,230,200,' : 'rgba(230,230,240,';
-
-    if (s.r > 0.7 || (fi === shimmerStar && s.shimmerLife > 0)) {
-      var glowMult = (fi === shimmerStar && s.shimmerLife > 0) ? 5.5 : 3.5;
-      var gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * glowMult);
+    if (s.r > 0.7 || (fi === shimmerIdx && s.shimmerLife > 0)) {
+      var gm = (fi === shimmerIdx && s.shimmerLife > 0) ? 5.5 : 3.5;
+      var gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * gm);
       gg.addColorStop(0, hue + (sa * 0.55) + ')');
       gg.addColorStop(1, hue + '0)');
-      ctx.beginPath(); ctx.arc(sx, sy, sr * glowMult, 0, Math.PI * 2);
-      ctx.fillStyle = gg; ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, sr * gm, 0, Math.PI * 2); ctx.fillStyle = gg; ctx.fill();
     }
-
-    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-    ctx.fillStyle = hue + sa + ')'; ctx.fill();
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fillStyle = hue + sa + ')'; ctx.fill();
   }
 
-  // Orion context
+  // ── Orion context stars ───────────────────────────
   for (var oi = 0; oi < orion.length; oi++) {
     var o = orion[oi];
-    ctx.beginPath(); ctx.arc(o.xf*W, o.yf*H, o.r*dpr, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(o.xf*CW, o.yf*CH, o.r*dpr, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(210,215,240,' + o.a + ')'; ctx.fill();
   }
 
-  // Constellation lines
-  var pos = mriga.map(function(s) { return { x: s.xf*W, y: s.yf*H }; });
-  for (var li = 0; li < pos.length; li++) {
-    var pa = pos[li], pb = pos[(li+1) % pos.length];
-    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-    ctx.strokeStyle = 'rgba(180,210,255,' + (0.055 + 0.02*Math.sin(t*0.006+li)) + ')';
-    ctx.lineWidth = 3.5 * dpr; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-    ctx.strokeStyle = 'rgba(200,220,255,' + (0.18 + 0.05*Math.sin(t*0.008+li)) + ')';
-    ctx.lineWidth = 0.7 * dpr; ctx.stroke();
-  }
+  // ── Physics constellation ─────────────────────────
+  var meissaPos = drawConstellation(M);
+  updateMeissaOverlay(meissaPos.cx, meissaPos.cy);
 
-  // Mrigashira stars — deeper glow breath on Meissa
-  for (var si = 0; si < mriga.length; si++) {
-    var ms = mriga[si];
-    ms.pulse += ms.ps;
-
-    var pf, glowR, innerAlpha, midAlpha;
-    if (si === 0) {
-      pf        = 1 + 0.18 * Math.sin(ms.pulse);
-      glowR     = ms.r * dpr * pf * 8;
-      innerAlpha = 0.65 + 0.15 * Math.sin(ms.pulse);
-      midAlpha   = 0.16 + 0.06 * Math.sin(ms.pulse);
-    } else {
-      pf        = 1 + 0.12 * Math.sin(ms.pulse);
-      glowR     = ms.r * dpr * pf * 5;
-      innerAlpha = 0.38;
-      midAlpha   = 0.08;
-    }
-
-    var mx = ms.xf*W, my = ms.yf*H, mr = ms.r*dpr*pf;
-
-    var gl = ctx.createRadialGradient(mx, my, mr*0.2, mx, my, glowR);
-    gl.addColorStop(0,   'rgba(' + ms.col + ',' + innerAlpha + ')');
-    gl.addColorStop(0.35,'rgba(' + ms.col + ',' + midAlpha + ')');
-    gl.addColorStop(1,   'rgba(' + ms.col + ',0)');
-    ctx.beginPath(); ctx.arc(mx, my, glowR, 0, Math.PI*2);
-    ctx.fillStyle = gl; ctx.fill();
-
-    var core = ctx.createRadialGradient(mx-mr*0.25, my-mr*0.25, 0, mx, my, mr);
-    core.addColorStop(0,   'rgba(255,255,255,0.98)');
-    core.addColorStop(0.45,'rgba(' + ms.col + ',0.88)');
-    core.addColorStop(1,   'rgba(' + ms.col + ',0.65)');
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI*2);
-    ctx.fillStyle = core; ctx.fill();
-
-    // Diffraction cross on Meissa
-    if (si === 0) {
-      var sl   = mr * 6;
-      var sopa = 0.10 + 0.06 * Math.sin(ms.pulse * 0.7);
-      ctx.strokeStyle = 'rgba(' + ms.col + ',' + sopa + ')';
-      ctx.lineWidth = 0.7 * dpr;
-      ctx.beginPath(); ctx.moveTo(mx-sl, my); ctx.lineTo(mx+sl, my); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(mx, my-sl); ctx.lineTo(mx, my+sl); ctx.stroke();
-    }
-  }
-
-  // Star labels
-  var lh = 13 * dpr;
-  ctx.font = (9*dpr) + "px 'DM Mono', monospace";
-
-  ctx.fillStyle = 'rgba(180,200,255,0.22)';
-  ctx.fillText('λ Ori  Meissa', mriga[0].xf*W + 14*dpr, mriga[0].yf*H - 8*dpr);
-  ctx.fillStyle = 'rgba(184,154,90,0.35)';
-  ctx.fillText('मृगशिरस्', mriga[0].xf*W + 14*dpr, mriga[0].yf*H - 8*dpr + lh);
-
-  ctx.fillStyle = 'rgba(180,200,255,0.16)';
-  ctx.fillText('φ¹ Ori', mriga[1].xf*W - 58*dpr, mriga[1].yf*H - 6*dpr);
-
-  ctx.fillStyle = 'rgba(180,200,255,0.16)';
-  ctx.fillText('φ² Ori', mriga[2].xf*W + 10*dpr, mriga[2].yf*H - 9*dpr);
-
-  // Shooting star
+  // ── Shooting star ─────────────────────────────────
   nextShoot -= dt;
   if (nextShoot < 0 && !shoot) {
     shoot = {
-      x:  (0.15 + Math.random()*0.5)*W,
-      y:  (0.05 + Math.random()*0.2)*H,
-      vx: (1.5  + Math.random()*2.5)*W*0.001,
-      vy: (0.5  + Math.random()*1.5)*H*0.001,
+      x:  (0.15 + Math.random() * 0.5) * CW,
+      y:  (0.05 + Math.random() * 0.2) * CH,
+      vx: (1.5  + Math.random() * 2.5) * CW * 0.001,
+      vy: (0.5  + Math.random() * 1.5) * CH * 0.001,
       life: 1.0,
-      len: 60 + Math.random()*80
+      len: 60 + Math.random() * 80
     };
-    nextShoot = 7000 + Math.random()*18000;
+    nextShoot = 7000 + Math.random() * 18000;
   }
   if (shoot) {
     shoot.x += shoot.vx; shoot.y += shoot.vy; shoot.life -= 0.025;
@@ -900,22 +1021,24 @@ function tick(now) {
       shoot = null;
     } else {
       var tr = ctx.createLinearGradient(
-        shoot.x - shoot.vx*shoot.len, shoot.y - shoot.vy*shoot.len,
-        shoot.x, shoot.y);
+        shoot.x - shoot.vx * shoot.len, shoot.y - shoot.vy * shoot.len,
+        shoot.x, shoot.y
+      );
       tr.addColorStop(0, 'rgba(220,228,255,0)');
-      tr.addColorStop(1, 'rgba(220,228,255,' + (shoot.life*0.6) + ')');
+      tr.addColorStop(1, 'rgba(220,228,255,' + (shoot.life * 0.6) + ')');
       ctx.beginPath();
-      ctx.moveTo(shoot.x - shoot.vx*shoot.len, shoot.y - shoot.vy*shoot.len);
+      ctx.moveTo(shoot.x - shoot.vx * shoot.len, shoot.y - shoot.vy * shoot.len);
       ctx.lineTo(shoot.x, shoot.y);
-      ctx.strokeStyle = tr; ctx.lineWidth = 1.2*dpr; ctx.stroke();
+      ctx.strokeStyle = tr; ctx.lineWidth = 1.2 * dpr; ctx.stroke();
     }
   }
 
-  t++;
   requestAnimationFrame(tick);
 }
 
 requestAnimationFrame(tick);
+
+})();
 </script>
 </body>
 </html>
