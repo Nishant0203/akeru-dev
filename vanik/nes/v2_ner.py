@@ -123,6 +123,30 @@ def _all_country_mentions(text: str) -> list[str]:
     return seen
 
 
+_STOPWORDS = re.compile(
+    r"\b(what|is|the|import|export|duty|duties|tariff|rate|for|of|on|"
+    r"from|to|into|how|much|are|a|an|in|and|or|with|when|where|"
+    r"does|do|can|will|would|should|could|tell|me|find|show|"
+    r"please|help|calculate|check|lookup|look|up)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_product_terms(text: str) -> list[str]:
+    """Strip stopwords and corridor info to get core product terms."""
+    # Remove country names already extracted
+    cleaned = _FROM_RE.sub("", text)
+    cleaned = _TO_RE.sub("", cleaned)
+    cleaned = _MADE_IN_RE.sub("", cleaned)
+    # Strip stopwords
+    cleaned = _STOPWORDS.sub(" ", cleaned)
+    # Clean up whitespace and punctuation
+    cleaned = re.sub(r"[^\w\s-]", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    terms = [t for t in cleaned.split() if len(t) > 2]
+    return [" ".join(terms)] if terms else []
+
+
 def extract_v2(raw_query: str) -> dict:
     """Fast local regex extractor."""
     text = raw_query.strip()
@@ -174,8 +198,9 @@ def extract_v2(raw_query: str) -> dict:
         if destination and destination != "EU":
             origin = "EU"
 
+    product_terms = _extract_product_terms(text)
     return {
-        "product_terms": [text] if text else [],
+        "product_terms": product_terms if product_terms else [text],
         "hs_code_provided": hs_match.group(0) if hs_match else None,
         "origin": origin,
         "_origin_candidates": _all_country_mentions(lower),
