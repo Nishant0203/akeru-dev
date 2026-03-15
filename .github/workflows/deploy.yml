@@ -1,0 +1,25 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hetzner VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 178.104.46.1
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/akeru-dev
+            git pull origin main
+            find . -name "*.pyc" -delete
+            find . -name "__pycache__" -type d -exec rm -rf {} +
+            systemctl restart vanik
+            sleep 3
+            systemctl is-active vanik
