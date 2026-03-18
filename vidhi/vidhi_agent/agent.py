@@ -143,6 +143,23 @@ Architecture Document:
 ──────────────────────
 """
 
+# Smaller system prompt for local LLMs (we inject only relevant excerpts).
+BASE_SYSTEM_EXCERPTS = """You are Vidhi (विधि), the architecture guidelines agent for the Akeru platform.
+Your knowledge comes from the Vanik Architecture Document (v1.6.0).
+You will be given EXCERPTS relevant to the user's question.
+
+Rules:
+- Answer precisely and ground answers in the excerpts.
+- Cite the relevant section heading or file path when possible.
+- If the excerpts are insufficient, ask for clarification rather than guessing.
+- Keep responses concise. Prefer specificity over completeness.
+
+Relevant excerpts:
+──────────────────
+{excerpts}
+──────────────────
+"""
+
 SECTION_ADDENDUM = {
     "general": "",
 
@@ -188,6 +205,58 @@ language-aware error messages (errors.py, Section 3.3), prompt design principles
 
 def build_system_prompt(section: str) -> str:
     base = BASE_SYSTEM.format(arch_doc=ARCH_DOC)
+    addendum = SECTION_ADDENDUM.get(section, "")
+    return base + addendum
+
+
+def _extract_keywords(text: str) -> list[str]:
+    words: list[str] = []
+    for raw in (text or "").lower().replace("/", " ").replace("_", " ").split():
+        w = "".join(ch for ch in raw if ch.isalnum() or ch in ("-", "."))
+        if len(w) >= 4:
+            words.append(w)
+    out: list[str] = []
+    for w in words:
+        if w not in out:
+            out.append(w)
+    return out[:12]
+
+
+def _doc_excerpts_for_query(query: str, section: str, *, max_chars: int = 9000) -> str:
+    """Select relevant markdown 'chapters' (## headings) by keyword score."""
+    kws = set(_extract_keywords(query) + _extract_keywords(section))
+    if not kws:
+        kws = {"vanik", "architecture"}
+
+    parts = ARCH_DOC.split("\n## ")
+    scored: list[tuple[int, str]] = []
+    for idx, p in enumerate(parts):
+        block = ("## " + p) if idx > 0 else p
+        lower = block.lower()
+        score = sum(lower.count(k) for k in kws)
+        if score:
+            scored.append((score, block.strip()))
+
+    scored.sort(key=lambda t: t[0], reverse=True)
+    if not scored:
+        return ARCH_DOC[: max_chars // 2]
+
+    chosen: list[str] = []
+    remaining = max_chars
+    for score, block in scored[:6]:
+        if remaining <= 0:
+            break
+        snippet = block
+        if len(snippet) > remaining:
+            snippet = snippet[:remaining]
+        chosen.append(snippet)
+        remaining -= len(snippet) + 2
+    return "\n\n".join(chosen).strip()
+
+
+def build_system_prompt_local(section: str, query: str) -> str:
+    excerpts = _doc_excerpts_for_query(query, section)
+    base = BASE_SYSTEM_EXCERPTS.format(excerpts=excerpts)
     addendum = SECTION_ADDENDUM.get(section, "")
     return base + addendum
 
@@ -241,7 +310,8 @@ def _sse(data: str) -> bytes:
     return f"data: {data}\n\n".encode()
 
 def _sse_error(msg: str):
-    payload = json.dumps({"error": msg})
+    # Vidhi UI expects the OpenAI-like delta shape: {"choices":[{"delta":{"content": ...}}]}
+    payload = json.dumps({"choices": [{"delta": {"content": msg}}]})
     return _sse(payload)
 
 
@@ -267,6 +337,14 @@ async def chat_endpoint(request: Request):
             )
 
     system_prompt = build_system_prompt(section)
+    # For local LLMs, keep context small by selecting relevant doc "chapters" (markdown headings).
+    if _is_ollama_model(model):
+        last_user = ""
+        for turn in reversed(history):
+            if turn.get("role") == "user":
+                last_user = str(turn.get("content") or "")
+                break
+        system_prompt = build_system_prompt_local(section, last_user)
     prompt = _build_prompt(system_prompt, history)
 
     log.info(f"session={session_id} model={model} section={section} turns={len(history)}")
@@ -283,7 +361,11 @@ async def chat_endpoint(request: Request):
                         json={"model": ollama_model, "prompt": prompt, "stream": True},
                         headers={"Content-Type": "application/json"},
                     ) as resp:
-                        resp.raise_for_status()
+                        if resp.status_code >= 400:
+                            body_text = (await resp.aread()).decode(errors="replace")
+                            raise RuntimeError(
+                                f"Ollama HTTP {resp.status_code} from {url}: {body_text[:500]}"
+                            )
                         async for line in resp.aiter_lines():
                             if not line:
                                 continue
@@ -291,6 +373,8 @@ async def chat_endpoint(request: Request):
                                 obj = json.loads(line)
                             except Exception:
                                 continue
+                            if obj.get("error"):
+                                raise RuntimeError(f"Ollama error: {obj.get('error')}")
                             delta = obj.get("response") or ""
                             if delta:
                                 payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
@@ -335,8 +419,9 @@ async def chat_endpoint(request: Request):
                 await producer
             yield _sse("[DONE]")
         except Exception as exc:
-            log.error(f"Vidhi stream error: {exc}")
-            yield _sse_error(str(exc))
+            log.exception("Vidhi stream error")
+            msg = str(exc).strip() or repr(exc)
+            yield _sse_error(msg)
             yield _sse("[DONE]")
 
     return StreamingResponse(
