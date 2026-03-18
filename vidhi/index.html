@@ -588,10 +588,10 @@
     <div>
       <p class="block-label">Model</p>
       <select id="model-select" class="model-select">
-        <option value="deepseek-chat">deepseek-chat · V3.2</option>
-        <option value="deepseek-reasoner">deepseek-reasoner · R1</option>
+        <option value="gemini-1.5-flash">gemini-1.5-flash · Flash</option>
+        <option value="gemini-1.5-pro">gemini-1.5-pro · Pro</option>
       </select>
-      <p class="model-hint" id="model-hint">V3.2 — fast, structured reasoning. Good for most architecture questions.</p>
+      <p class="model-hint" id="model-hint">Flash — fast, great for interactive walkthroughs.</p>
     </div>
 
     <div class="divider"></div>
@@ -629,7 +629,7 @@
       <span>Vanik Architecture</span>
       <span class="ctx-dot"></span>
       <span class="ctx-pill" id="ctx-section-badge">General</span>
-      <span class="ctx-pill" id="ctx-model-badge">deepseek-chat</span>
+      <span class="ctx-pill" id="ctx-model-badge">gemini-1.5-flash</span>
     </div>
 
     <div class="messages" id="messages"></div>
@@ -803,30 +803,30 @@ const SECTION_LABELS = {
 };
 
 const MODEL_HINTS = {
-  "deepseek-chat":
-    "V3.2 — fast, structured reasoning. Good for most architecture questions.",
-  "deepseek-reasoner":
-    "R1 — chain-of-thought. Use for complex trade-offs or design decisions.",
+  "gemini-1.5-flash":
+    "Flash — fast, great for interactive walkthroughs.",
+  "gemini-1.5-pro":
+    "Pro — deeper reasoning for hard trade-offs and design decisions.",
 };
 
 const WELCOME = {
   "general":
     "Ask me anything about the Vanik / Akeru architecture — design decisions, module boundaries, deployment, data flow, or how pieces fit together.",
   "model-selection":
-    "I can walk you through when to use deepseek-chat vs deepseek-reasoner, or compare Claude Haiku, DeBERTa, and Sentence Transformers for the different pipeline jobs.",
+    "I can walk you through when to use Gemini Flash vs Gemini Pro, or compare Claude Haiku, DeBERTa, and Sentence Transformers for the different pipeline jobs.",
   "manifest-search":
     "Let's dig into the three-module NLP pipeline — Extractor (Module 1), Query Builder (Module 2), and Search Executor (Module 3). Ask about any module, the data contracts between them, or the cotton-shirts failure that motivated the design.",
   "mcp":
     "I can explain the MCP protocol stack, the three MCP servers (wto, uk-tariff, eu-taric), the HMAC handshake, streamable-http transport, and how Vanik exposes tools to external agents.",
   "rag-vs-reasoning":
-    "Let's compare deterministic retrieval (SQLite FTS5, LIKE, UK API search) with chain-of-thought reasoning layers (Claude Haiku, DeepSeek R1) — when each is appropriate and where they compose.",
+    "Let's compare deterministic retrieval (SQLite FTS5, LIKE, UK API search) with reasoning layers (Claude Haiku, Gemini Pro) — when each is appropriate and where they compose.",
   "prompt-engineering":
     "I can cover the system prompts in Vanik — the Haiku extraction prompt, Hindi synthesis prompt, chapter prediction prompt — and the general prompt engineering principles applied across the pipeline.",
 };
 
 /* ── State ─────────────────────────────────────────────── */
 const state = {
-  model:     "deepseek-chat",
+  model:     "gemini-1.5-flash",
   section:   "general",
   history:   [],
   streaming: false,

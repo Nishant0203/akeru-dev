@@ -10,12 +10,12 @@ Routes
   GET  /vidhi/health            → {"status": "ok", "agent": "vidhi"}
 
 Design
-  - DeepSeek API (OpenAI-compatible) via openai SDK
+  - Gemini API via google-generativeai SDK
   - Section-aware system prompts drawn from architecture document
   - Full architecture document embedded in every context (≈12.8K tokens,
     well within DeepSeek's 128K window)
   - Stateless: caller sends full history each request
-  - Model: deepseek-chat (V3.2) or deepseek-reasoner (R1) — caller selects
+  - Model: gemini-1.5-flash (fast) or gemini-1.5-pro (deeper) — caller selects
 
 Run (dev):
   uvicorn vidhi_agent.agent:app --port 8001 --reload
@@ -25,12 +25,13 @@ Run (prod, alongside Vanik on port 8000):
   # Caddy reverse-proxies /vidhi/* → localhost:8001
 """
 
+import asyncio
 import json
 import logging
 import os
 from pathlib import Path
 
-from openai import AsyncOpenAI
+import google.generativeai as genai
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -42,19 +43,33 @@ from starlette.routing import Route
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [vidhi] %(message)s")
 log = logging.getLogger("vidhi")
 
-# ── DeepSeek client ──────────────────────────────────────────────────
-# DeepSeek API is OpenAI-compatible. Set DEEPSEEK_API_KEY in secrets.env.
-_DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
-if not _DEEPSEEK_API_KEY:
-    log.warning("DEEPSEEK_API_KEY not set — /vidhi/api/chat will fail until configured.")
+# ── Gemini client ───────────────────────────────────────────────────
+# Set GEMINI_API_KEY in secrets.env.
+_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+if not _GEMINI_API_KEY:
+    log.warning("GEMINI_API_KEY not set — /vidhi/api/chat will fail until configured.")
 
-_client = AsyncOpenAI(
-    api_key=_DEEPSEEK_API_KEY,
-    base_url="https://api.deepseek.com/v1",
-)
+genai.configure(api_key=_GEMINI_API_KEY)
 
-ALLOWED_MODELS = {"deepseek-chat", "deepseek-reasoner"}
+ALLOWED_MODELS = {"gemini-1.5-flash", "gemini-1.5-pro"}
 MAX_HISTORY_TURNS = 12   # keep last N user+assistant pairs to stay within budget
+
+
+def _build_prompt(system_prompt: str, history: list[dict]) -> str:
+    """Build a single text prompt from (system + chat history)."""
+    lines: list[str] = [system_prompt.strip(), "", "Conversation:", "────────────"]
+    for turn in history:
+        role = turn.get("role")
+        content = (turn.get("content") or "").strip()
+        if not content:
+            continue
+        if role == "user":
+            lines.append(f"User: {content}")
+        elif role == "assistant":
+            lines.append(f"Vidhi: {content}")
+    lines.append("────────────")
+    lines.append("Vidhi:")
+    return "\n".join(lines).strip() + "\n"
 
 # ── Architecture document (embedded once at startup) ─────────────────
 # The document is ≈12.8K tokens — well within the 128K context window.
@@ -155,7 +170,7 @@ def build_system_prompt(section: str) -> str:
 
 def _validate_request(body: dict) -> tuple[str, str, str, list[dict], str | None]:
     """Returns (model, section, session_id, history, error_msg)."""
-    model = body.get("model", "deepseek-chat")
+    model = body.get("model", "gemini-1.5-flash")
     if model not in ALLOWED_MODELS:
         return "", "", "", [], f"Unknown model '{model}'. Allowed: {sorted(ALLOWED_MODELS)}"
 
@@ -208,36 +223,57 @@ async def chat_endpoint(request: Request):
     model, section, session_id, history, err = _validate_request(body)
     if err:
         return JSONResponse({"error": err}, status_code=400)
-    if not _DEEPSEEK_API_KEY:
+    if not _GEMINI_API_KEY:
         return JSONResponse(
-            {"error": "DEEPSEEK_API_KEY is not set on the server."},
+            {"error": "GEMINI_API_KEY is not set on the server."},
             status_code=500,
         )
 
     system_prompt = build_system_prompt(section)
-    messages = [{"role": "system", "content": system_prompt}] + history
+    prompt = _build_prompt(system_prompt, history)
 
     log.info(f"session={session_id} model={model} section={section} turns={len(history)}")
 
     async def event_stream():
         try:
-            stream = await _client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True,
-                max_tokens=2048,
-                temperature=0.3,   # lower = more deterministic for architecture guidance
-            )
-            async for chunk in stream:
-                delta = chunk.choices[0].delta.content
-                if delta:
-                    payload = json.dumps({
-                        "choices": [{"delta": {"content": delta}}]
-                    })
-                    yield _sse(payload)
+            gmodel = genai.GenerativeModel(model_name=model)
+
+            # google-generativeai streaming iterator is blocking; run in a thread and forward chunks.
+            q: asyncio.Queue[str | None] = asyncio.Queue()
+
+            def _run_stream() -> None:
+                try:
+                    for chunk in gmodel.generate_content(
+                        prompt,
+                        stream=True,
+                        generation_config={
+                            "temperature": 0.3,
+                            "max_output_tokens": 2048,
+                        },
+                    ):
+                        text = getattr(chunk, "text", None)
+                        if text:
+                            q.put_nowait(text)
+                except Exception as exc:
+                    q.put_nowait(f"[ERROR]{exc}")
+                finally:
+                    q.put_nowait(None)
+
+            producer = asyncio.create_task(asyncio.to_thread(_run_stream))
+
+            while True:
+                delta = await q.get()
+                if delta is None:
+                    break
+                if delta.startswith("[ERROR]"):
+                    raise RuntimeError(delta[len("[ERROR]") :])
+                payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
+                yield _sse(payload)
+
+            await producer
             yield _sse("[DONE]")
         except Exception as exc:
-            log.error(f"DeepSeek stream error: {exc}")
+            log.error(f"Gemini stream error: {exc}")
             yield _sse_error(str(exc))
             yield _sse("[DONE]")
 
