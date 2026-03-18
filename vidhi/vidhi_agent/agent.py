@@ -51,7 +51,8 @@ if not _GEMINI_API_KEY:
 
 genai.configure(api_key=_GEMINI_API_KEY)
 
-ALLOWED_MODELS = {"gemini-1.5-flash", "gemini-1.5-pro"}
+# Note: `google-generativeai` uses v1beta; "latest" suffixed model IDs are the most reliable.
+ALLOWED_MODELS = {"gemini-1.5-flash-latest", "gemini-1.5-pro-latest"}
 MAX_HISTORY_TURNS = 12   # keep last N user+assistant pairs to stay within budget
 
 
@@ -172,7 +173,7 @@ def build_system_prompt(section: str) -> str:
 
 def _validate_request(body: dict) -> tuple[str, str, str, list[dict], str | None]:
     """Returns (model, section, session_id, history, error_msg)."""
-    model = body.get("model", "gemini-1.5-flash")
+    model = body.get("model", "gemini-1.5-flash-latest")
     if model not in ALLOWED_MODELS:
         return "", "", "", [], f"Unknown model '{model}'. Allowed: {sorted(ALLOWED_MODELS)}"
 
