@@ -588,9 +588,10 @@
     <div>
       <p class="block-label">Model</p>
       <select id="model-select" class="model-select">
-        <option value="models/gemini-2.0-flash">gemini-2.0-flash · Flash</option>
+        <option value="models/gemini-flash-latest">gemini-flash-latest · Flash</option>
+        <option value="models/gemini-pro-latest">gemini-pro-latest · Pro</option>
         <option value="models/gemini-2.5-flash">gemini-2.5-flash · Flash+</option>
-        <option value="models/gemini-2.5-pro">gemini-2.5-pro · Pro</option>
+        <option value="models/gemini-2.5-pro">gemini-2.5-pro · Pro+</option>
       </select>
       <p class="model-hint" id="model-hint">Flash — fast, great for interactive walkthroughs.</p>
     </div>
@@ -630,7 +631,7 @@
       <span>Vanik Architecture</span>
       <span class="ctx-dot"></span>
       <span class="ctx-pill" id="ctx-section-badge">General</span>
-      <span class="ctx-pill" id="ctx-model-badge">gemini-2.0-flash</span>
+      <span class="ctx-pill" id="ctx-model-badge">gemini-flash-latest</span>
     </div>
 
     <div class="messages" id="messages"></div>
@@ -804,12 +805,14 @@ const SECTION_LABELS = {
 };
 
 const MODEL_HINTS = {
-  "models/gemini-2.0-flash":
-    "Flash — fast, great for interactive walkthroughs.",
+  "models/gemini-flash-latest":
+    "Flash — safest default for interactive walkthroughs.",
+  "models/gemini-pro-latest":
+    "Pro — deeper reasoning for hard trade-offs and design decisions.",
   "models/gemini-2.5-flash":
     "Flash+ — stronger model, still fast for most architecture work.",
   "models/gemini-2.5-pro":
-    "Pro — deeper reasoning for hard trade-offs and design decisions.",
+    "Pro+ — strongest option; use for complex architecture decisions.",
 };
 
 const WELCOME = {
@@ -829,7 +832,7 @@ const WELCOME = {
 
 /* ── State ─────────────────────────────────────────────── */
 const state = {
-  model:     "models/gemini-2.0-flash",
+  model:     "models/gemini-flash-latest",
   section:   "general",
   history:   [],
   streaming: false,
