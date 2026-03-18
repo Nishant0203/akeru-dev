@@ -38,4 +38,4 @@ select = ["E", "F", "I", "UP"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agent*", "config*", "evaluation*", "mcp_servers*", "nes*", "vidhi_agent*"]
+include = ["agent*", "config*", "evaluation*", "mcp_servers*", "nes*"]
