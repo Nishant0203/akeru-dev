@@ -32,6 +32,7 @@ import os
 from pathlib import Path
 
 import google.generativeai as genai
+import httpx
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -51,6 +52,13 @@ if not _GEMINI_API_KEY:
 
 genai.configure(api_key=_GEMINI_API_KEY)
 
+# Optional: lock Gemini behind a shareable code
+_GEMINI_UNLOCK_CODE = os.environ.get("VIDHI_GEMINI_UNLOCK_CODE", "").strip()
+
+# Optional: Ollama local model (default path)
+_OLLAMA_BASE_URL = os.environ.get("VIDHI_OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+_DEFAULT_OLLAMA_MODEL = os.environ.get("VIDHI_OLLAMA_MODEL", "llama3.1:8b").strip()
+
 # Use fully-qualified model IDs as returned by genai.list_models() (e.g. "models/gemini-2.0-flash").
 # Model availability varies by project/key; keep this list aligned with what we enable in the UI.
 ALLOWED_MODELS = {
@@ -61,6 +69,14 @@ ALLOWED_MODELS = {
     "models/gemini-pro-latest",
 }
 MAX_HISTORY_TURNS = 12   # keep last N user+assistant pairs to stay within budget
+
+
+def _is_gemini_model(model: str) -> bool:
+    return model.startswith("models/")
+
+
+def _is_ollama_model(model: str) -> bool:
+    return model.startswith("ollama/")
 
 
 def _build_prompt(system_prompt: str, history: list[dict]) -> str:
@@ -180,9 +196,16 @@ def build_system_prompt(section: str) -> str:
 
 def _validate_request(body: dict) -> tuple[str, str, str, list[dict], str | None]:
     """Returns (model, section, session_id, history, error_msg)."""
-    model = body.get("model", "models/gemini-2.0-flash")
-    if model not in ALLOWED_MODELS:
+    model = body.get("model", f"ollama/{_DEFAULT_OLLAMA_MODEL}")
+    if not isinstance(model, str) or not model:
+        return "", "", "", [], "model must be a non-empty string"
+    if _is_gemini_model(model) and model not in ALLOWED_MODELS:
         return "", "", "", [], f"Unknown model '{model}'. Allowed: {sorted(ALLOWED_MODELS)}"
+    if _is_ollama_model(model):
+        # ok — local models are validated by Ollama at runtime
+        pass
+    elif not _is_gemini_model(model):
+        return "", "", "", [], "Unsupported model format. Use 'ollama/<name>' or 'models/<gemini-id>'."
 
     section = body.get("section", "general")
     if section not in SECTION_ADDENDUM:
@@ -233,11 +256,15 @@ async def chat_endpoint(request: Request):
     model, section, session_id, history, err = _validate_request(body)
     if err:
         return JSONResponse({"error": err}, status_code=400)
-    if not _GEMINI_API_KEY:
-        return JSONResponse(
-            {"error": "GEMINI_API_KEY is not set on the server."},
-            status_code=500,
-        )
+    access_code = str(body.get("access_code", "")).strip()
+    if _is_gemini_model(model):
+        if _GEMINI_UNLOCK_CODE and access_code != _GEMINI_UNLOCK_CODE:
+            return JSONResponse({"error": "Gemini is locked. Provide a valid access_code."}, status_code=403)
+        if not _GEMINI_API_KEY:
+            return JSONResponse(
+                {"error": "GEMINI_API_KEY is not set on the server."},
+                status_code=500,
+            )
 
     system_prompt = build_system_prompt(section)
     prompt = _build_prompt(system_prompt, history)
@@ -246,44 +273,69 @@ async def chat_endpoint(request: Request):
 
     async def event_stream():
         try:
-            gmodel = genai.GenerativeModel(model_name=model)
+            if _is_ollama_model(model):
+                ollama_model = model.split("/", 1)[1]
+                url = f"{_OLLAMA_BASE_URL}/api/generate"
+                async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=60.0)) as client:
+                    async with client.stream(
+                        "POST",
+                        url,
+                        json={"model": ollama_model, "prompt": prompt, "stream": True},
+                        headers={"Content-Type": "application/json"},
+                    ) as resp:
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                obj = json.loads(line)
+                            except Exception:
+                                continue
+                            delta = obj.get("response") or ""
+                            if delta:
+                                payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
+                                yield _sse(payload)
+                            if obj.get("done") is True:
+                                break
+            else:
+                gmodel = genai.GenerativeModel(model_name=model)
 
-            # google-generativeai streaming iterator is blocking; run in a thread and forward chunks.
-            q: asyncio.Queue[str | None] = asyncio.Queue()
+                # google-generativeai streaming iterator is blocking; run in a thread and forward chunks.
+                q: asyncio.Queue[str | None] = asyncio.Queue()
 
-            def _run_stream() -> None:
-                try:
-                    for chunk in gmodel.generate_content(
-                        prompt,
-                        stream=True,
-                        generation_config={
-                            "temperature": 0.3,
-                            "max_output_tokens": 2048,
-                        },
-                    ):
-                        text = getattr(chunk, "text", None)
-                        if text:
-                            q.put_nowait(text)
-                except Exception as exc:
-                    q.put_nowait(f"[ERROR]{exc}")
-                finally:
-                    q.put_nowait(None)
+                def _run_stream() -> None:
+                    try:
+                        for chunk in gmodel.generate_content(
+                            prompt,
+                            stream=True,
+                            generation_config={
+                                "temperature": 0.3,
+                                "max_output_tokens": 2048,
+                            },
+                        ):
+                            text = getattr(chunk, "text", None)
+                            if text:
+                                q.put_nowait(text)
+                    except Exception as exc:
+                        q.put_nowait(f"[ERROR]{exc}")
+                    finally:
+                        q.put_nowait(None)
 
-            producer = asyncio.create_task(asyncio.to_thread(_run_stream))
+                producer = asyncio.create_task(asyncio.to_thread(_run_stream))
 
-            while True:
-                delta = await q.get()
-                if delta is None:
-                    break
-                if delta.startswith("[ERROR]"):
-                    raise RuntimeError(delta[len("[ERROR]") :])
-                payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
-                yield _sse(payload)
+                while True:
+                    delta = await q.get()
+                    if delta is None:
+                        break
+                    if delta.startswith("[ERROR]"):
+                        raise RuntimeError(delta[len("[ERROR]") :])
+                    payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
+                    yield _sse(payload)
 
-            await producer
+                await producer
             yield _sse("[DONE]")
         except Exception as exc:
-            log.error(f"Gemini stream error: {exc}")
+            log.error(f"Vidhi stream error: {exc}")
             yield _sse_error(str(exc))
             yield _sse("[DONE]")
 

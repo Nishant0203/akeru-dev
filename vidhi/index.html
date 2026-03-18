@@ -588,12 +588,27 @@
     <div>
       <p class="block-label">Model</p>
       <select id="model-select" class="model-select">
-        <option value="models/gemini-flash-latest">gemini-flash-latest · Flash</option>
-        <option value="models/gemini-pro-latest">gemini-pro-latest · Pro</option>
-        <option value="models/gemini-2.5-flash">gemini-2.5-flash · Flash+</option>
-        <option value="models/gemini-2.5-pro">gemini-2.5-pro · Pro+</option>
+        <option value="ollama/llama3.1:8b">llama3.1:8b · Local</option>
+        <option value="ollama/llama3.2:3b">llama3.2:3b · Local (light)</option>
+        <option value="models/gemini-flash-latest" data-locked="gemini" disabled>gemini-flash-latest · Flash (locked)</option>
+        <option value="models/gemini-pro-latest" data-locked="gemini" disabled>gemini-pro-latest · Pro (locked)</option>
+        <option value="models/gemini-2.5-flash" data-locked="gemini" disabled>gemini-2.5-flash · Flash+ (locked)</option>
+        <option value="models/gemini-2.5-pro" data-locked="gemini" disabled>gemini-2.5-pro · Pro+ (locked)</option>
       </select>
       <p class="model-hint" id="model-hint">Flash — fast, great for interactive walkthroughs.</p>
+    </div>
+
+    <div style="margin-top:0.8rem;">
+      <p class="block-label">Gemini unlock</p>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <input id="unlock-code" type="password" placeholder="code" autocomplete="off"
+               style="flex:1; background: rgba(4, 10, 32, 0.55); border: 1px solid var(--glass-border); color: var(--star-white); font-family: var(--font-mono); font-size: 0.7rem; padding: 0.45rem 0.6rem; border-radius: 1px;" />
+        <button id="unlock-btn"
+                style="background: transparent; border: 1px solid var(--glass-border); color: var(--accent); font-family: var(--font-mono); font-size:0.68rem; padding:0.45rem 0.7rem; cursor:pointer;">
+          Unlock
+        </button>
+      </div>
+      <p style="margin-top:0.4rem; font-size:0.62rem; color:var(--star-ghost);">If you have a code, Gemini models will unlock.</p>
     </div>
 
     <div class="divider"></div>
@@ -805,14 +820,18 @@ const SECTION_LABELS = {
 };
 
 const MODEL_HINTS = {
+  "ollama/llama3.1:8b":
+    "Local LLaMA — default. No external quota, but depends on server resources.",
+  "ollama/llama3.2:3b":
+    "Local LLaMA (light) — faster on small servers, lower quality.",
   "models/gemini-flash-latest":
-    "Flash — safest default for interactive walkthroughs.",
+    "Gemini Flash — fast, strong generalist (requires unlock code).",
   "models/gemini-pro-latest":
-    "Pro — deeper reasoning for hard trade-offs and design decisions.",
+    "Gemini Pro — deeper reasoning (requires unlock code).",
   "models/gemini-2.5-flash":
-    "Flash+ — stronger model, still fast for most architecture work.",
+    "Gemini 2.5 Flash — stronger (requires unlock code).",
   "models/gemini-2.5-pro":
-    "Pro+ — strongest option; use for complex architecture decisions.",
+    "Gemini 2.5 Pro — strongest (requires unlock code).",
 };
 
 const WELCOME = {
@@ -832,7 +851,7 @@ const WELCOME = {
 
 /* ── State ─────────────────────────────────────────────── */
 const state = {
-  model:     "models/gemini-flash-latest",
+  model:     "ollama/llama3.1:8b",
   section:   "general",
   history:   [],
   streaming: false,
@@ -845,6 +864,8 @@ const textarea   = document.getElementById("user-input");
 const sendBtn    = document.getElementById("send-btn");
 const modelSel   = document.getElementById("model-select");
 const modelHint  = document.getElementById("model-hint");
+const unlockCode = document.getElementById("unlock-code");
+const unlockBtn  = document.getElementById("unlock-btn");
 const secBtns    = document.querySelectorAll("#section-list button");
 const ctxSection = document.getElementById("ctx-section-badge");
 const ctxModel   = document.getElementById("ctx-model-badge");
@@ -853,6 +874,28 @@ const charHint   = document.getElementById("char-hint");
 
 /* ── Boot ──────────────────────────────────────────────── */
 renderWelcome(state.section);
+
+/* ── Unlock code ───────────────────────────────────────── */
+const UNLOCK_KEY = "vidhi_gemini_unlock_code";
+function applyUnlock(code) {
+  const ok = Boolean(code && String(code).trim().length >= 4);
+  document.querySelectorAll('option[data-locked="gemini"]').forEach(opt => {
+    opt.disabled = !ok;
+    opt.textContent = opt.textContent.replace(" (locked)", "") + (ok ? "" : " (locked)");
+  });
+  return ok;
+}
+
+const savedCode = localStorage.getItem(UNLOCK_KEY) || "";
+if (savedCode) unlockCode.value = savedCode;
+applyUnlock(savedCode);
+
+unlockBtn.addEventListener("click", () => {
+  const code = unlockCode.value.trim();
+  localStorage.setItem(UNLOCK_KEY, code);
+  const ok = applyUnlock(code);
+  showToast(ok ? "Gemini unlocked (client-side). Try a Gemini model." : "Enter a valid code.");
+});
 
 /* ── Model ─────────────────────────────────────────────── */
 modelSel.addEventListener("change", () => {
@@ -914,6 +957,7 @@ async function doSend() {
         model:      state.model,
         section:    state.section,
         history:    state.history,
+        access_code: localStorage.getItem(UNLOCK_KEY) || "",
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
