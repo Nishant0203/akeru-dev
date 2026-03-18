@@ -1,5 +1,5 @@
 """
-vidhi_agent/agent.py
+vidhi/vidhi_agent/agent.py
 ────────────────────
 Vidhi — Architecture Guidelines Agent
 Starlette ASGI app. Runs at api.akeru.dev/vidhi/*
@@ -18,10 +18,10 @@ Design
   - Model: gemini-1.5-flash (fast) or gemini-1.5-pro (deeper) — caller selects
 
 Run (dev):
-  uvicorn vidhi_agent.agent:app --port 8001 --reload
+  uvicorn vidhi.vidhi_agent.agent:app --port 8001 --reload
 
 Run (prod, alongside Vanik on port 8000):
-  uvicorn vidhi_agent.agent:app --port 8001 --workers 1
+  uvicorn vidhi.vidhi_agent.agent:app --port 8001 --workers 1
   # Caddy reverse-proxies /vidhi/* → localhost:8001
 """
 
@@ -77,7 +77,9 @@ def _build_prompt(system_prompt: str, history: list[dict]) -> str:
 # else from the embedded fallback stub below.
 def _load_arch_doc() -> str:
     # 1. Try file path (recommended — keep vanik_architecture.txt in repo)
-    doc_path = Path(os.environ.get("VIDHI_ARCH_DOC_PATH", "vidhi_agent/vanik_architecture.txt"))
+    doc_path = Path(
+        os.environ.get("VIDHI_ARCH_DOC_PATH", "vidhi/vidhi_agent/vanik_architecture.txt")
+    )
     if doc_path.exists():
         return doc_path.read_text(encoding="utf-8")
     # 2. Try env var (for injection at deploy time)
