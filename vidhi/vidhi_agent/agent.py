@@ -283,7 +283,11 @@ async def chat_endpoint(request: Request):
                         json={"model": ollama_model, "prompt": prompt, "stream": True},
                         headers={"Content-Type": "application/json"},
                     ) as resp:
-                        resp.raise_for_status()
+                        if resp.status_code >= 400:
+                            body_text = (await resp.aread()).decode(errors="replace")
+                            raise RuntimeError(
+                                f"Ollama HTTP {resp.status_code} from {url}: {body_text[:500]}"
+                            )
                         async for line in resp.aiter_lines():
                             if not line:
                                 continue
@@ -291,6 +295,8 @@ async def chat_endpoint(request: Request):
                                 obj = json.loads(line)
                             except Exception:
                                 continue
+                            if obj.get("error"):
+                                raise RuntimeError(f"Ollama error: {obj.get('error')}")
                             delta = obj.get("response") or ""
                             if delta:
                                 payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
@@ -335,8 +341,9 @@ async def chat_endpoint(request: Request):
                 await producer
             yield _sse("[DONE]")
         except Exception as exc:
-            log.error(f"Vidhi stream error: {exc}")
-            yield _sse_error(str(exc))
+            log.exception("Vidhi stream error")
+            msg = str(exc).strip() or repr(exc)
+            yield _sse_error(msg)
             yield _sse("[DONE]")
 
     return StreamingResponse(
