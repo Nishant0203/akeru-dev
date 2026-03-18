@@ -260,8 +260,92 @@ def _extract_keywords(text: str) -> list[str]:
     return out[:12]
 
 
+_SEMANTIC_MODEL = None
+_SEMANTIC_CHUNKS: list[str] | None = None
+_SEMANTIC_EMBEDS = None
+
+
+def _init_semantic_index() -> bool:
+    """Build a semantic index for the architecture doc.
+
+    Uses Sentence Transformers (all-MiniLM-L6-v2) on CPU.
+    If dependencies are missing, returns False (caller should fall back).
+    """
+    global _SEMANTIC_MODEL, _SEMANTIC_CHUNKS, _SEMANTIC_EMBEDS
+    if _SEMANTIC_MODEL is not None and _SEMANTIC_CHUNKS is not None and _SEMANTIC_EMBEDS is not None:
+        return True
+
+    try:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+        import numpy as np  # noqa: F401
+    except Exception:
+        return False
+
+    embed_model_name = os.environ.get("VIDHI_EMBED_MODEL", "all-MiniLM-L6-v2").strip()
+
+    # Chunk by markdown headings ("## ").
+    chunks: list[str] = []
+    parts = ARCH_DOC.split("\n## ")
+    for idx, p in enumerate(parts):
+        block = ("## " + p) if idx > 0 else p
+        block = block.strip()
+        if not block:
+            continue
+        if len(block) > 3500:
+            block = block[:3500]
+        chunks.append(block)
+
+    model = SentenceTransformer(embed_model_name)
+    embeds = model.encode(chunks, normalize_embeddings=True)
+
+    _SEMANTIC_MODEL = model
+    _SEMANTIC_CHUNKS = chunks
+    _SEMANTIC_EMBEDS = embeds
+    return True
+
+
+def _doc_excerpts_for_query_semantic(
+    query: str, section: str, *, max_chars: int = 9000, top_k: int = 6
+) -> str | None:
+    if not _init_semantic_index():
+        return None
+    if _SEMANTIC_MODEL is None or _SEMANTIC_CHUNKS is None or _SEMANTIC_EMBEDS is None:
+        return None
+
+    import numpy as np
+
+    qtext = f"{query}\n\nSection lens: {section}".strip()
+    qv = _SEMANTIC_MODEL.encode([qtext], normalize_embeddings=True)[0]
+    sims = np.dot(_SEMANTIC_EMBEDS, qv)
+
+    top_idxs = np.argsort(-sims)[:top_k]
+    chosen: list[str] = []
+    remaining = max_chars
+    for i in top_idxs:
+        chunk = _SEMANTIC_CHUNKS[int(i)]
+        if len(chunk) > remaining:
+            chunk = chunk[:remaining]
+        if chunk:
+            chosen.append(chunk)
+            remaining -= len(chunk) + 2
+        if remaining <= 0:
+            break
+
+    if not chosen:
+        return None
+    return "\n\n".join(chosen).strip()
+
+
 def _doc_excerpts_for_query(query: str, section: str, *, max_chars: int = 9000) -> str:
-    """Select relevant markdown 'chapters' (## headings) by keyword score."""
+    """Select relevant markdown 'chapters' (## headings).
+
+    Prefer semantic retrieval when Sentence Transformers is available.
+    Fall back to keyword scoring otherwise.
+    """
+    semantic = _doc_excerpts_for_query_semantic(query, section, max_chars=max_chars)
+    if semantic:
+        return semantic
+
     kws = set(_extract_keywords(query) + _extract_keywords(section))
     if not kws:
         kws = {"vanik", "architecture"}
