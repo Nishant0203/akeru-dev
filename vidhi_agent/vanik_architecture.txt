@@ -5,5 +5,5 @@ plain-text export of the architecture document (recommended), or set `VIDHI_ARCH
 to inline the full document text.
 
 Suggested server path:
-  /opt/akeru-dev/vanik/vidhi_agent/vanik_architecture.txt
+  /opt/akeru-dev/vidhi_agent/vanik_architecture.txt
 
