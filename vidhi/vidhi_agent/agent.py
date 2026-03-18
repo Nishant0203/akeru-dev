@@ -472,15 +472,20 @@ async def chat_endpoint(request: Request):
                 status_code=500,
             )
 
-    system_prompt = build_system_prompt(section)
-    # For local LLMs, keep context small by selecting relevant doc "chapters" (markdown headings).
-    if _is_ollama_model(model):
-        last_user = ""
-        for turn in reversed(history):
-            if turn.get("role") == "user":
-                last_user = str(turn.get("content") or "")
-                break
-        system_prompt = build_system_prompt_local(section, last_user)
+    # Extract the latest user question so we can lens excerpts accordingly.
+    last_user = ""
+    for turn in reversed(history):
+        if turn.get("role") == "user":
+            last_user = str(turn.get("content") or "")
+            break
+
+    # Avoid dumping the full ARCH_DOC into Gemini; inject only relevant excerpts instead.
+    # For Ollama we always do this (context window constraints).
+    system_prompt = (
+        build_system_prompt_local(section, last_user)
+        if (_is_ollama_model(model) or _is_gemini_model(model))
+        else build_system_prompt(section)
+    )
     prompt = _build_prompt(system_prompt, history)
 
     last_user_query = ""
