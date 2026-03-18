@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vidhi · विधि — Akeru Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+Devanagari:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" />
+  <style>
+
+    /* ══════════════════════════════════════════════════════
+       TOKENS — Night sky palette, glass parameters
+       ══════════════════════════════════════════════════════ */
+    :root {
+      /* Sky depths */
+      --sky-void:      #010308;
+      --sky-deep:      #030712;
+      --sky-mid:       #050d1e;
+      --sky-horizon:   #071228;
+
+      /* Nebula accents — muted, atmospheric */
+      --neb-cobalt:    rgba(24, 52, 160, 0.18);
+      --neb-teal:      rgba(14, 88, 120, 0.13);
+      --neb-rose:      rgba(80, 28, 80, 0.10);
+
+      /* Glass panels */
+      --glass-bg:      rgba(4, 10, 32, 0.46);
+      --glass-bg-deep: rgba(2, 6, 20, 0.58);
+      --glass-border:  rgba(160, 185, 255, 0.09);
+      --glass-border-hi: rgba(180, 205, 255, 0.18);
+      --glass-blur:    blur(28px) saturate(140%);
+      --glass-blur-sm: blur(16px) saturate(120%);
+      --glass-shine:   inset 0 1px 0 rgba(255, 255, 255, 0.055);
+      --glass-shadow:  0 12px 60px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0,0,0,0.4);
+
+      /* Stellar text */
+      --star-white:    rgba(225, 232, 255, 0.92);
+      --star-dim:      rgba(155, 172, 215, 0.50);
+      --star-ghost:    rgba(120, 140, 185, 0.30);
+
+      /* Warm gold — carried from Akeru, desaturated for night */
+      --gold:          #c8a96e;
+      --gold-soft:     rgba(200, 169, 110, 0.72);
+      --gold-ghost:    rgba(200, 169, 110, 0.28);
+
+      /* Accent — cool stellar blue-white */
+      --accent:        #8fb4e8;
+      --accent-dim:    rgba(143, 180, 232, 0.40);
+
+      --font-serif:    'EB Garamond', 'Noto Serif Devanagari', Georgia, serif;
+      --font-mono:     'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--sky-void);
+      color: var(--star-white);
+      font-family: var(--font-serif);
+      font-size: 16px;
+      line-height: 1.68;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       BACKGROUND LAYERS
+       ══════════════════════════════════════════════════════ */
+
+    /* Layer 0 — base gradient sky */
+    .sky-bg {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 55% at 22% 15%,  var(--neb-cobalt) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 75% 60%,  var(--neb-teal)   0%, transparent 65%),
+        radial-gradient(ellipse 50% 35% at 50% 85%,  var(--neb-rose)   0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 50% 0%,  #070f28 0%, var(--sky-void) 100%);
+      z-index: 0;
+    }
+
+    /* Layer 1 — star canvas (JS-drawn) */
+    #star-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Layer 2 — noise grain overlay */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LAYOUT SHELL
+       ══════════════════════════════════════════════════════ */
+    .shell {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 252px 1fr;
+      height: 100vh;
+      padding: 1.4rem;
+      gap: 1rem;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SIDEBAR — glass panel
+       ══════════════════════════════════════════════════════ */
+    .sidebar {
+      background: var(--glass-bg-deep);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), var(--glass-shine);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      padding: 1.8rem 1.4rem;
+      gap: 1.6rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--glass-border-hi); border-radius: 2px; }
+
+    /* Brand */
+    .brand { display: flex; flex-direction: column; gap: 0.1rem; }
+    .brand-en {
+      font-size: 1.7rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      color: var(--star-white);
+      line-height: 1;
+    }
+    .brand-hi {
+      font-family: 'Noto Serif Devanagari', serif;
+      font-weight: 300;
+      font-size: 1.05rem;
+      color: var(--gold-soft);
+      letter-spacing: 0.02em;
+      margin-top: 0.2rem;
+    }
+    .brand-sub {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--star-ghost);
+      margin-top: 0.55rem;
+    }
+
+    /* Glass divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-border-hi), transparent);
+    }
+
+    /* Model selector block */
+    .block-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--star-ghost);
+      margin-bottom: 0.5rem;
+    }
+
+    .model-select {
+      width: 100%;
+      background: rgba(4, 10, 32, 0.55);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 0.70rem;
+      padding: 0.5rem 2rem 0.5rem 0.65rem;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      border-radius: 1px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238fb4e840'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      transition: border-color 0.2s;
+    }
+    .model-select:focus { outline: none; border-color: var(--glass-border-hi); }
+    .model-select option { background: #060f28; color: var(--star-white); }
+
+    .model-hint {
+      font-size: 0.68rem;
+      color: var(--star-dim);
+      margin-top: 0.4rem;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Section nav */
+    .section-list { list-style: none; display: flex; flex-direction: column; gap: 1px; }
+    .section-list li button {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      border-left: 2px solid transparent;
+      color: var(--star-dim);
+      font-family: var(--font-serif);
+      font-size: 0.80rem;
+      padding: 0.45rem 0.7rem;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+      line-height: 1.25;
+      border-radius: 0 1px 1px 0;
+    }
+    .section-list li button:hover {
+      color: var(--star-white);
+      background: rgba(143, 180, 232, 0.055);
+      border-color: var(--glass-border-hi);
+    }
+    .section-list li button.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(143, 180, 232, 0.08);
+    }
+    .section-list li button .sec-num {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--star-ghost);
+      display: block;
+      margin-bottom: 0.1rem;
+      letter-spacing: 0.08em;
+    }
+
+    /* Back link */
+    .back-link {
+      margin-top: auto;
+      font-size: 0.68rem;
+      color: var(--star-ghost);
+      text-decoration: none;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--gold-soft); }
+    .back-link::before { content: '←'; font-size: 0.8rem; }
+
+    /* ══════════════════════════════════════════════════════
+       MAIN CHAT — glass panel
+       ══════════════════════════════════════════════════════ */
+    .main {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur-sm);
+      -webkit-backdrop-filter: var(--glass-blur-sm);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), var(--glass-shine);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Context bar */
+    .context-bar {
+      padding: 0.65rem 1.6rem;
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--star-ghost);
+      background: rgba(2, 5, 18, 0.25);
+      flex-shrink: 0;
+    }
+    .ctx-pill {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      background: rgba(143, 180, 232, 0.07);
+      border: 1px solid rgba(143, 180, 232, 0.14);
+      color: var(--accent-dim);
+      padding: 0.12rem 0.5rem;
+      letter-spacing: 0.1em;
+    }
+    .ctx-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(143, 180, 232, 0.25);
+      flex-shrink: 0;
+    }
+
+    /* Messages scroll area */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(143,180,232,0.12); border-radius: 2px; }
+
+    /* ── Welcome card ────────────────────────────────────── */
+    .welcome-card {
+      background: rgba(4, 12, 40, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border-hi);
+      box-shadow: var(--glass-shine), 0 4px 30px rgba(0,0,0,0.4);
+      padding: 2rem 2.2rem 1.8rem;
+      max-width: 660px;
+      position: relative;
+      overflow: hidden;
+      animation: cardReveal 0.6s ease forwards;
+    }
+    @keyframes cardReveal {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Shimmer edge on welcome card */
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(143,180,232,0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .welcome-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(180, 210, 255, 0.28), transparent);
+    }
+    .wc-title {
+      font-size: 1.45rem;
+      font-weight: 500;
+      color: var(--star-white);
+      letter-spacing: 0.02em;
+      margin-bottom: 0.15rem;
+    }
+    .wc-hi {
+      font-family: 'Noto Serif Devanagari', serif;
+      font-weight: 300;
+      font-size: 0.92rem;
+      color: var(--gold-soft);
+      margin-bottom: 1rem;
+    }
+    .wc-body {
+      font-size: 0.88rem;
+      color: var(--star-dim);
+      line-height: 1.72;
+    }
+    .wc-section {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--star-ghost);
+      margin-top: 1.2rem;
+      border-top: 1px solid var(--glass-border);
+      padding-top: 0.8rem;
+    }
+
+    /* ── Message bubbles ─────────────────────────────────── */
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      max-width: 700px;
+      animation: msgIn 0.28s ease forwards;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user  { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; }
+
+    .msg-role {
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--star-ghost);
+    }
+    .msg-body {
+      font-size: 0.87rem;
+      line-height: 1.72;
+      padding: 0.8rem 1.1rem;
+      border: 1px solid var(--glass-border);
+      position: relative;
+    }
+    .msg.user .msg-body {
+      background: rgba(143, 180, 232, 0.07);
+      backdrop-filter: blur(8px);
+      border-color: rgba(143, 180, 232, 0.12);
+      color: rgba(200, 218, 255, 0.88);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .msg.assistant .msg-body {
+      background: rgba(3, 8, 26, 0.45);
+      backdrop-filter: blur(10px);
+      color: var(--star-white);
+      box-shadow: var(--glass-shine);
+    }
+    /* Shine on assistant bubble */
+    .msg.assistant .msg-body::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(180,210,255,0.1), transparent);
+    }
+    .msg-body code {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      background: rgba(143, 180, 232, 0.1);
+      padding: 0.1em 0.35em;
+      color: var(--accent);
+      border: 1px solid rgba(143, 180, 232, 0.12);
+    }
+    .msg-body pre {
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+      background: rgba(1, 4, 16, 0.65);
+      border: 1px solid var(--glass-border);
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.7rem 0;
+      color: rgba(180, 200, 255, 0.75);
+      white-space: pre-wrap;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
+    }
+
+    /* Streaming cursor */
+    .cursor {
+      display: inline-block;
+      width: 1.5px; height: 0.82em;
+      background: var(--accent-dim);
+      animation: blink 0.85s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ══════════════════════════════════════════════════════
+       INPUT ROW — glass
+       ══════════════════════════════════════════════════════ */
+    .input-row {
+      border-top: 1px solid var(--glass-border);
+      padding: 0.9rem 1.6rem;
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-end;
+      background: rgba(2, 5, 18, 0.3);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
+    }
+
+    .input-wrap { flex: 1; }
+    textarea {
+      width: 100%;
+      background: rgba(4, 10, 32, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 1px;
+      color: var(--star-white);
+      font-family: var(--font-serif);
+      font-size: 0.88rem;
+      padding: 0.65rem 0.9rem;
+      resize: none;
+      min-height: 42px;
+      max-height: 140px;
+      line-height: 1.55;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea::placeholder { color: var(--star-ghost); }
+    textarea:focus {
+      outline: none;
+      border-color: rgba(143, 180, 232, 0.22);
+      box-shadow: 0 0 0 3px rgba(143, 180, 232, 0.05), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .char-hint {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: var(--star-ghost);
+      text-align: right;
+      margin-top: 0.2rem;
+    }
+
+    .send-btn {
+      background: rgba(143, 180, 232, 0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--accent-dim);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      padding: 0.55rem 1.1rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      align-self: flex-end;
+      transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+      border-radius: 1px;
+    }
+    .send-btn:hover:not(:disabled) {
+      color: var(--accent);
+      border-color: rgba(143, 180, 232, 0.22);
+      background: rgba(143, 180, 232, 0.1);
+      box-shadow: 0 0 12px rgba(143, 180, 232, 0.08);
+    }
+    .send-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ══════════════════════════════════════════════════════
+       TOAST
+       ══════════════════════════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem; right: 1.5rem;
+      background: rgba(4, 10, 32, 0.88);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(200, 80, 80, 0.3);
+      color: rgba(220, 140, 130, 0.9);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.55rem 1rem;
+      z-index: 999;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .toast.show { display: block; }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════════════ */
+    @media (max-width: 700px) {
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        padding: 0.75rem;
+        gap: 0.6rem;
+      }
+      .sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 1rem;
+        gap: 0.8rem;
+        max-height: 220px;
+      }
+      .back-link { display: none; }
+      html, body { overflow: auto; }
+      .shell { height: auto; min-height: 100vh; }
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- ── Background layers ──────────────────────────────────────── -->
+<div class="sky-bg"></div>
+<canvas id="star-canvas"></canvas>
+<div class="noise"></div>
+
+<!-- ── Shell ─────────────────────────────────────────────────── -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-en">Vidhi</span>
+      <span class="brand-hi">विधि</span>
+      <span class="brand-sub">Akeru · Architecture v1.6</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <p class="block-label">Model</p>
+      <select id="model-select" class="model-select">
+        <option value="deepseek-chat">deepseek-chat · V3.2</option>
+        <option value="deepseek-reasoner">deepseek-reasoner · R1</option>
+      </select>
+      <p class="model-hint" id="model-hint">V3.2 — fast, structured reasoning. Good for most architecture questions.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <nav>
+      <p class="block-label">Topics</p>
+      <ul class="section-list" id="section-list">
+        <li><button class="active" data-section="general">
+          <span class="sec-num">00</span>Open discussion
+        </button></li>
+        <li><button data-section="model-selection">
+          <span class="sec-num">01</span>Choosing the right model
+        </button></li>
+        <li><button data-section="manifest-search">
+          <span class="sec-num">02</span>Manifest search · NES
+        </button></li>
+        <li><button data-section="mcp">
+          <span class="sec-num">03</span>MCP protocol stack
+        </button></li>
+        <li><button data-section="rag-vs-reasoning">
+          <span class="sec-num">04</span>RAG vs reasoning layers
+        </button></li>
+        <li><button data-section="prompt-engineering">
+          <span class="sec-num">05</span>Prompt engineering
+        </button></li>
+      </ul>
+    </nav>
+
+    <a href="/" class="back-link">Mrigashira</a>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="main">
+    <div class="context-bar">
+      <span>Vanik Architecture</span>
+      <span class="ctx-dot"></span>
+      <span class="ctx-pill" id="ctx-section-badge">General</span>
+      <span class="ctx-pill" id="ctx-model-badge">deepseek-chat</span>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="input-row">
+      <div class="input-wrap">
+        <textarea
+          id="user-input"
+          rows="1"
+          placeholder="Ask about the Vanik architecture…"
+          aria-label="Message Vidhi"
+        ></textarea>
+        <div class="char-hint" id="char-hint"></div>
+      </div>
+      <button class="send-btn" id="send-btn">Send ↵</button>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     STAR FIELD + CONSTELLATION CANVAS
+     Draws: scattered stars (3 size tiers, twinkling), plus the
+     Mrigashira / Orion pattern with faint connecting lines —
+     mirroring the akeru.dev navigation metaphor.
+     ══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  const canvas = document.getElementById("star-canvas");
+  const ctx    = canvas.getContext("2d");
+  let W, H, stars, frameId;
+
+  /* Star colours — night sky palette */
+  const STAR_COLORS = [
+    "rgba(255, 255, 255,",   // pure white
+    "rgba(200, 218, 255,",   // blue-white
+    "rgba(255, 245, 220,",   // warm ivory
+    "rgba(180, 200, 255,",   // pale cornflower
+    "rgba(220, 230, 255,",   // soft lavender-white
+  ];
+
+  /* Orion/Mrigashira constellation — normalised [0..1] coords.
+     Based on Orion's main stars, scaled to feel naturally placed. */
+  const CONSTELLATION = [
+    // Orion belt — three stars
+    { x: 0.48, y: 0.52, r: 1.8, name: "Alnitak"   },
+    { x: 0.50, y: 0.49, r: 1.6, name: "Alnilam"   },
+    { x: 0.52, y: 0.46, r: 1.7, name: "Mintaka"   },
+    // Mrigashira head
+    { x: 0.47, y: 0.36, r: 1.4, name: "Meissa"    },
+    { x: 0.50, y: 0.33, r: 1.2, name: "Phi1 Ori"  },
+    // Shoulders
+    { x: 0.40, y: 0.41, r: 2.2, name: "Betelgeuse"},
+    { x: 0.58, y: 0.39, r: 1.8, name: "Bellatrix" },
+    // Feet
+    { x: 0.44, y: 0.64, r: 2.0, name: "Saiph"     },
+    { x: 0.56, y: 0.62, r: 2.4, name: "Rigel"     },
+  ];
+
+  /* Edges (indices into CONSTELLATION) */
+  const EDGES = [
+    [0,1],[1,2],             // belt
+    [2,4],[4,3],[3,1],       // belt → head
+    [0,5],[2,6],             // belt → shoulders
+    [5,6],                   // shoulder line
+    [0,7],[2,8],             // feet
+  ];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    buildStars();
+  }
+
+  function buildStars() {
+    const count = Math.floor((W * H) / 1400);
+    stars = Array.from({ length: count }, () => {
+      const tier = Math.random();
+      const r    = tier < 0.6  ? Math.random() * 0.5 + 0.2   // tiny
+                 : tier < 0.88 ? Math.random() * 0.6 + 0.55  // small
+                               : Math.random() * 0.7 + 0.9;   // medium
+      return {
+        x:      Math.random() * W,
+        y:      Math.random() * H,
+        r,
+        color:  STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+        phase:  Math.random() * Math.PI * 2,
+        speed:  0.0004 + Math.random() * 0.0008,
+        baseA:  0.25 + Math.random() * 0.65,
+      };
+    });
+  }
+
+  function drawStars(t) {
+    stars.forEach(s => {
+      const alpha = s.baseA * (0.7 + 0.3 * Math.sin(t * s.speed * 1000 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.color + alpha.toFixed(2) + ")";
+      ctx.fill();
+    });
+  }
+
+  function drawConstellation() {
+    const pts = CONSTELLATION.map(s => ({ x: s.x * W, y: s.y * H, r: s.r }));
+
+    /* Edges — faint gossamer lines */
+    ctx.save();
+    ctx.strokeStyle = "rgba(143, 180, 232, 0.055)";
+    ctx.lineWidth   = 0.6;
+    EDGES.forEach(([a, b]) => {
+      ctx.beginPath();
+      ctx.moveTo(pts[a].x, pts[a].y);
+      ctx.lineTo(pts[b].x, pts[b].y);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    /* Stars — slightly brighter than field stars */
+    CONSTELLATION.forEach((s, i) => {
+      const p = pts[i];
+      /* outer glow */
+      const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
+      grd.addColorStop(0,   "rgba(180, 210, 255, 0.18)");
+      grd.addColorStop(1,   "transparent");
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+      /* core */
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(210, 228, 255, 0.85)";
+      ctx.fill();
+    });
+  }
+
+  function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    drawStars(t);
+    drawConstellation();
+    frameId = requestAnimationFrame(frame);
+  }
+
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(frameId);
+    resize();
+    frameId = requestAnimationFrame(frame);
+  });
+
+  resize();
+  frameId = requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════
+     CHAT LOGIC
+     ══════════════════════════════════════════════════════════════ -->
+<script>
+// API base (served from api.akeru.dev). Keep overridable for staging.
+window.VIDHI_API_URL = window.VIDHI_API_URL || "https://api.akeru.dev";
+
+const SECTION_LABELS = {
+  "general":           "General",
+  "model-selection":   "Model Selection",
+  "manifest-search":   "Manifest Search",
+  "mcp":               "MCP",
+  "rag-vs-reasoning":  "RAG vs Reasoning",
+  "prompt-engineering":"Prompt Engineering",
+};
+
+const MODEL_HINTS = {
+  "deepseek-chat":
+    "V3.2 — fast, structured reasoning. Good for most architecture questions.",
+  "deepseek-reasoner":
+    "R1 — chain-of-thought. Use for complex trade-offs or design decisions.",
+};
+
+const WELCOME = {
+  "general":
+    "Ask me anything about the Vanik / Akeru architecture — design decisions, module boundaries, deployment, data flow, or how pieces fit together.",
+  "model-selection":
+    "I can walk you through when to use deepseek-chat vs deepseek-reasoner, or compare Claude Haiku, DeBERTa, and Sentence Transformers for the different pipeline jobs.",
+  "manifest-search":
+    "Let's dig into the three-module NLP pipeline — Extractor (Module 1), Query Builder (Module 2), and Search Executor (Module 3). Ask about any module, the data contracts between them, or the cotton-shirts failure that motivated the design.",
+  "mcp":
+    "I can explain the MCP protocol stack, the three MCP servers (wto, uk-tariff, eu-taric), the HMAC handshake, streamable-http transport, and how Vanik exposes tools to external agents.",
+  "rag-vs-reasoning":
+    "Let's compare deterministic retrieval (SQLite FTS5, LIKE, UK API search) with chain-of-thought reasoning layers (Claude Haiku, DeepSeek R1) — when each is appropriate and where they compose.",
+  "prompt-engineering":
+    "I can cover the system prompts in Vanik — the Haiku extraction prompt, Hindi synthesis prompt, chapter prediction prompt — and the general prompt engineering principles applied across the pipeline.",
+};
+
+/* ── State ─────────────────────────────────────────────── */
+const state = {
+  model:     "deepseek-chat",
+  section:   "general",
+  history:   [],
+  streaming: false,
+  sessionId: crypto.randomUUID(),
+};
+
+/* ── DOM ───────────────────────────────────────────────── */
+const msgEl      = document.getElementById("messages");
+const textarea   = document.getElementById("user-input");
+const sendBtn    = document.getElementById("send-btn");
+const modelSel   = document.getElementById("model-select");
+const modelHint  = document.getElementById("model-hint");
+const secBtns    = document.querySelectorAll("#section-list button");
+const ctxSection = document.getElementById("ctx-section-badge");
+const ctxModel   = document.getElementById("ctx-model-badge");
+const toast      = document.getElementById("toast");
+const charHint   = document.getElementById("char-hint");
+
+/* ── Boot ──────────────────────────────────────────────── */
+renderWelcome(state.section);
+
+/* ── Model ─────────────────────────────────────────────── */
+modelSel.addEventListener("change", () => {
+  state.model = modelSel.value;
+  modelHint.textContent = MODEL_HINTS[state.model];
+  ctxModel.textContent  = state.model;
+});
+
+/* ── Section ───────────────────────────────────────────── */
+secBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    secBtns.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.section = btn.dataset.section;
+    state.history = [];
+    ctxSection.textContent = SECTION_LABELS[state.section];
+    msgEl.innerHTML = "";
+    renderWelcome(state.section);
+  });
+});
+
+/* ── Textarea ──────────────────────────────────────────── */
+textarea.addEventListener("input", () => {
+  textarea.style.height = "auto";
+  textarea.style.height = Math.min(textarea.scrollHeight, 140) + "px";
+  const n = textarea.value.length;
+  charHint.textContent = n > 180 ? `${n}` : "";
+});
+textarea.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!state.streaming) doSend(); }
+});
+sendBtn.addEventListener("click", () => { if (!state.streaming) doSend(); });
+
+/* ── Send ──────────────────────────────────────────────── */
+async function doSend() {
+  const raw = textarea.value.trim();
+  if (!raw) return;
+  textarea.value = "";
+  textarea.style.height = "auto";
+  charHint.textContent = "";
+  state.streaming = true;
+  sendBtn.disabled = true;
+
+  appendMsg("user", raw);
+  state.history.push({ role: "user", content: raw });
+
+  const { bodyEl } = appendMsg("assistant", "");
+  const cursor = Object.assign(document.createElement("span"), { className: "cursor" });
+  bodyEl.appendChild(cursor);
+
+  let out = "";
+  try {
+    const apiBase = window.VIDHI_API_URL || "";
+    const res = await fetch(apiBase + "/vidhi/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: state.sessionId,
+        model:      state.model,
+        section:    state.section,
+        history:    state.history,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const dec    = new TextDecoder();
+    let buf      = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (data === "[DONE]") break;
+        try {
+          const delta = JSON.parse(data).choices?.[0]?.delta?.content ?? "";
+          out += delta;
+          cursor.remove();
+          bodyEl.textContent = out;
+          bodyEl.appendChild(cursor);
+          scrollBottom();
+        } catch (_) {}
+      }
+    }
+  } catch (err) {
+    showToast(err.message);
+    out = "[Error receiving response — please retry.]";
+  }
+
+  cursor.remove();
+  bodyEl.textContent = out;
+  state.history.push({ role: "assistant", content: out });
+  state.streaming = false;
+  sendBtn.disabled = false;
+  scrollBottom();
+  textarea.focus();
+}
+
+/* ── Helpers ───────────────────────────────────────────── */
+function renderWelcome(section) {
+  const el = document.createElement("div");
+  el.className = "welcome-card";
+  el.innerHTML = `
+    <div class="wc-title">Vidhi <span style="font-size:0.65em;opacity:0.5">·</span> <span style="font-family:'Noto Serif Devanagari',serif;font-weight:300;font-size:0.78em;color:var(--gold-soft)">विधि</span></div>
+    <div class="wc-hi">Architecture guidelines · Akeru platform</div>
+    <p class="wc-body">${WELCOME[section]}</p>
+    <div class="wc-section">Vanik Architecture Document v1.6.0 · ${SECTION_LABELS[section]}</div>
+  `;
+  msgEl.appendChild(el);
+  scrollBottom();
+}
+
+function appendMsg(role, content) {
+  const wrap   = document.createElement("div");
+  wrap.className = `msg ${role}`;
+  const roleEl = document.createElement("div");
+  roleEl.className = "msg-role";
+  roleEl.textContent = role === "user" ? "You" : "Vidhi";
+  const bodyEl = document.createElement("div");
+  bodyEl.className = "msg-body";
+  bodyEl.textContent = content;
+  wrap.append(roleEl, bodyEl);
+  msgEl.appendChild(wrap);
+  scrollBottom();
+  return { wrap, bodyEl };
+}
+
+function scrollBottom() { msgEl.scrollTop = msgEl.scrollHeight; }
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 4000);
+}
+</script>
+</body>
+</html>
