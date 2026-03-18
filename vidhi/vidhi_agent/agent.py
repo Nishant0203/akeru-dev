@@ -12,8 +12,8 @@ Routes
 Design
   - Gemini API via google-generativeai SDK
   - Section-aware system prompts drawn from architecture document
-  - Full architecture document embedded in every context (≈12.8K tokens,
-    well within DeepSeek's 128K window)
+ - Full architecture document embedded in every context (≈12.8K tokens,
+    within typical Gemini context limits; local LLaMA uses excerpt selection)
   - Stateless: caller sends full history each request
   - Model: gemini-1.5-flash (fast) or gemini-1.5-pro (deeper) — caller selects
 
@@ -26,9 +26,11 @@ Run (prod, alongside Vanik on port 8000):
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 import google.generativeai as genai
@@ -45,12 +47,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [vidhi] %(message)s"
 log = logging.getLogger("vidhi")
 
 # ── Gemini client ───────────────────────────────────────────────────
-# Set GEMINI_API_KEY in secrets.env.
+# We configure google-generativeai lazily to avoid "empty key" auth failures.
 _GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-if not _GEMINI_API_KEY:
-    log.warning("GEMINI_API_KEY not set — /vidhi/api/chat will fail until configured.")
+_GEMINI_CONFIGURED = False
 
-genai.configure(api_key=_GEMINI_API_KEY)
+
+def _configure_gemini_if_needed() -> None:
+    global _GEMINI_CONFIGURED
+    if _GEMINI_CONFIGURED:
+        return
+    if not _GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not set on the server.")
+    genai.configure(api_key=_GEMINI_API_KEY)
+    _GEMINI_CONFIGURED = True
 
 # Optional: lock Gemini behind a shareable code
 _GEMINI_UNLOCK_CODE = os.environ.get("VIDHI_GEMINI_UNLOCK_CODE", "").strip()
@@ -69,6 +78,15 @@ ALLOWED_MODELS = {
     "models/gemini-pro-latest",
 }
 MAX_HISTORY_TURNS = 12   # keep last N user+assistant pairs to stay within budget
+
+# ── Basic endpoint rate limiting (prevents abuse, especially for Ollama) ──
+_RATE_LIMIT_PER_MIN = int(os.environ.get("VIDHI_RATE_LIMIT_PER_MIN", "20"))
+_rate_lock = asyncio.Lock()
+_rate_state: dict[str, list[float]] = {}
+
+# ── Query log (JSONL audit trail) ──
+_QUERY_LOG_PATH = Path(os.environ.get("VIDHI_QUERY_LOG_PATH", "vidhi/vidhi_agent/vidhi_query_log.jsonl"))
+_query_log_lock = asyncio.Lock()
 
 
 def _is_gemini_model(model: str) -> bool:
@@ -95,6 +113,25 @@ def _build_prompt(system_prompt: str, history: list[dict]) -> str:
     lines.append("Vidhi:")
     return "\n".join(lines).strip() + "\n"
 
+
+def _build_gemini_contents(system_prompt: str, history: list[dict]) -> list[dict]:
+    """Build role-structured contents for Gemini.
+
+    If Gemini rejects this shape, the caller can fall back to the flat prompt string.
+    """
+    contents: list[dict] = [{"role": "user", "parts": [system_prompt]}]
+    for turn in history:
+        role = turn.get("role")
+        content = (turn.get("content") or "").strip()
+        if not content:
+            continue
+        if role == "user":
+            contents.append({"role": "user", "parts": [content]})
+        elif role == "assistant":
+            # Gemini "model" role corresponds to assistant outputs.
+            contents.append({"role": "model", "parts": [content]})
+    return contents
+
 # ── Architecture document (embedded once at startup) ─────────────────
 # The document is ≈12.8K tokens — well within the 128K context window.
 # Path: loaded from file if present, else from VIDHI_ARCH_DOC env var,
@@ -119,6 +156,7 @@ def _load_arch_doc() -> str:
     )
 
 ARCH_DOC: str = _load_arch_doc()
+ARCH_DOC_HASH: str = hashlib.md5(ARCH_DOC.encode("utf-8", errors="ignore")).hexdigest()[:8]
 log.info(f"Architecture document loaded: {len(ARCH_DOC):,} chars")
 
 
@@ -165,7 +203,7 @@ SECTION_ADDENDUM = {
 
     "model-selection": """
 Current section focus: MODEL SELECTION (Section 9).
-Key topics: deepseek-chat (V3.2) vs deepseek-reasoner (R1), Claude Haiku vs Sonnet,
+Key topics: local Ollama LLaMA vs Gemini Flash vs Gemini Pro, Claude Haiku vs Sonnet,
 DeBERTa Job A (NER) vs Job B (chapter classifier), Sentence Transformers on-premise,
 when each model is appropriate, cost and latency trade-offs.
 Always ground answers in the pipeline context — where in Module 1/2/3 each model sits.
@@ -189,7 +227,7 @@ tool schemas, platform surfaces map (Section 4a), api.akeru.dev routing.
     "rag-vs-reasoning": """
 Current section focus: RAG vs REASONING LAYERS (Sections 2, 3, 4b, 9).
 Key topics: deterministic retrieval (SQLite FTS5, UK Trade Tariff API, LIKE),
-vs chain-of-thought reasoning (Claude Haiku Tier 2, DeepSeek R1),
+vs chain-of-thought reasoning (Claude Haiku Tier 2, Gemini Pro),
 the architecture agent's own RAG design (Section 4b: Voyage-3 embeddings, Sonnet synthesis),
 when retrieval quality dominates (Huyen Ch.6 framing), the query construction layer as the fix.
 """,
@@ -323,6 +361,20 @@ async def chat_endpoint(request: Request):
     except Exception:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
+    # Rate limit per client IP (important to prevent abuse of local Ollama endpoint).
+    client_host = (
+        (request.headers.get("X-Forwarded-For", "") or "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    now = time.time()
+    window_start = now - 60.0
+    async with _rate_lock:
+        bucket = _rate_state.setdefault(client_host, [])
+        bucket[:] = [t for t in bucket if t >= window_start]
+        if len(bucket) >= _RATE_LIMIT_PER_MIN:
+            return JSONResponse({"error": "Rate limit exceeded"}, status_code=429)
+        bucket.append(now)
+
     model, section, session_id, history, err = _validate_request(body)
     if err:
         return JSONResponse({"error": err}, status_code=400)
@@ -347,10 +399,19 @@ async def chat_endpoint(request: Request):
         system_prompt = build_system_prompt_local(section, last_user)
     prompt = _build_prompt(system_prompt, history)
 
+    last_user_query = ""
+    for turn in reversed(history):
+        if turn.get("role") == "user":
+            last_user_query = str(turn.get("content") or "")
+            break
+
     log.info(f"session={session_id} model={model} section={section} turns={len(history)}")
 
     async def event_stream():
         try:
+            answer_parts: list[str] = []
+            answer_len = 0
+
             if _is_ollama_model(model):
                 ollama_model = model.split("/", 1)[1]
                 url = f"{_OLLAMA_BASE_URL}/api/generate"
@@ -377,11 +438,15 @@ async def chat_endpoint(request: Request):
                                 raise RuntimeError(f"Ollama error: {obj.get('error')}")
                             delta = obj.get("response") or ""
                             if delta:
+                                if answer_len < 20000:
+                                    answer_parts.append(delta)
+                                    answer_len += len(delta)
                                 payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
                                 yield _sse(payload)
                             if obj.get("done") is True:
                                 break
             else:
+                _configure_gemini_if_needed()
                 gmodel = genai.GenerativeModel(model_name=model)
 
                 # google-generativeai streaming iterator is blocking; run in a thread and forward chunks.
@@ -389,14 +454,27 @@ async def chat_endpoint(request: Request):
 
                 def _run_stream() -> None:
                     try:
-                        for chunk in gmodel.generate_content(
-                            prompt,
-                            stream=True,
-                            generation_config={
-                                "temperature": 0.3,
-                                "max_output_tokens": 2048,
-                            },
-                        ):
+                        contents = _build_gemini_contents(system_prompt, history)
+                        try:
+                            iterator = gmodel.generate_content(
+                                contents,
+                                stream=True,
+                                generation_config={
+                                    "temperature": 0.3,
+                                    "max_output_tokens": 2048,
+                                },
+                            )
+                        except Exception:
+                            iterator = gmodel.generate_content(
+                                prompt,
+                                stream=True,
+                                generation_config={
+                                    "temperature": 0.3,
+                                    "max_output_tokens": 2048,
+                                },
+                            )
+
+                        for chunk in iterator:
                             text = getattr(chunk, "text", None)
                             if text:
                                 q.put_nowait(text)
@@ -408,15 +486,39 @@ async def chat_endpoint(request: Request):
                 producer = asyncio.create_task(asyncio.to_thread(_run_stream))
 
                 while True:
-                    delta = await q.get()
+                    try:
+                        delta = await asyncio.wait_for(q.get(), timeout=30.0)
+                    except asyncio.TimeoutError:
+                        raise TimeoutError("Gemini stream timed out (no tokens for 30s).")
                     if delta is None:
                         break
                     if delta.startswith("[ERROR]"):
                         raise RuntimeError(delta[len("[ERROR]") :])
+                    if answer_len < 20000:
+                        answer_parts.append(delta)
+                        answer_len += len(delta)
                     payload = json.dumps({"choices": [{"delta": {"content": delta}}]})
                     yield _sse(payload)
 
                 await producer
+
+            # Write a single JSONL log line after the stream completes.
+            try:
+                _query_log_entry = {
+                    "ts": int(time.time()),
+                    "session_id": session_id,
+                    "model": model,
+                    "section": section,
+                    "question": last_user_query[:4000],
+                    "answer": "".join(answer_parts)[:20000],
+                }
+                _query_log_path = _QUERY_LOG_PATH
+                _query_log_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(_query_log_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(_query_log_entry, ensure_ascii=False) + "\n")
+            except Exception:
+                # Logging must never break chat streaming.
+                pass
             yield _sse("[DONE]")
         except Exception as exc:
             log.exception("Vidhi stream error")
@@ -443,6 +545,7 @@ async def health_endpoint(request: Request):
         "agent": "vidhi",
         "arch_doc_loaded": doc_loaded,
         "arch_doc_chars": len(ARCH_DOC),
+        "arch_doc_hash": ARCH_DOC_HASH,
     })
 
 
