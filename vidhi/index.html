@@ -588,8 +588,8 @@
     <div>
       <p class="block-label">Model</p>
       <select id="model-select" class="model-select">
-        <option value="gemini-1.5-flash">gemini-1.5-flash · Flash</option>
-        <option value="gemini-1.5-pro">gemini-1.5-pro · Pro</option>
+        <option value="gemini-1.5-flash-latest">gemini-1.5-flash · Flash</option>
+        <option value="gemini-1.5-pro-latest">gemini-1.5-pro · Pro</option>
       </select>
       <p class="model-hint" id="model-hint">Flash — fast, great for interactive walkthroughs.</p>
     </div>
@@ -803,9 +803,9 @@ const SECTION_LABELS = {
 };
 
 const MODEL_HINTS = {
-  "gemini-1.5-flash":
+  "gemini-1.5-flash-latest":
     "Flash — fast, great for interactive walkthroughs.",
-  "gemini-1.5-pro":
+  "gemini-1.5-pro-latest":
     "Pro — deeper reasoning for hard trade-offs and design decisions.",
 };
 
@@ -826,7 +826,7 @@ const WELCOME = {
 
 /* ── State ─────────────────────────────────────────────── */
 const state = {
-  model:     "gemini-1.5-flash",
+  model:     "gemini-1.5-flash-latest",
   section:   "general",
   history:   [],
   streaming: false,
