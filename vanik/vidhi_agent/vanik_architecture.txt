@@ -1,0 +1,9 @@
+[Vanik Architecture Document placeholder]
+
+Set `VIDHI_ARCH_DOC_PATH` to an absolute path on the server that points to the
+plain-text export of the architecture document (recommended), or set `VIDHI_ARCH_DOC`
+to inline the full document text.
+
+Suggested server path:
+  /opt/akeru-dev/vanik/vidhi_agent/vanik_architecture.txt
+

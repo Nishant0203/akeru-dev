@@ -107,6 +107,29 @@ header {
   flex-shrink: 0;
 }
 
+/* ── VIDHI LINK (header) ── */
+.vidhi-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--ink-mid);
+  text-decoration: none;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  transition: color 0.3s;
+}
+.vidhi-link:hover { color: var(--ink); }
+.vidhi-link .dev {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(184,154,90,0.85);
+}
+
 /* ── FOOTER ── */
 footer {
   display: flex;
@@ -382,10 +405,15 @@ footer {
       <div class="wm-sep"></div>
       <span class="wm-kanji">明ける</span>
     </div>
-    <button id="toggleBtn">
-      <span class="toggle-ring">◎</span>
-      the story behind this
-    </button>
+    <div style="display:flex; align-items:center; gap:18px; pointer-events:auto;">
+      <a id="invoke-vidhi-link" class="vidhi-link" href="/vidhi/" title="Vidhi · विधि">
+        Vidhi <span class="dev">विधि</span>
+      </a>
+      <button id="toggleBtn">
+        <span class="toggle-ring">◎</span>
+        the story behind this
+      </button>
+    </div>
   </header>
   <footer>
     <div>
@@ -464,6 +492,11 @@ window.VANIK_API_URL = "https://api.akeru.dev";
     invokeLink.href = (window.location.origin || '') + '/vanik';
   }
 
+  // Vidhi invocation: clicking "Vidhi / विधि" opens the Vidhi walkthrough agent.
+  var vidhiLink = document.getElementById('invoke-vidhi-link');
+  if (vidhiLink) {
+    vidhiLink.href = (window.location.origin || '') + '/vidhi/';
+  }
 /* ═══════════════════════════════════════════════════════════════
    STORY TOGGLE
 ═══════════════════════════════════════════════════════════════ */
