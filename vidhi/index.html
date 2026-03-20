@@ -6,6 +6,10 @@
   <title>Vidhi · विधि — Akeru Architecture</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+Devanagari:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" />
+  <!-- AkeruRenderer — shared chat output (Markdown, code copy, file links) -->
+  <link rel="stylesheet" href="/shared/renderer/akeru-renderer.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.2.0/marked.min.js"></script>
+  <script src="/shared/renderer/akeru-renderer.js"></script>
   <style>
 
     /* ══════════════════════════════════════════════════════
@@ -372,86 +376,7 @@
       padding-top: 0.8rem;
     }
 
-    /* ── Message bubbles ─────────────────────────────────── */
-    .msg {
-      display: flex;
-      flex-direction: column;
-      gap: 0.28rem;
-      max-width: 700px;
-      animation: msgIn 0.28s ease forwards;
-    }
-    @keyframes msgIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .msg.user  { align-self: flex-end; align-items: flex-end; }
-    .msg.assistant { align-self: flex-start; }
-
-    .msg-role {
-      font-size: 0.58rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--star-ghost);
-    }
-    .msg-body {
-      font-size: 0.87rem;
-      line-height: 1.72;
-      padding: 0.8rem 1.1rem;
-      border: 1px solid var(--glass-border);
-      position: relative;
-    }
-    .msg.user .msg-body {
-      background: rgba(143, 180, 232, 0.07);
-      backdrop-filter: blur(8px);
-      border-color: rgba(143, 180, 232, 0.12);
-      color: rgba(200, 218, 255, 0.88);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-    .msg.assistant .msg-body {
-      background: rgba(3, 8, 26, 0.45);
-      backdrop-filter: blur(10px);
-      color: var(--star-white);
-      box-shadow: var(--glass-shine);
-    }
-    /* Shine on assistant bubble */
-    .msg.assistant .msg-body::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(180,210,255,0.1), transparent);
-    }
-    .msg-body code {
-      font-family: var(--font-mono);
-      font-size: 0.76rem;
-      background: rgba(143, 180, 232, 0.1);
-      padding: 0.1em 0.35em;
-      color: var(--accent);
-      border: 1px solid rgba(143, 180, 232, 0.12);
-    }
-    .msg-body pre {
-      font-family: var(--font-mono);
-      font-size: 0.73rem;
-      background: rgba(1, 4, 16, 0.65);
-      border: 1px solid var(--glass-border);
-      padding: 0.85rem 1rem;
-      overflow-x: auto;
-      margin: 0.7rem 0;
-      color: rgba(180, 200, 255, 0.75);
-      white-space: pre-wrap;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
-    }
-
-    /* Streaming cursor */
-    .cursor {
-      display: inline-block;
-      width: 1.5px; height: 0.82em;
-      background: var(--accent-dim);
-      animation: blink 0.85s step-end infinite;
-      vertical-align: text-bottom;
-      margin-left: 2px;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    /* Message bubbles / streaming cursor → shared/renderer/akeru-renderer.css (.ar-msg*) */
 
     /* ══════════════════════════════════════════════════════
        INPUT ROW — glass
@@ -873,6 +798,12 @@ const toast      = document.getElementById("toast");
 const charHint   = document.getElementById("char-hint");
 
 /* ── Boot ──────────────────────────────────────────────── */
+AkeruRenderer.init({
+  agent: "vidhi",
+  githubBase: "https://github.com/Nishant0203/akeru-dev/blob/main/",
+  postProcessors: ["linkFilePaths", "addCopyButtons", "highlightSections"],
+  theme: "night-sky",
+});
 renderWelcome(state.section);
 
 /* ── Unlock code ───────────────────────────────────────── */
@@ -942,11 +873,8 @@ async function doSend() {
   appendMsg("user", raw);
   state.history.push({ role: "user", content: raw });
 
-  const { bodyEl } = appendMsg("assistant", "");
-  const cursor = Object.assign(document.createElement("span"), { className: "cursor" });
-  bodyEl.appendChild(cursor);
+  const { msg } = appendMsg("assistant", "");
 
-  let out = "";
   try {
     const apiBase = window.VIDHI_API_URL || "";
     const res = await fetch(apiBase + "/vidhi/api/chat", {
@@ -976,22 +904,17 @@ async function doSend() {
         if (data === "[DONE]") break;
         try {
           const delta = JSON.parse(data).choices?.[0]?.delta?.content ?? "";
-          out += delta;
-          cursor.remove();
-          bodyEl.textContent = out;
-          bodyEl.appendChild(cursor);
-          scrollBottom();
+          msg.appendToken(delta);
         } catch (_) {}
       }
     }
   } catch (err) {
     showToast(err.message);
-    out = "[Error receiving response — please retry.]";
+    msg.appendToken("[Error receiving response — please retry.]");
   }
 
-  cursor.remove();
-  bodyEl.textContent = out;
-  state.history.push({ role: "assistant", content: out });
+  msg.finalize();
+  state.history.push({ role: "assistant", content: msg.raw });
   state.streaming = false;
   sendBtn.disabled = false;
   scrollBottom();
@@ -1013,18 +936,9 @@ function renderWelcome(section) {
 }
 
 function appendMsg(role, content) {
-  const wrap   = document.createElement("div");
-  wrap.className = `msg ${role}`;
-  const roleEl = document.createElement("div");
-  roleEl.className = "msg-role";
-  roleEl.textContent = role === "user" ? "You" : "Vidhi";
-  const bodyEl = document.createElement("div");
-  bodyEl.className = "msg-body";
-  bodyEl.textContent = content;
-  wrap.append(roleEl, bodyEl);
-  msgEl.appendChild(wrap);
-  scrollBottom();
-  return { wrap, bodyEl };
+  const msg = AkeruRenderer.createMessage(msgEl, role);
+  if (content) msg.setText(content);
+  return { wrap: msg.el, bodyEl: msg.bodyEl, msg };
 }
 
 function scrollBottom() { msgEl.scrollTop = msgEl.scrollHeight; }
