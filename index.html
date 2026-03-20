@@ -178,7 +178,8 @@ footer {
   pointer-events: auto;
 }
 
-/* ── PHI2 TRIGGER — same hit area as Meissa ── */
+/* ── PHI1 / PHI2 TRIGGERS — same hit area as Meissa ── */
+#phi1-trigger,
 #phi2-trigger {
   position: fixed;
   z-index: 30;
@@ -216,6 +217,32 @@ footer {
 #vidhi-bar.hover-show {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* ── PHI1 BAR — φ¹ blog (Vidhi opens from in-post anchors) ── */
+#phi1-bar {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+#phi1-bar.hover-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Stack two invoke links above φ² */
+.star-hover-bar--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.invoke-link--compact {
+  font-size: 20px;
+  opacity: 0.92;
 }
 
 .invoke-link {
@@ -417,13 +444,19 @@ footer {
 <canvas id="sky"></canvas>
 
 <div id="meissa-trigger" aria-label="λ Orionis — Meissa"></div>
+<div id="phi1-trigger" aria-label="φ¹ Orionis — Phi 1"></div>
 <div id="phi2-trigger" aria-label="φ² Orionis — Phi 2"></div>
 
 <div id="invoke-bar" role="group" aria-label="Invoke Vanik">
   <a id="invoke-vanik-link" href="/vanik" class="invoke-link" title="Invoke Vanik">Invoke Vanik</a>
 </div>
 
-<div id="vidhi-bar" role="group" aria-label="Invoke Vidhi">
+<div id="phi1-bar" role="group" aria-label="φ¹ Orionis note">
+  <a href="/phi1/" class="invoke-link" title="φ¹ Orionis — RAG &amp; query layer">φ¹ · note</a>
+</div>
+
+<div id="vidhi-bar" class="star-hover-bar--stack" role="group" aria-label="φ² Orionis — note and Vidhi">
+  <a href="/phi2/" class="invoke-link invoke-link--compact" title="φ² Orionis — MCP &amp; surfaces">φ² · note</a>
   <a id="invoke-vidhi-star-link" href="/vidhi/" class="invoke-link" title="Vidhi · विधि">Vidhi <span style="font-family:'Noto Sans Devanagari',sans-serif; font-size:14px; letter-spacing:0.04em; opacity:0.85;">विधि</span></a>
 </div>
 
@@ -860,9 +893,10 @@ function drawConstellation (M) {
 
   ctx.textAlign = 'left';
 
-  // Return CSS positions for DOM overlays (λ for Vanik, φ² for Vidhi)
+  // Return CSS positions for DOM overlays (λ Vanik, φ¹/φ² notes + Vidhi)
   return {
     lambda: { cx: proj[0].cx, cy: proj[0].cy, brt: proj[0].brt },
+    phi1:   { cx: proj[1].cx, cy: proj[1].cy, brt: proj[1].brt },
     phi2:   { cx: proj[2].cx, cy: proj[2].cy, brt: proj[2].brt },
   };
 }
@@ -874,6 +908,10 @@ function drawConstellation (M) {
 var meissaTrigger = document.getElementById('meissa-trigger');
 var invokeBar     = document.getElementById('invoke-bar');
 var invokeReady   = false;
+
+var phi1Trigger   = document.getElementById('phi1-trigger');
+var phi1Bar       = document.getElementById('phi1-bar');
+var phi1Ready     = false;
 
 var phi2Trigger   = document.getElementById('phi2-trigger');
 var vidhiBar      = document.getElementById('vidhi-bar');
@@ -892,6 +930,21 @@ meissaTrigger.addEventListener('mouseleave', function (e) {
 invokeBar.addEventListener('mouseleave', function (e) {
   if (e.relatedTarget !== meissaTrigger) {
     invokeBar.classList.remove('hover-show');
+  }
+});
+
+// Show φ¹ note bar on hover over φ¹ star
+phi1Trigger.addEventListener('mouseenter', function () {
+  phi1Bar.classList.add('hover-show');
+});
+phi1Trigger.addEventListener('mouseleave', function (e) {
+  if (!phi1Bar.contains(e.relatedTarget)) {
+    phi1Bar.classList.remove('hover-show');
+  }
+});
+phi1Bar.addEventListener('mouseleave', function (e) {
+  if (e.relatedTarget !== phi1Trigger) {
+    phi1Bar.classList.remove('hover-show');
   }
 });
 
@@ -923,14 +976,22 @@ function updateMeissaOverlay (cx, cy) {
   if (!invokeReady) { invokeReady = true; }
 }
 
+function updatePhi1Overlay (cx, cy) {
+  phi1Trigger.style.left = cx + 'px';
+  phi1Trigger.style.top  = cy + 'px';
+  phi1Bar.style.left = cx + 'px';
+  phi1Bar.style.top  = (cy - 30) + 'px';
+  if (!phi1Ready) { phi1Ready = true; }
+}
+
 function updatePhi2Overlay (cx, cy) {
   // Star hit-area
   phi2Trigger.style.left = cx + 'px';
   phi2Trigger.style.top  = cy + 'px';
 
-  // Invoke bar: centered above the star
+  // Stacked φ² note + Vidhi — sit a bit higher so both links fit
   vidhiBar.style.left = cx + 'px';
-  vidhiBar.style.top  = (cy - 30) + 'px';
+  vidhiBar.style.top  = (cy - 52) + 'px';
 
   if (!vidhiReady) { vidhiReady = true; }
 }
@@ -1099,6 +1160,7 @@ function tick (now) {
   // ── Physics constellation ─────────────────────────
   var pos = drawConstellation(M);
   updateMeissaOverlay(pos.lambda.cx, pos.lambda.cy);
+  updatePhi1Overlay(pos.phi1.cx, pos.phi1.cy);
   updatePhi2Overlay(pos.phi2.cx, pos.phi2.cy);
 
   // ── Shooting star ─────────────────────────────────
