@@ -376,11 +376,25 @@ def _doc_excerpts_for_query(query: str, section: str, *, max_chars: int = 9000) 
     return "\n\n".join(chosen).strip()
 
 
-def build_system_prompt_local(section: str, query: str) -> str:
+def build_system_prompt_local(
+    section: str, query: str, *, anchor_context: str = ""
+) -> str:
     excerpts = _doc_excerpts_for_query(query, section)
     base = BASE_SYSTEM_EXCERPTS.format(excerpts=excerpts)
     addendum = SECTION_ADDENDUM.get(section, "")
-    return base + addendum
+    anchor_block = ""
+    ac = (anchor_context or "").strip()
+    if ac:
+        ac = ac[:12000]
+        anchor_block = (
+            "\n\nBlog / anchor context (reader selected this on akeru.dev):\n"
+            "──────────────────\n"
+            f"{ac}\n"
+            "──────────────────\n"
+            "Ground answers in the architecture excerpts above; treat this anchor context "
+            "as the reader's immediate focus.\n"
+        )
+    return base + addendum + anchor_block
 
 
 # ── Request validation ───────────────────────────────────────────────
@@ -479,10 +493,19 @@ async def chat_endpoint(request: Request):
             last_user = str(turn.get("content") or "")
             break
 
+    anchor_context = str(body.get("anchor_context", "") or "").strip()[:12000]
+
+    # Blend anchor snippet into excerpt retrieval (φ¹/φ² blog panels).
+    query_for_excerpts = (
+        f"{last_user}\n\n{anchor_context}" if anchor_context else last_user
+    )
+
     # Avoid dumping the full ARCH_DOC into Gemini; inject only relevant excerpts instead.
     # For Ollama we always do this (context window constraints).
     system_prompt = (
-        build_system_prompt_local(section, last_user)
+        build_system_prompt_local(
+            section, query_for_excerpts, anchor_context=anchor_context
+        )
         if (_is_ollama_model(model) or _is_gemini_model(model))
         else build_system_prompt(section)
     )

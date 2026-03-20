@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Isn't Broken. Your Query Construction Is. · φ¹ · Akeru</title>
+  <meta name="description" content="Why retrieval failures in trade intelligence systems are caused by query construction, not missing data — and how a three-module NLP pipeline fixes them." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+Devanagari:wght@300;400&family=JetBrains+Mono:wght@300;400&display=swap" />
+
+  <!-- AkeruRenderer -->
+  <link rel="stylesheet" href="/shared/renderer/akeru-renderer.css" />
+
+  <!-- Vidhi panel -->
+  <link rel="stylesheet" href="/shared/panel/vidhi-panel.css" />
+
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────── */
+    :root {
+      --void:          #010308;
+      --ink:           #0a0e1a;
+      --surface:       #0d1220;
+      --border:        rgba(160, 185, 255, 0.08);
+      --border-hi:     rgba(160, 185, 255, 0.16);
+
+      --text:          rgba(218, 224, 242, 0.92);
+      --text-dim:      rgba(155, 172, 215, 0.62);
+      --text-ghost:    rgba(120, 140, 185, 0.38);
+
+      --gold:          #c8a96e;
+      --gold-soft:     rgba(200, 169, 110, 0.72);
+      --accent:        #8fb4e8;
+      --accent-dim:    rgba(143, 180, 232, 0.38);
+
+      --font-serif:    'EB Garamond', Georgia, serif;
+      --font-mono:     'JetBrains Mono', monospace;
+
+      --measure:       68ch;
+      --reading-pad:   clamp(1.25rem, 5vw, 4rem);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--void);
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 18px;
+      line-height: 1.78;
+    }
+
+    /* ── Background ────────────────────────────────────────────── */
+    body {
+      background:
+        radial-gradient(ellipse 70% 40% at 15% 10%, rgba(24, 52, 160, 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 30% at 85% 70%, rgba(14, 88, 120, 0.09) 0%, transparent 65%),
+        var(--void);
+      min-height: 100vh;
+    }
+
+    /* ── Navigation ────────────────────────────────────────────── */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem var(--reading-pad);
+      background: rgba(1, 3, 8, 0.72);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .nav-brand-en {
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+
+    .nav-brand-star {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--accent-dim);
+      letter-spacing: 0.08em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.8rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-ghost);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── Post layout ───────────────────────────────────────────── */
+    .post-wrap {
+      max-width: var(--measure);
+      margin: 0 auto;
+      padding: 7rem var(--reading-pad) 6rem;
+    }
+
+    /* ── Post header ───────────────────────────────────────────── */
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .post-star {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--accent-dim);
+      letter-spacing: 0.1em;
+      border: 1px solid rgba(143, 180, 232, 0.18);
+      padding: 0.2rem 0.55rem;
+    }
+
+    .post-date {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-ghost);
+      letter-spacing: 0.1em;
+    }
+
+    .post-title {
+      font-size: clamp(1.9rem, 5vw, 2.8rem);
+      font-weight: 500;
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+      color: rgba(225, 232, 255, 0.95);
+      margin-bottom: 0.8rem;
+    }
+
+    .post-subtitle {
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--text-dim);
+      line-height: 1.55;
+      margin-bottom: 2.4rem;
+      max-width: 56ch;
+    }
+
+    .post-divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 60%);
+      margin-bottom: 2.8rem;
+    }
+
+    /* ── Post body ─────────────────────────────────────────────── */
+    .post-body {
+      font-size: 1.05rem;
+      line-height: 1.82;
+      color: var(--text);
+    }
+
+    .post-body p {
+      margin-bottom: 1.4em;
+      max-width: var(--measure);
+    }
+
+    .post-body h2 {
+      font-size: 1.35rem;
+      font-weight: 500;
+      color: rgba(225, 232, 255, 0.95);
+      margin: 2.4em 0 0.7em;
+      letter-spacing: 0.01em;
+      line-height: 1.3;
+    }
+
+    .post-body h3 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: rgba(200, 218, 255, 0.85);
+      margin: 1.8em 0 0.5em;
+      font-style: italic;
+    }
+
+    .post-body pre {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(1, 4, 16, 0.65);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim);
+      padding: 1.1rem 1.3rem;
+      overflow-x: auto;
+      margin: 1.4em 0;
+      color: rgba(180, 200, 255, 0.78);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+    }
+
+    .post-body code {
+      font-family: var(--font-mono);
+      font-size: 0.82em;
+      background: rgba(143, 180, 232, 0.08);
+      padding: 0.1em 0.35em;
+      color: var(--accent);
+      border: 1px solid rgba(143, 180, 232, 0.13);
+    }
+
+    .post-body blockquote {
+      border-left: 2px solid var(--accent-dim);
+      padding: 0.5em 1.2em;
+      margin: 1.4em 0;
+      color: var(--text-dim);
+      font-style: italic;
+      background: rgba(143, 180, 232, 0.04);
+    }
+
+    /* ── Vidhi prompt block ────────────────────────────────────── */
+    .vidhi-prompt {
+      margin: 3rem 0;
+      padding: 1.6rem 1.8rem;
+      background: rgba(4, 10, 32, 0.5);
+      border: 1px solid rgba(143, 180, 232, 0.15);
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vidhi-prompt::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(180, 210, 255, 0.22), transparent);
+    }
+
+    .vidhi-prompt-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-dim);
+      margin-bottom: 0.5rem;
+    }
+
+    .vidhi-prompt-body {
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+
+    .vidhi-prompt-body strong { color: var(--text); }
+
+    /* ── Post footer ───────────────────────────────────────────── */
+    .post-footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .post-footer-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .post-nav-link {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-ghost);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s;
+    }
+
+    .post-nav-link:hover { color: var(--gold-soft); }
+
+    .post-footer-constellation {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-ghost);
+      letter-spacing: 0.14em;
+      text-align: center;
+      margin-top: 2.2rem;
+      opacity: 0.55;
+    }
+
+    /* ── Hint bar at bottom ────────────────────────────────────── */
+    .anchor-hint {
+      position: fixed;
+      bottom: 1.4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(4, 10, 32, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(143, 180, 232, 0.14);
+      padding: 0.45rem 1.1rem;
+      font-family: var(--font-mono);
+      font-size: 0.60rem;
+      letter-spacing: 0.12em;
+      color: rgba(143, 180, 232, 0.55);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.5s;
+      z-index: 50;
+    }
+
+    .anchor-hint.hidden { opacity: 0; }
+
+    /* ── Responsive ────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .nav-links { display: none; }
+      .post-wrap { padding-top: 5.5rem; }
+      html { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ────────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <a href="/" class="nav-brand" aria-label="Akeru home">
+    <span class="nav-brand-en">Akeru</span>
+    <span class="nav-brand-star">· φ¹ Orionis</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/vanik/">Vanik</a></li>
+    <li><a href="/phi2/">φ² Orionis</a></li>
+    <li><a href="/">Mrigashira</a></li>
+  </ul>
+</nav>
+
+<!-- ── Post ───────────────────────────────────────────────────── -->
+<main class="post-wrap" id="post-main">
+
+  <!-- Header -->
+  <div class="post-meta">
+    <span class="post-star">φ¹ Orionis</span>
+    <span class="post-date">2026 · akeru.dev</span>
+  </div>
+
+  <h1 class="post-title">RAG Isn't Broken.<br>Your Query Construction Is.</h1>
+  <p class="post-subtitle">
+    How a single pipeline gap — passing the raw user query directly to a search tool —
+    caused a trade intelligence system to return brake callipers when asked about cotton shirts.
+    And the three-module fix.
+  </p>
+  <div class="post-divider"></div>
+
+  <!-- Body -->
+  <article class="post-body">
+
+    <p>
+      In March 2025 a trade compliance system with 16,597 verified tariff rows in its
+      database returned brake callipers when a procurement analyst asked about cotton shirts.
+      Not a wrong rate. The wrong product entirely. With full confidence and a source citation.
+    </p>
+
+    <p>
+      The database was correct. The API was correct. The problem was upstream — in the six
+      lines of code between the user's message and the search call. This is a story about
+      <span class="vidhi-anchor" data-concept="query-poisoning">query poisoning</span>,
+      why it is the dominant failure mode in retrieval systems, and how a
+      <span class="vidhi-anchor" data-concept="three-module-pipeline">three-module pipeline</span>
+      eliminates it structurally.
+    </p>
+
+    <h2>The Failure</h2>
+
+    <p>
+      The user typed: <code>"What's the duty on cotton shirts from India to UK?"</code>
+    </p>
+
+    <p>
+      The system passed this string, unchanged, to a SQLite LIKE query:
+    </p>
+
+    <pre>SELECT * FROM tariff_rows
+WHERE description LIKE '%cotton shirts from India to UK%'</pre>
+
+    <p>
+      That query returns zero rows. No tariff description contains the phrase
+      "cotton shirts from India to UK" — because descriptions don't include corridor words.
+      Zero results triggered a stub fallback that returned hardcoded brake callipers codes
+      from a test fixture no one had removed.
+    </p>
+
+    <p>
+      The correct query was:
+    </p>
+
+    <pre>SELECT * FROM tariff_rows
+WHERE description LIKE '%cotton shirts%'</pre>
+
+    <p>
+      Which returns six rows — men's cotton shirts, women's cotton blouses, batik-printed shirts.
+      Exactly what the user needed. The data was always there. The query construction was wrong.
+    </p>
+
+    <h2>Why This Is Not a RAG Problem</h2>
+
+    <p>
+      The reflexive response to retrieval failures is to blame the retrieval system — add
+      embeddings, tune the vector index, switch models. None of those would have helped here.
+      The failure was in
+      <span class="vidhi-anchor" data-concept="corridor-stripping">corridor stripping</span> —
+      or rather, its complete absence. The raw query was passed directly to the search
+      executor without any preprocessing.
+    </p>
+
+    <p>
+      Chip Huyen's framing in <em>AI Engineering</em> Chapter 6 is precise: retrieval quality
+      is determined before the retrieval call, not during it. The query that reaches the search
+      tool is the only thing the tool can work with. A correct index with a poisoned query
+      produces worse results than a mediocre index with a clean query.
+    </p>
+
+    <blockquote>
+      The search tool is not the problem. The question you ask it is.
+    </blockquote>
+
+    <p>
+      This is the distinction the three-module design enforces: extraction, query construction,
+      and execution are separate responsibilities. Mixing them is what caused the failure.
+    </p>
+
+    <h2>The Three-Module Pipeline</h2>
+
+    <p>
+      The fix is architectural, not a patch. Three modules with explicit input/output contracts:
+    </p>
+
+    <h3>Module 1 — Entity Extractor</h3>
+
+    <p>
+      Receives the raw query. Returns an
+      <span class="vidhi-anchor" data-concept="extraction-result">ExtractionResult</span> —
+      a structured dict with <code>product_terms</code>, <code>origin</code>,
+      <code>destination</code>, <code>hs_code_provided</code>, and <code>_lang</code>.
+      The critical rule: <code>product_terms</code> must never contain corridor words,
+      question words, or stopwords. Only the product noun phrase passes through.
+    </p>
+
+    <pre>"cotton shirts from India to UK"
+              ↓  Module 1
+ExtractionResult(
+  product_terms = ["cotton shirts"],   ← corridor stripped
+  origin        = "IN",
+  destination   = "GB",
+  hs_code_provided = None,
+  _lang         = "en"
+)</pre>
+
+    <h3>Module 2 — Query Builder</h3>
+
+    <p>
+      Receives the ExtractionResult. Returns a
+      <span class="vidhi-anchor" data-concept="search-plan">SearchPlan</span> —
+      an ordered list of SearchStrategy objects. The Query Builder's key decision
+      is chapter prediction: a
+      <span class="vidhi-anchor" data-concept="fts5-chapter-filter">FTS5 chapter filter</span>
+      constrains the search space before any FTS5 query runs. "Cotton shirts" maps to
+      Chapter 62 (garments of woven fabric). The search never touches Chapters 39 (plastics)
+      or 87 (vehicles). This is what makes retrieval precise.
+    </p>
+
+    <h3>Module 3 — Search Executor</h3>
+
+    <p>
+      Executes strategies in order until sufficient results are found. FTS5 with chapter
+      hint first (~2ms). UK Trade Tariff live API second (~300ms). LIKE fallback third.
+      The executor is dumb by design — it runs strategies, checks results, stops when done.
+      No business logic.
+    </p>
+
+    <p>
+      The cotton shirts query now flows through Module 1 (strips corridor words), Module 2
+      (predicts Chapter 62, builds FTS5 strategy), and Module 3 (executes FTS5 MATCH on
+      "cotton shirts" filtered to Chapter 62) — returning 6205200010, 6205200090,
+      6206300090 in under 5ms total.
+    </p>
+
+    <div class="vidhi-prompt">
+      <div class="vidhi-prompt-eyebrow">Explore with Vidhi</div>
+      <p class="vidhi-prompt-body">
+        The concepts above are linked — click any <strong>highlighted phrase</strong>
+        to open Vidhi and go deeper on that specific part of the architecture.
+        The panel is grounded in the full Vanik architecture document.
+      </p>
+    </div>
+
+    <h2>The Principle</h2>
+
+    <p>
+      Every retrieval failure worth investigating turns out to be a query construction failure.
+      The search tool received a query it could not possibly answer correctly — and answered
+      anyway, with false confidence.
+    </p>
+
+    <p>
+      The fix is not a smarter search tool. It is a named, tested, boundary-respecting
+      layer between user intent and search execution. The query that reaches the tool must
+      contain only the signal the tool needs. Everything else — corridor words, question
+      syntax, enterprise metadata — is stripped before the boundary.
+    </p>
+
+    <p>
+      Module 1 strips. Module 2 constructs. Module 3 executes.
+      Three modules, three contracts, one correct result.
+    </p>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="post-footer">
+    <nav class="post-footer-nav">
+      <a href="/" class="post-nav-link">← Mrigashira</a>
+      <a href="/phi2/" class="post-nav-link">φ² Orionis →</a>
+    </nav>
+    <p class="post-footer-constellation">
+      Mrigashira · 5th Nakshatra / λ Meissa · मृगशिरा · φ¹ Orionis · φ² Orionis / © 2026 akeru.
+    </p>
+  </footer>
+
+</main>
+
+<!-- ── Anchor hint bar ─────────────────────────────────────────── -->
+<div class="anchor-hint" id="anchor-hint">
+  ✦ &nbsp; Click any highlighted phrase to explore with Vidhi
+</div>
+
+<!-- ── Concept registry (inline — swap for YAML fetch when CR is live) ── -->
+<script type="application/json" id="phi1-concepts">
+{
+  "post_id": "phi1",
+  "post_title": "RAG Isn't Broken. Your Query Construction Is.",
+  "default_section": "manifest-search",
+  "concepts": {
+    "query-poisoning": {
+      "concept_key": "query-poisoning",
+      "label": "query poisoning",
+      "section": "manifest-search",
+      "opening_mode": "answer",
+      "context": "The reader highlighted 'query poisoning' while reading about why retrieval systems return wrong results. Explain what query poisoning is in the Vanik pipeline: the cotton shirts → brake callipers failure was caused by passing the full raw query 'cotton shirts from India to UK' as a LIKE term to SQLite. The description field never contains corridor words, so the query returns zero rows, which triggers the stub fallback. The fix is Module 1 (extractor.py) which strips corridor phrases and stopwords before product_terms is passed to search. Reference the ExtractionResult contract and explain why product_terms must contain only the product noun phrase. Be concrete and concise — the reader has just read the failure description."
+    },
+    "corridor-stripping": {
+      "concept_key": "corridor-stripping",
+      "label": "corridor stripping",
+      "section": "manifest-search",
+      "opening_mode": "answer",
+      "context": "The reader highlighted 'corridor stripping'. Explain what corridor stripping is and why it is necessary before any search call. The specific patterns stripped: FROM_RE, TO_RE, MADE_IN_RE regexes remove 'from India', 'to UK', 'exported from', etc. Stopwords include 'what', 'is', 'the', 'import', 'export', 'duty', 'tariff', 'rate', 'for', 'how', 'much'. Show the before/after: 'cotton shirts from India to UK' → product_terms=['cotton shirts']. Explain what breaks if corridor words reach the LIKE query or FTS5 MATCH. Reference extractor.py and the _extract_product_terms function."
+    },
+    "three-module-pipeline": {
+      "concept_key": "three-module-pipeline",
+      "label": "three-module pipeline",
+      "section": "manifest-search",
+      "opening_mode": "options",
+      "options": [
+        "Module 1 — extractor.py and the ExtractionResult contract",
+        "Module 2 — query_builder.py and the SearchPlan",
+        "Module 3 — search_hs_schedule.py and the execution tiers"
+      ],
+      "context": "The reader highlighted 'three-module pipeline'. They want to understand the three-module NES design. The modules are: Module 1 (extractor.py) — strips corridor words, returns ExtractionResult; Module 2 (query_builder.py) — predicts chapter from chapter_hints.yaml, builds SearchPlan with ordered SearchStrategy list; Module 3 (search_hs_schedule.py) — executes strategies in order (FTS5+chapter → UK API → LIKE), stops when min_results satisfied. The root cause of the cotton shirts failure was that all three responsibilities were collapsed into one function with no separation. Explain the separation principle and why each module has an explicit input/output contract."
+    },
+    "extraction-result": {
+      "concept_key": "extraction-result",
+      "label": "ExtractionResult",
+      "section": "manifest-search",
+      "opening_mode": "answer",
+      "context": "The reader highlighted 'ExtractionResult'. Explain the ExtractionResult dataclass: it is the output contract of Module 1 (extractor.py) and the input contract of Module 2 (query_builder.py). Fields: product_terms (list[str], corridor-stripped), hs_code_provided (str|None), origin (ISO-2|None), destination (ISO-2|None), quantity (float|None), unit_value_usd (float|None), _lang (en|hi), _raw (sanitised original query). Explain why product_terms is a list (primary term + broader fallback) and why _lang travels with the result through the entire pipeline. Reference the SufficiencyCheck: ner_is_sufficient() checks product_terms is non-empty AND at least one of origin/destination is present."
+    },
+    "fts5-chapter-filter": {
+      "concept_key": "fts5-chapter-filter",
+      "label": "FTS5 chapter filter",
+      "section": "manifest-search",
+      "opening_mode": "options",
+      "options": [
+        "How chapter_hints.yaml restricts the FTS5 search space",
+        "Why the YAML lookup runs before any LLM call",
+        "What happens when no chapter hint matches"
+      ],
+      "context": "The reader highlighted 'FTS5 chapter filter'. They may want to understand how FTS5 and chapter hints combine to restrict the search to the right HS chapter; why the chapter_hints.yaml lookup happens before any Haiku call; or what the fallback behaviour is when no hint matches. In the Vanik pipeline: Module 2 checks chapter_hints.yaml for the product terms. If 'cotton shirts' maps to chapter '62', the FTS5 query is restricted to descriptions in Chapter 62. This prevents 'cotton' from matching Chapter 52 (fabric) equally with Chapter 62 (garments). Reference chapter_hints.yaml, query_builder.py, and explain the curated lookup → Haiku fallback → no hint tier structure."
+    },
+    "search-plan": {
+      "concept_key": "search-plan",
+      "label": "SearchPlan",
+      "section": "manifest-search",
+      "opening_mode": "answer",
+      "context": "The reader highlighted 'SearchPlan'. Explain the SearchPlan dataclass: it is the output of Module 2 (query_builder.py) and the input to Module 3 (search_hs_schedule.py). A SearchPlan contains an ordered list of SearchStrategy objects. Each SearchStrategy specifies: type (fts, uk_api_search, like), terms (the clean product terms), chapter_hint (optional), and min_results threshold. Module 3 executes strategies in order and stops when results >= min_results. Explain why ordering matters: FTS5 with chapter filter first (fast, precise), UK Trade Tariff API second (authoritative but slower), LIKE fallback last (broad but noisy). The SearchPlan is what makes Module 3 dumb-by-design — it receives instructions, it does not make decisions."
+    }
+  }
+}
+</script>
+
+<!-- ── Scripts ─────────────────────────────────────────────────── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.2.0/marked.min.js"></script>
+<script src="/shared/renderer/akeru-renderer.js"></script>
+<script src="/shared/panel/vidhi-panel.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Load concept registry ──────────────────────────────────────
+  const registryEl = document.getElementById("phi1-concepts");
+  let REGISTRY = {};
+  let POST_ID  = "phi1";
+
+  try {
+    const parsed = JSON.parse(registryEl.textContent);
+    REGISTRY = parsed.concepts || {};
+    POST_ID  = parsed.post_id  || "phi1";
+  } catch (e) {
+    console.error("[phi1] Failed to parse concept registry:", e);
+  }
+
+  // ── Init AkeruRenderer ─────────────────────────────────────────
+  if (typeof AkeruRenderer !== "undefined") {
+    AkeruRenderer.init({
+      agent:            "vidhi",
+      githubBase:       "https://github.com/Nishant0203/akeru-dev/blob/main/",
+      postProcessors:   ["linkFilePaths", "addCopyButtons", "highlightSections"],
+      theme:            "night-sky",
+    });
+  }
+
+  // ── Init VidhiPanel (Gemini unlock via localStorage vidhi_gemini_unlock_code) ──
+  const accessCode = localStorage.getItem("vidhi_gemini_unlock_code") || "";
+  VidhiPanel.init({
+    apiBase:    window.VIDHI_API_URL || "https://api.akeru.dev",
+    model:      "ollama/llama3.1:8b",
+    accessCode: accessCode,
+    postId:     POST_ID,
+  });
+
+  // ── Wire anchor clicks ─────────────────────────────────────────
+  function wireAnchors() {
+    document.querySelectorAll(".vidhi-anchor[data-concept]").forEach(el => {
+      const key = el.dataset.concept;
+      const cfg = REGISTRY[key];
+
+      if (!cfg) {
+        // Concept not in registry — degrade gracefully
+        el.title = `Concept '${key}' not yet linked`;
+        return;
+      }
+
+      el.title = `Explore "${cfg.label}" with Vidhi`;
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        VidhiPanel.open(key, cfg);
+        hideHint();
+      });
+    });
+  }
+
+  // ── Hint bar ──────────────────────────────────────────────────
+  const hintEl = document.getElementById("anchor-hint");
+  let hintHidden = false;
+
+  function hideHint() {
+    if (hintHidden) return;
+    hintHidden = true;
+    hintEl.classList.add("hidden");
+  }
+
+  // Hide hint after first scroll or after 8s
+  window.addEventListener("scroll", hideHint, { once: true, passive: true });
+  setTimeout(hideHint, 8000);
+
+  // ── Boot ──────────────────────────────────────────────────────
+  wireAnchors();
+
+})();
+</script>
+</body>
+</html>
