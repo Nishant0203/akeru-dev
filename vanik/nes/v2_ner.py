@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import re
 
+from nes.language import detect_language
+
 HS_PATTERN = re.compile(r"\b\d{6}(?:\d{2})?(?:\d{2})?\b")
 
 _COUNTRY_PATTERNS: list[tuple[str, str]] = [
     ("IN", r"\bindia\b"),
     ("IN", r"\bindian\b"),
+    ("IN", r"\bbharat\b"),
     ("CN", r"\bchina\b"),
     ("CN", r"\bchinese\b"),
     ("CN", r"\bprc\b"),
@@ -123,28 +126,97 @@ def _all_country_mentions(text: str) -> list[str]:
     return seen
 
 
-_STOPWORDS = re.compile(
-    r"\b(what|is|the|import|export|duty|duties|tariff|rate|for|of|on|"
-    r"from|to|into|how|much|are|a|an|in|and|or|with|when|where|"
-    r"does|do|can|will|would|should|could|tell|me|find|show|"
-    r"please|help|calculate|check|lookup|look|up)\b",
+# Corridor / logistics words — strip from product phrase (not ISO corridor itself)
+_CORRIDOR_RE = re.compile(
+    r"\b(from|to|into|exported?|imported?|origin|destination|"
+    r"shipped?|between|via|through)\b",
     re.IGNORECASE,
+)
+
+# Stopwords + common country / region names so they do not become "product_terms"
+_STOPWORD_SET: frozenset[str] = frozenset(
+    {
+        "what",
+        "is",
+        "the",
+        "import",
+        "imports",
+        "export",
+        "exports",
+        "duty",
+        "duties",
+        "tariff",
+        "rate",
+        "for",
+        "how",
+        "much",
+        "does",
+        "do",
+        "cost",
+        "on",
+        "a",
+        "an",
+        "of",
+        "in",
+        "at",
+        "by",
+        "with",
+        "and",
+        "or",
+        "when",
+        "where",
+        "are",
+        "can",
+        "will",
+        "would",
+        "should",
+        "could",
+        "tell",
+        "me",
+        "find",
+        "show",
+        "please",
+        "help",
+        "calculate",
+        "check",
+        "lookup",
+        "look",
+        "up",
+        "india",
+        "indian",
+        "china",
+        "chinese",
+        "germany",
+        "german",
+        "uk",
+        "gb",
+        "britain",
+        "british",
+        "eu",
+        "europe",
+        "usa",
+        "us",
+        "america",
+        "american",
+        "bharat",
+    }
 )
 
 
 def _extract_product_terms(text: str) -> list[str]:
-    """Strip stopwords and corridor info to get core product terms."""
-    # Remove country names already extracted
-    cleaned = _FROM_RE.sub("", text)
-    cleaned = _TO_RE.sub("", cleaned)
-    cleaned = _MADE_IN_RE.sub("", cleaned)
-    # Strip stopwords
-    cleaned = _STOPWORDS.sub(" ", cleaned)
-    # Clean up whitespace and punctuation
-    cleaned = re.sub(r"[^\w\s-]", " ", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    terms = [t for t in cleaned.split() if len(t) > 2]
-    return [" ".join(terms)] if terms else []
+    """Core product phrase only: no HS corridor noise, no stopwords or country names."""
+    # 1. Strip HS codes (search uses separate hs_code_provided)
+    stripped = HS_PATTERN.sub(" ", text)
+    # 2. Strip corridor / logistics tokens
+    stripped = _CORRIDOR_RE.sub(" ", stripped)
+    # 3. Tokenise; drop short tokens and stopwords
+    tokens: list[str] = []
+    for w in stripped.split():
+        t = w.lower().strip(".,;:!?\"'")
+        if len(t) > 2 and t not in _STOPWORD_SET:
+            tokens.append(t)
+    primary = " ".join(tokens).strip()
+    return [primary] if primary else []
 
 
 def extract_v2(raw_query: str) -> dict:
@@ -200,11 +272,12 @@ def extract_v2(raw_query: str) -> dict:
 
     product_terms = _extract_product_terms(text)
     return {
-        "product_terms": product_terms if product_terms else [text],
+        "product_terms": product_terms,
         "hs_code_provided": hs_match.group(0) if hs_match else None,
         "origin": origin,
         "_origin_candidates": _all_country_mentions(lower),
         "destination": destination,
         "quantity": None,
         "unit_value_usd": None,
+        "_lang": detect_language(raw_query),
     }

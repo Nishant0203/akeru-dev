@@ -52,9 +52,10 @@ def test_ms_v3_falls_back_on_parse_failure(monkeypatch) -> None:
 
     entities = asyncio.run(llm_extract("random query"))
 
-    assert entities["product_terms"] == ["random query"]
+    assert entities["product_terms"] == []
     assert entities["origin"] is None
     assert entities["destination"] is None
+    assert entities.get("_lang") == "en"
 
 
 def test_ms_v3_falls_back_on_client_failure(monkeypatch) -> None:
@@ -66,5 +67,6 @@ def test_ms_v3_falls_back_on_client_failure(monkeypatch) -> None:
 
     entities = asyncio.run(llm_extract("random query"))
 
-    assert entities["product_terms"] == ["random query"]
+    assert entities["product_terms"] == []
     assert entities["hs_code_provided"] is None
+    assert entities.get("_lang") == "en"

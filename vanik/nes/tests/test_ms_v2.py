@@ -1,6 +1,18 @@
 from nes.v2_ner import extract_v2
 
 
+def test_ms_v2_product_terms_strip_corridor_not_raw_query() -> None:
+    entities = extract_v2("cotton shirts from India to UK")
+    assert entities["product_terms"] == ["cotton shirts"]
+    assert entities["origin"] == "IN"
+    assert entities["destination"] == "GB"
+
+
+def test_ms_v2_sets_lang() -> None:
+    entities = extract_v2("duty on brake parts from india to uk")
+    assert entities.get("_lang") == "en"
+
+
 def test_ms_v2_extracts_hs() -> None:
     entities = extract_v2("check 8708301090 into uk")
     assert entities["hs_code_provided"] == "8708301090"
