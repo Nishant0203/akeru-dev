@@ -150,7 +150,7 @@
 
   function _accessCode() {
     try {
-      return (localStorage.getItem(UNLOCK_KEY) || _cfg.accessCode || "").trim();
+      return (sessionStorage.getItem(UNLOCK_KEY) || _cfg.accessCode || "").trim();
     } catch (_) {
       return (_cfg.accessCode || "").trim();
     }

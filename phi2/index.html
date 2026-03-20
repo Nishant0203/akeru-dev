@@ -316,7 +316,7 @@
   VidhiPanel.init({
     apiBase: window.VIDHI_API_URL || "https://api.akeru.dev",
     model: "ollama/llama3.1:8b",
-    accessCode: localStorage.getItem("vidhi_gemini_unlock_code") || "",
+    accessCode: sessionStorage.getItem("vidhi_gemini_unlock_code") || "",
     postId: POST_ID,
   });
 

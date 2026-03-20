@@ -806,8 +806,15 @@ AkeruRenderer.init({
 });
 renderWelcome(state.section);
 
-/* ── Unlock code ───────────────────────────────────────── */
+/* ── Unlock code (session — clears when tab/window closes) ── */
 const UNLOCK_KEY = "vidhi_gemini_unlock_code";
+function _saveCode(code) {
+  if (code) sessionStorage.setItem(UNLOCK_KEY, code);
+  else sessionStorage.removeItem(UNLOCK_KEY);
+}
+function _loadCode() {
+  return sessionStorage.getItem(UNLOCK_KEY) || "";
+}
 function applyUnlock(code) {
   const ok = Boolean(code && String(code).trim().length >= 4);
   document.querySelectorAll('option[data-locked="gemini"]').forEach(opt => {
@@ -817,15 +824,15 @@ function applyUnlock(code) {
   return ok;
 }
 
-const savedCode = localStorage.getItem(UNLOCK_KEY) || "";
+const savedCode = _loadCode();
 if (savedCode) unlockCode.value = savedCode;
 applyUnlock(savedCode);
 
 unlockBtn.addEventListener("click", () => {
   const code = unlockCode.value.trim();
-  localStorage.setItem(UNLOCK_KEY, code);
+  _saveCode(code);
   const ok = applyUnlock(code);
-  showToast(ok ? "Gemini unlocked (client-side). Try a Gemini model." : "Enter a valid code.");
+  showToast(ok ? "Gemini unlocked for this session. Try a Gemini model." : "Enter a valid code.");
 });
 
 /* ── Model ─────────────────────────────────────────────── */
@@ -885,7 +892,7 @@ async function doSend() {
         model:      state.model,
         section:    state.section,
         history:    state.history,
-        access_code: localStorage.getItem(UNLOCK_KEY) || "",
+        access_code: _loadCode(),
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
