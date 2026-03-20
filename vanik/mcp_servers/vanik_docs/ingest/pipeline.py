@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from mcp_servers.vanik_docs.db import insert_tariff_rows, reset_doc_type
+from mcp_servers.vanik_docs.db import reset_and_insert
 from mcp_servers.vanik_docs.ingest.gemini_parser import extract_tariff_schedule
 from mcp_servers.vanik_docs.ingest.gemini_uploader import (
     delete_uploaded_file,
@@ -43,8 +43,7 @@ def ingest_document(file_path: str, doc_type: str = "cbic", allow_fallback: bool
                 parser_used = "pandas"
                 rows = extract_tariff_schedule_pandas(file_path, doc_type=doc_type)
 
-        reset_doc_type(doc_type)
-        count = insert_tariff_rows(rows, doc_type=doc_type)
+        count = reset_and_insert(rows, doc_type=doc_type)
         return {
             "ok": True,
             "data": {
