@@ -613,7 +613,7 @@
       <span>Vanik Architecture</span>
       <span class="ctx-dot"></span>
       <span class="ctx-pill" id="ctx-section-badge">General</span>
-      <span class="ctx-pill" id="ctx-model-badge">gemini-flash-latest</span>
+      <span class="ctx-pill" id="ctx-model-badge">ollama/llama3.1:8b</span>
     </div>
 
     <div class="messages" id="messages"></div>
@@ -851,34 +851,82 @@ AkeruRenderer.init({
 });
 renderWelcome(state.section);
 
-/* ── Unlock code (session — clears when tab/window closes) ── */
+/* ── Gemini unlock — session-scoped, two-state UI ─────────────────── */
 const UNLOCK_KEY = "vidhi_gemini_unlock_code";
+
 function _saveCode(code) {
   if (code) sessionStorage.setItem(UNLOCK_KEY, code);
   else sessionStorage.removeItem(UNLOCK_KEY);
 }
+
 function _loadCode() {
   return sessionStorage.getItem(UNLOCK_KEY) || "";
 }
-function applyUnlock(code) {
-  const ok = Boolean(code && String(code).trim().length >= 4);
+
+/** Unlocked: hide form + dots, show green active; code stays in sessionStorage only */
+function _setUnlocked() {
   document.querySelectorAll('option[data-locked="gemini"]').forEach(opt => {
-    opt.disabled = !ok;
-    opt.textContent = opt.textContent.replace(" (locked)", "") + (ok ? "" : " (locked)");
+    opt.disabled = false;
+    opt.textContent = opt.textContent.replace(" (locked)", "");
   });
-  return ok;
+  unlockForm.style.display = "none";
+  unlockStatus.style.display = "block";
+  unlockInput.value = "";
 }
 
-const savedCode = _loadCode();
-if (savedCode) unlockCode.value = savedCode;
-applyUnlock(savedCode);
+/** Locked: show form, disable Gemini options, clear storage, reset model if Gemini */
+function _setLocked() {
+  document.querySelectorAll('option[data-locked="gemini"]').forEach(opt => {
+    opt.disabled = true;
+    if (!opt.textContent.includes("(locked)")) opt.textContent += " (locked)";
+  });
+  if (state.model.startsWith("models/")) {
+    modelSel.value = "ollama/llama3.1:8b";
+    state.model = "ollama/llama3.1:8b";
+    modelHint.textContent = MODEL_HINTS[state.model];
+    ctxModel.textContent = state.model;
+  }
+  unlockStatus.style.display = "none";
+  unlockForm.style.display = "block";
+  _saveCode("");
+}
+
+const existingCode = _loadCode();
+if (existingCode) {
+  _setUnlocked();
+} else {
+  _setLocked();
+}
 
 unlockBtn.addEventListener("click", () => {
-  const code = unlockCode.value.trim();
+  const code = unlockInput.value.trim();
+  if (code.length < 4) {
+    showToast("Enter a valid access code.");
+    return;
+  }
   _saveCode(code);
-  const ok = applyUnlock(code);
-  showToast(ok ? "Gemini unlocked for this session. Try a Gemini model." : "Enter a valid code.");
+  _setUnlocked();
 });
+
+unlockInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") unlockBtn.click();
+});
+
+lockBtn.addEventListener("click", () => {
+  _setLocked();
+  showToast("Gemini locked.");
+});
+
+lockBtn.addEventListener("mouseover", () => {
+  lockBtn.style.color = "rgba(220,130,130,0.8)";
+});
+lockBtn.addEventListener("mouseout", () => {
+  lockBtn.style.color = "var(--star-ghost)";
+});
+
+function _activeCode() {
+  return _loadCode();
+}
 
 /* ── Model ─────────────────────────────────────────────── */
 modelSel.addEventListener("change", () => {
