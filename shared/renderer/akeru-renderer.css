@@ -1,0 +1,304 @@
+/**
+ * akeru-renderer.css
+ * ─────────────────────────────────────────────────────────────────────
+ * Styles for AkeruRenderer output — message bubbles, markdown content,
+ * copy buttons, file path links, section reference spans.
+ *
+ * Theme: night-sky (matches Vidhi and Vanik palettes).
+ * Imports design tokens from the host page's :root if present;
+ * defines its own fallbacks so it works standalone.
+ *
+ * Repo path: shared/renderer/akeru-renderer.css
+ */
+
+/* ── Token fallbacks (host page :root overrides these) ──────────────── */
+:root {
+  --ar-sky-void:       #010308;
+  --ar-glass-bg:       rgba(4, 10, 32, 0.46);
+  --ar-glass-bg-deep:  rgba(2, 6, 20, 0.58);
+  --ar-glass-border:   rgba(160, 185, 255, 0.09);
+  --ar-glass-border-hi:rgba(180, 205, 255, 0.18);
+  --ar-glass-shine:    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  --ar-star-white:     rgba(225, 232, 255, 0.92);
+  --ar-star-dim:       rgba(155, 172, 215, 0.50);
+  --ar-star-ghost:     rgba(120, 140, 185, 0.30);
+  --ar-gold-soft:      rgba(200, 169, 110, 0.72);
+  --ar-accent:         #8fb4e8;
+  --ar-accent-dim:     rgba(143, 180, 232, 0.40);
+  --ar-font-serif:     'EB Garamond', Georgia, serif;
+  --ar-font-mono:      'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Message wrapper ────────────────────────────────────────────────── */
+.ar-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  max-width: 700px;
+  animation: ar-msg-in 0.28s ease forwards;
+}
+
+@keyframes ar-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ar-msg--user      { align-self: flex-end;  align-items: flex-end; }
+.ar-msg--assistant { align-self: flex-start; }
+
+/* ── Role label ─────────────────────────────────────────────────────── */
+.ar-msg-role {
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ar-star-ghost);
+  font-family: var(--ar-font-mono);
+}
+
+/* ── Body bubble ────────────────────────────────────────────────────── */
+.ar-msg-body {
+  font-size: 0.87rem;
+  line-height: 1.72;
+  padding: 0.85rem 1.15rem;
+  border: 1px solid var(--ar-glass-border);
+  position: relative;
+  font-family: var(--ar-font-serif);
+}
+
+.ar-msg--user .ar-msg-body {
+  background: rgba(143, 180, 232, 0.07);
+  backdrop-filter: blur(8px);
+  border-color: rgba(143, 180, 232, 0.12);
+  color: rgba(200, 218, 255, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.ar-msg--assistant .ar-msg-body {
+  background: var(--ar-glass-bg);
+  backdrop-filter: blur(10px);
+  color: var(--ar-star-white);
+  box-shadow: var(--ar-glass-shine);
+}
+
+/* Shimmer line on assistant bubble */
+.ar-msg--assistant .ar-msg-body::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(180,210,255,0.1), transparent);
+  pointer-events: none;
+}
+
+/* ── Streaming cursor ───────────────────────────────────────────────── */
+.ar-cursor {
+  display: inline-block;
+  width: 1.5px;
+  height: 0.82em;
+  background: var(--ar-accent-dim);
+  animation: ar-blink 0.85s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+
+@keyframes ar-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Markdown content — typography ─────────────────────────────────── */
+.ar-msg-body p {
+  margin: 0 0 0.65em;
+}
+.ar-msg-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ar-msg-body strong {
+  font-weight: 600;
+  color: var(--ar-star-white);
+}
+
+.ar-msg-body em {
+  font-style: italic;
+  color: var(--ar-star-dim);
+}
+
+.ar-msg-body h1, .ar-msg-body h2, .ar-msg-body h3,
+.ar-msg-body h4, .ar-msg-body h5, .ar-msg-body h6 {
+  font-family: var(--ar-font-serif);
+  font-weight: 500;
+  color: var(--ar-star-white);
+  letter-spacing: 0.02em;
+  margin: 1rem 0 0.4rem;
+  line-height: 1.3;
+}
+.ar-msg-body h1 { font-size: 1.1rem; }
+.ar-msg-body h2 { font-size: 1rem; }
+.ar-msg-body h3 { font-size: 0.93rem; }
+
+/* ── Lists ──────────────────────────────────────────────────────────── */
+.ar-msg-body ul,
+.ar-msg-body ol {
+  padding-left: 1.4rem;
+  margin: 0.4rem 0 0.65rem;
+}
+
+.ar-msg-body li {
+  margin: 0.2rem 0;
+  color: var(--ar-star-white);
+}
+
+.ar-msg-body li::marker {
+  color: var(--ar-accent-dim);
+}
+
+/* ── Inline code ────────────────────────────────────────────────────── */
+.ar-msg-body code {
+  font-family: var(--ar-font-mono);
+  font-size: 0.76rem;
+  background: rgba(143, 180, 232, 0.10);
+  padding: 0.1em 0.38em;
+  color: var(--ar-accent);
+  border: 1px solid rgba(143, 180, 232, 0.14);
+  border-radius: 1px;
+  word-break: break-word;
+}
+
+/* ── Code blocks ────────────────────────────────────────────────────── */
+.ar-msg-body pre {
+  font-family: var(--ar-font-mono);
+  font-size: 0.73rem;
+  background: rgba(1, 4, 16, 0.70);
+  border: 1px solid var(--ar-glass-border);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  color: rgba(180, 200, 255, 0.78);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: inset 0 2px 12px rgba(0,0,0,0.45);
+  position: relative; /* required for copy button anchor */
+}
+
+/* Reset inline code styles inside pre */
+.ar-msg-body pre code {
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+
+/* ── Blockquotes ────────────────────────────────────────────────────── */
+.ar-msg-body blockquote {
+  border-left: 2px solid var(--ar-accent-dim);
+  margin: 0.5rem 0;
+  padding: 0.4rem 0.9rem;
+  color: var(--ar-star-dim);
+  font-style: italic;
+  background: rgba(143, 180, 232, 0.04);
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────── */
+.ar-msg-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.80rem;
+}
+
+.ar-msg-body th,
+.ar-msg-body td {
+  border: 1px solid var(--ar-glass-border);
+  padding: 0.4rem 0.75rem;
+  text-align: left;
+}
+
+.ar-msg-body th {
+  background: rgba(143, 180, 232, 0.07);
+  color: var(--ar-accent);
+  font-family: var(--ar-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.ar-msg-body tr:nth-child(even) td {
+  background: rgba(143, 180, 232, 0.025);
+}
+
+/* ── Horizontal rule ────────────────────────────────────────────────── */
+.ar-msg-body hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ar-glass-border-hi), transparent);
+  margin: 1rem 0;
+}
+
+/* ── Copy button (addCopyButtons post-processor) ────────────────────── */
+.ar-copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(4, 10, 32, 0.7);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--ar-glass-border);
+  color: var(--ar-star-ghost);
+  padding: 0.28rem 0.4rem;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 1px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ar-copy-btn:hover {
+  color: var(--ar-accent);
+  border-color: var(--ar-glass-border-hi);
+  background: rgba(143, 180, 232, 0.08);
+}
+
+.ar-copy-btn--ok {
+  color: rgba(100, 220, 140, 0.8) !important;
+  border-color: rgba(100, 220, 140, 0.25) !important;
+}
+
+.ar-copy-btn svg {
+  display: block;
+  pointer-events: none;
+}
+
+/* ── File path links (linkFilePaths post-processor) ─────────────────── */
+.ar-file-link {
+  font-family: var(--ar-font-mono);
+  font-size: 0.76rem;
+  color: var(--ar-accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ar-accent-dim);
+  padding-bottom: 0.5px;
+  transition: color 0.15s, border-color 0.15s;
+  word-break: break-all;
+}
+
+.ar-file-link:hover {
+  color: var(--ar-star-white);
+  border-color: var(--ar-star-white);
+}
+
+/* ── Section references (highlightSections post-processor) ──────────── */
+.ar-section-ref {
+  border-bottom: 1px dotted var(--ar-accent-dim);
+  cursor: help;
+  color: inherit;
+  transition: color 0.15s;
+}
+
+.ar-section-ref:hover {
+  color: var(--ar-gold-soft);
+  border-color: var(--ar-gold-soft);
+}
