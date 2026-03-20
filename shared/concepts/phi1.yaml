@@ -1,0 +1,48 @@
+post_id: 'phi1'
+post_title: "RAG Isn't Broken. Your Query Construction Is."
+default_section: 'manifest-search'
+concepts:
+  query-poisoning:
+    label: "query poisoning"
+    section: 'manifest-search'
+    opening_mode: 'answer'
+    context: |
+      The reader highlighted 'query poisoning' while reading about why retrieval systems return wrong results. Explain what query poisoning is in the Vanik pipeline: the cotton shirts → brake callipers failure was caused by passing the full raw query 'cotton shirts from India to UK' as a LIKE term to SQLite. The description field never contains corridor words, so the query returns zero rows, which triggers the stub fallback. The fix is Module 1 (extractor.py) which strips corridor phrases and stopwords before product_terms is passed to search. Reference the ExtractionResult contract and explain why product_terms must contain only the product noun phrase. Be concrete and concise — the reader has just read the failure description.
+  corridor-stripping:
+    label: "corridor stripping"
+    section: 'manifest-search'
+    opening_mode: 'answer'
+    context: |
+      The reader highlighted 'corridor stripping'. Explain what corridor stripping is and why it is necessary before any search call. The specific patterns stripped: FROM_RE, TO_RE, MADE_IN_RE regexes remove 'from India', 'to UK', 'exported from', etc. Stopwords include 'what', 'is', 'the', 'import', 'export', 'duty', 'tariff', 'rate', 'for', 'how', 'much'. Show the before/after: 'cotton shirts from India to UK' → product_terms=['cotton shirts']. Explain what breaks if corridor words reach the LIKE query or FTS5 MATCH. Reference extractor.py and the _extract_product_terms function.
+  three-module-pipeline:
+    label: "three-module pipeline"
+    section: 'manifest-search'
+    opening_mode: 'options'
+    options:
+      - "Module 1 \u2014 extractor.py and the ExtractionResult contract"
+      - "Module 2 \u2014 query_builder.py and the SearchPlan"
+      - "Module 3 \u2014 search_hs_schedule.py and the execution tiers"
+    context: |
+      The reader highlighted 'three-module pipeline'. They want to understand the three-module NES design. The modules are: Module 1 (extractor.py) — strips corridor words, returns ExtractionResult; Module 2 (query_builder.py) — predicts chapter from chapter_hints.yaml, builds SearchPlan with ordered SearchStrategy list; Module 3 (search_hs_schedule.py) — executes strategies in order (FTS5+chapter → UK API → LIKE), stops when min_results satisfied. The root cause of the cotton shirts failure was that all three responsibilities were collapsed into one function with no separation. Explain the separation principle and why each module has an explicit input/output contract.
+  extraction-result:
+    label: "ExtractionResult"
+    section: 'manifest-search'
+    opening_mode: 'answer'
+    context: |
+      The reader highlighted 'ExtractionResult'. Explain the ExtractionResult dataclass: it is the output contract of Module 1 (extractor.py) and the input contract of Module 2 (query_builder.py). Fields: product_terms (list[str], corridor-stripped), hs_code_provided (str|None), origin (ISO-2|None), destination (ISO-2|None), quantity (float|None), unit_value_usd (float|None), _lang (en|hi), _raw (sanitised original query). Explain why product_terms is a list (primary term + broader fallback) and why _lang travels with the result through the entire pipeline. Reference the SufficiencyCheck: ner_is_sufficient() checks product_terms is non-empty AND at least one of origin/destination is present.
+  fts5-chapter-filter:
+    label: "FTS5 chapter filter"
+    section: 'manifest-search'
+    opening_mode: 'options'
+    options:
+      - "How chapter_hints.yaml restricts the FTS5 search space"
+      - "Why the YAML lookup runs before any LLM call"
+      - "What happens when no chapter hint matches"
+    context: |
+      The reader highlighted 'FTS5 chapter filter'. They may want to understand how FTS5 and chapter hints combine to restrict the search to the right HS chapter; why the chapter_hints.yaml lookup happens before any Haiku call; or what the fallback behaviour is when no hint matches. In the Vanik pipeline: Module 2 checks chapter_hints.yaml for the product terms. If 'cotton shirts' maps to chapter '62', the FTS5 query is restricted to descriptions in Chapter 62. This prevents 'cotton' from matching Chapter 52 (fabric) equally with Chapter 62 (garments). Reference chapter_hints.yaml, query_builder.py, and explain the curated lookup → Haiku fallback → no hint tier structure.
+  search-plan:
+    label: "SearchPlan"
+    section: 'manifest-search'
+    opening_mode: 'answer'
+    context: |
+      The reader highlighted 'SearchPlan'. Explain the SearchPlan dataclass: it is the output of Module 2 (query_builder.py) and the input to Module 3 (search_hs_schedule.py). A SearchPlan contains an ordered list of SearchStrategy objects. Each SearchStrategy specifies: type (fts, uk_api_search, like), terms (the clean product terms), chapter_hint (optional), and min_results threshold. Module 3 executes strategies in order and stops when results >= min_results. Explain why ordering matters: FTS5 with chapter filter first (fast, precise), UK Trade Tariff API second (authoritative but slower), LIKE fallback last (broad but noisy). The SearchPlan is what makes Module 3 dumb-by-design — it receives instructions, it does not make decisions.
