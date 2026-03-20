@@ -1,0 +1,22 @@
+post_id: 'phi2'
+post_title: "Platform surfaces & MCP stack (sample)"
+default_section: 'mcp'
+concepts:
+  streamable-http:
+    label: "streamable HTTP"
+    section: 'mcp'
+    opening_mode: 'answer'
+    context: |
+      Reader selected 'streamable HTTP' on the φ² sample post. Explain why Vanik MCP servers use streamable HTTP transport instead of stdio: browser and edge workers cannot spawn subprocesses; HTTP aligns with api.akeru.dev routing and Caddy. Reference MCP protocol stack sections in the architecture doc (Sections 4a, 5).
+  hmac-handshake:
+    label: "HMAC handshake"
+    section: 'mcp'
+    opening_mode: 'answer'
+    context: |
+      Reader selected 'HMAC token' in the φ² post trust-boundary paragraph. Explain HMAC authentication in the MCP init handshake: what is signed, where keys live, and how this differs from anonymous public tariff API calls. Keep it concrete per the architecture document.
+  tool-schemas:
+    label: "tool schemas"
+    section: 'mcp'
+    opening_mode: 'answer'
+    context: |
+      Reader selected 'tool schemas' on φ². Describe how MCP tool schemas are exposed to callers, how they relate to the three servers (wto, uk-tariff, eu-taric), and how Vanik orchestration chooses tools vs internal Module 3 execution. Cite the doc’s MCP / platform surfaces sections.
