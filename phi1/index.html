@@ -649,12 +649,15 @@ ExtractionResult(
     });
   }
 
-  // ── Init VidhiPanel (Gemini unlock via localStorage vidhi_gemini_unlock_code) ──
-  const accessCode = localStorage.getItem("vidhi_gemini_unlock_code") || "";
+  // ── Init VidhiPanel (unlock code: same sessionStorage key as /vidhi/)
+  const UNLOCK_KEY = "vidhi_gemini_unlock_code";
+  function _activeCode() {
+    return sessionStorage.getItem(UNLOCK_KEY) || "";
+  }
   VidhiPanel.init({
     apiBase:    window.VIDHI_API_URL || "https://api.akeru.dev",
     model:      "ollama/llama3.1:8b",
-    accessCode: accessCode,
+    accessCode: _activeCode(),
     postId:     POST_ID,
   });
 

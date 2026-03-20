@@ -523,17 +523,59 @@
       <p class="model-hint" id="model-hint">Flash — fast, great for interactive walkthroughs.</p>
     </div>
 
-    <div style="margin-top:0.8rem;">
-      <p class="block-label">Gemini unlock</p>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input id="unlock-code" type="password" placeholder="code" autocomplete="off"
-               style="flex:1; background: rgba(4, 10, 32, 0.55); border: 1px solid var(--glass-border); color: var(--star-white); font-family: var(--font-mono); font-size: 0.7rem; padding: 0.45rem 0.6rem; border-radius: 1px;" />
-        <button id="unlock-btn"
-                style="background: transparent; border: 1px solid var(--glass-border); color: var(--accent); font-family: var(--font-mono); font-size:0.68rem; padding:0.45rem 0.7rem; cursor:pointer;">
-          Unlock
-        </button>
+    <div class="unlock-block" id="unlock-block" style="margin-top:0.8rem;">
+
+      <!-- LOCKED STATE -->
+      <div id="unlock-form">
+        <p class="block-label">Gemini unlock</p>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <input id="unlock-code" type="password" placeholder="access code"
+                 autocomplete="off"
+                 style="flex:1; background:rgba(4,10,32,0.55);
+                        border:1px solid var(--glass-border);
+                        color:var(--star-white);
+                        font-family:var(--font-mono);
+                        font-size:0.7rem; padding:0.45rem 0.6rem; border-radius:1px;" />
+          <button id="unlock-btn"
+                  type="button"
+                  style="background:transparent; border:1px solid var(--glass-border);
+                         color:var(--accent); font-family:var(--font-mono);
+                         font-size:0.68rem; padding:0.45rem 0.7rem; cursor:pointer;">
+            Unlock
+          </button>
+        </div>
+        <p style="margin-top:0.4rem; font-size:0.62rem; color:var(--star-ghost);">
+          Required for Gemini models.
+        </p>
       </div>
-      <p style="margin-top:0.4rem; font-size:0.62rem; color:var(--star-ghost);">If you have a code, Gemini models will unlock.</p>
+
+      <!-- UNLOCKED STATE (hidden until authenticated) -->
+      <div id="unlock-status" style="display:none;">
+        <p class="block-label">Gemini</p>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="width:6px; height:6px; border-radius:50%;
+                         background:rgba(100,220,140,0.8);
+                         box-shadow:0 0 6px rgba(100,220,140,0.4);
+                         flex-shrink:0;"></span>
+            <span style="font-family:var(--font-mono); font-size:0.68rem;
+                         color:rgba(100,220,140,0.85); letter-spacing:0.06em;">
+              active
+            </span>
+          </div>
+          <button id="lock-btn" type="button"
+                  title="Lock Gemini access"
+                  style="background:transparent; border:none;
+                         color:var(--star-ghost); cursor:pointer;
+                         font-family:var(--font-mono); font-size:0.62rem;
+                         letter-spacing:0.1em; text-transform:uppercase;
+                         padding:0.2rem 0.4rem;
+                         transition:color 0.2s;">
+            Lock
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <div class="divider"></div>
@@ -789,8 +831,11 @@ const textarea   = document.getElementById("user-input");
 const sendBtn    = document.getElementById("send-btn");
 const modelSel   = document.getElementById("model-select");
 const modelHint  = document.getElementById("model-hint");
-const unlockCode = document.getElementById("unlock-code");
-const unlockBtn  = document.getElementById("unlock-btn");
+const unlockForm   = document.getElementById("unlock-form");
+const unlockStatus = document.getElementById("unlock-status");
+const unlockInput  = document.getElementById("unlock-code");
+const unlockBtn    = document.getElementById("unlock-btn");
+const lockBtn      = document.getElementById("lock-btn");
 const secBtns    = document.querySelectorAll("#section-list button");
 const ctxSection = document.getElementById("ctx-section-badge");
 const ctxModel   = document.getElementById("ctx-model-badge");
@@ -806,8 +851,15 @@ AkeruRenderer.init({
 });
 renderWelcome(state.section);
 
-/* ── Unlock code ───────────────────────────────────────── */
+/* ── Unlock code (session — clears when tab/window closes) ── */
 const UNLOCK_KEY = "vidhi_gemini_unlock_code";
+function _saveCode(code) {
+  if (code) sessionStorage.setItem(UNLOCK_KEY, code);
+  else sessionStorage.removeItem(UNLOCK_KEY);
+}
+function _loadCode() {
+  return sessionStorage.getItem(UNLOCK_KEY) || "";
+}
 function applyUnlock(code) {
   const ok = Boolean(code && String(code).trim().length >= 4);
   document.querySelectorAll('option[data-locked="gemini"]').forEach(opt => {
@@ -817,15 +869,15 @@ function applyUnlock(code) {
   return ok;
 }
 
-const savedCode = localStorage.getItem(UNLOCK_KEY) || "";
+const savedCode = _loadCode();
 if (savedCode) unlockCode.value = savedCode;
 applyUnlock(savedCode);
 
 unlockBtn.addEventListener("click", () => {
   const code = unlockCode.value.trim();
-  localStorage.setItem(UNLOCK_KEY, code);
+  _saveCode(code);
   const ok = applyUnlock(code);
-  showToast(ok ? "Gemini unlocked (client-side). Try a Gemini model." : "Enter a valid code.");
+  showToast(ok ? "Gemini unlocked for this session. Try a Gemini model." : "Enter a valid code.");
 });
 
 /* ── Model ─────────────────────────────────────────────── */
@@ -885,7 +937,7 @@ async function doSend() {
         model:      state.model,
         section:    state.section,
         history:    state.history,
-        access_code: localStorage.getItem(UNLOCK_KEY) || "",
+        access_code: _activeCode(),
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
