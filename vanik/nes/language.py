@@ -36,3 +36,7 @@ def detect_language(text: str) -> str:
         return "hi"
 
     return "en"
+
+
+# Shorter alias used across architecture docs / call sites
+detect_lang = detect_language

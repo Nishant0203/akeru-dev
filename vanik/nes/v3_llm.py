@@ -7,6 +7,7 @@ import json
 import logging
 
 from agent.providers import get_completion_client
+from nes.language import detect_language
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def _is_credential_error(exc: Exception) -> bool:
     return any(k in msg for k in _CREDENTIAL_ERRORS)
 
 
-def _empty_result() -> dict:
+def _empty_result(query: str) -> dict:
     return {
         "product_terms": [],
         "hs_code_provided": None,
@@ -54,6 +55,7 @@ def _empty_result() -> dict:
         "destination": None,
         "quantity": None,
         "unit_value_usd": None,
+        "_lang": detect_language(query),
     }
 
 
@@ -84,13 +86,16 @@ async def llm_extract(raw_query: str) -> dict:
     """Extract trade entities from raw_query using Claude Haiku."""
     text = raw_query.strip()
     if not text:
-        return _empty_result()
+        return _empty_result("")
 
     try:
         client = get_completion_client()
     except RuntimeError as exc:
         logger.error("v3_llm client init failed: %s", exc)
-        return {"_extraction_error": "configuration", "product_terms": [text]}
+        return {
+            "_extraction_error": "configuration",
+            **_empty_result(text),
+        }
 
     raw = ""
     try:
@@ -109,15 +114,32 @@ async def llm_extract(raw_query: str) -> dict:
     except Exception as exc:
         if _is_credential_error(exc):
             logger.error("v3_llm credential error: %s", exc)
-            return {"_extraction_error": "credential", "product_terms": [text]}
+            return {
+                "_extraction_error": "credential",
+                **_empty_result(text),
+            }
         logger.error("v3_llm call failed (transient): %s", exc)
         result = {}
 
+    def _coerce_product_terms(val: object) -> list[str]:
+        if val is None:
+            return []
+        if isinstance(val, str) and val.strip():
+            return [val.strip()]
+        if isinstance(val, list):
+            out = [str(x).strip() for x in val if str(x).strip()]
+            return out
+        return []
+
+    pts = _coerce_product_terms(result.get("product_terms"))
+    # Never substitute the full raw query as product_terms (avoids FTS / search poisoning).
+
     return {
-        "product_terms": result.get("product_terms") or [text],
+        "product_terms": pts,
         "hs_code_provided": result.get("hs_code_provided"),
         "origin": result.get("origin"),
         "destination": result.get("destination"),
         "quantity": result.get("quantity"),
         "unit_value_usd": result.get("unit_value_usd"),
+        "_lang": detect_language(text),
     }
