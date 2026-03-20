@@ -62,6 +62,10 @@ async def build(
         f"EU {fmt(eu_val, eu_note)} (EU XI Tariff API), "
         f"IN {fmt(in_val, in_note)} (WTO Timeseries API)."
     )
+    narrative_en += (
+        " India import: IGST and cess depend on sub-classification (typically 18% or 28% IGST "
+        "bracket); MFN shown is baseline — verify FTA / preferential schemes separately."
+    )
 
     if failed_corridors:
         narrative_en += (

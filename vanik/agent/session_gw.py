@@ -6,7 +6,6 @@ import asyncio
 import json
 import logging
 import os
-import threading
 
 from pathlib import Path
 
@@ -22,11 +21,11 @@ _alt_env = _vanik_root / "Vanik_connections.env"
 load_dotenv(_env_file)
 if not _env_file.exists() and _alt_env.exists():
     load_dotenv(_alt_env)
-from queue import Empty
 from typing import Any
 from uuid import uuid4
 
 from starlette.applications import Starlette
+from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -66,13 +65,13 @@ def _session_payload(session: SessionState) -> dict[str, Any]:
     }
 
 
-def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
+async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
     if session.is_closed:
         return
     if buffered:
         with session.events_lock:
             session.last_response_events.append(event)
-    session.event_queue.put(event)
+    await session.event_queue.put(event)
 
 
 _WELCOME_MESSAGE = "Welcome to Vanik. Ask me about import duties for any product — for example: brake callipers from India to UK."
@@ -82,21 +81,21 @@ async def emit_welcome(session: SessionState) -> None:
     """Emit a static welcome sequence (thinking on → tokens → thinking off → done). No agent call. Unbuffered so reconnect does not replay it."""
     if session.is_closed:
         return
-    _emit(session, {"type": "thinking", "visible": True}, buffered=False)
+    await _emit(session, {"type": "thinking", "visible": True}, buffered=False)
     words = _WELCOME_MESSAGE.split()
     for idx, word in enumerate(words):
         suffix = "" if idx == len(words) - 1 else " "
-        _emit(session, {"type": "token", "content": word + suffix}, buffered=False)
+        await _emit(session, {"type": "token", "content": word + suffix}, buffered=False)
         await asyncio.sleep(0)
-    _emit(session, {"type": "thinking", "visible": False}, buffered=False)
-    _emit(session, {"type": "done", "query_id": None, "anchor": None}, buffered=False)
+    await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+    await _emit(session, {"type": "done", "query_id": None, "anchor": None}, buffered=False)
 
 
 async def _stream_narrative_tokens(session: SessionState, narrative: str) -> None:
     words = narrative.split(" ")
     for idx, token in enumerate(words):
         suffix = "" if idx == len(words) - 1 else " "
-        _emit(session, {"type": "token", "content": token + suffix})
+        await _emit(session, {"type": "token", "content": token + suffix})
 
 
 def _landed_cost_from_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -140,7 +139,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
             "options": result.get("options", []),
         }
         session.state = "awaiting_gate_response"
-        _emit(
+        await _emit(
             session,
             {
                 "type": "gate",
@@ -155,7 +154,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
         missing = result.get("missing", [])
         field = missing[0] if missing else "unknown"
         session.state = "awaiting_clarification"
-        _emit(
+        await _emit(
             session,
             {
                 "type": "clarify",
@@ -167,7 +166,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
 
     if not result.get("ok"):
         session.state = "active"
-        _emit(
+        await _emit(
             session,
             {
                 "type": "error",
@@ -181,7 +180,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     valid, reason = validate_agent_output(result)
     if not valid:
         session.state = "active"
-        _emit(
+        await _emit(
             session,
             {
                 "type": "error",
@@ -217,7 +216,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     )
 
     session.state = "active"
-    _emit(session, {"type": "done", "query_id": query_id, "anchor": anchor})
+    await _emit(session, {"type": "done", "query_id": query_id, "anchor": anchor})
     with session.events_lock:
         session.last_response_events.clear()
 
@@ -246,7 +245,7 @@ async def _run_agent_job(
         if session.is_closed:
             return
         session.state = "active"
-        _emit(
+        await _emit(
             session,
             {
                 "type": "error",
@@ -258,29 +257,7 @@ async def _run_agent_job(
     finally:
         if session.is_closed:
             return
-        _emit(session, {"type": "thinking", "visible": False}, buffered=False)
-
-
-def _spawn_agent_job(
-    *,
-    session: SessionState,
-    user_query: str,
-    gate_selection: str | None,
-    precomputed_entities: dict[str, Any] | None = None,
-    gate_options: list[dict[str, Any]] | None = None,
-) -> None:
-    def _runner() -> None:
-        asyncio.run(
-            _run_agent_job(
-                session=session,
-                user_query=user_query,
-                gate_selection=gate_selection,
-                precomputed_entities=precomputed_entities,
-                gate_options=gate_options,
-            )
-        )
-
-    threading.Thread(target=_runner, daemon=True).start()
+        await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
 
 
 async def create_session(request: Request) -> JSONResponse:
@@ -291,8 +268,13 @@ async def create_session(request: Request) -> JSONResponse:
         except json.JSONDecodeError:
             seed = {}
     session = store.create(seed=seed)
-    asyncio.create_task(emit_welcome(session))
-    return JSONResponse({"session_id": session.session_id, "created_at": session.created_at}, status_code=201)
+    background = BackgroundTasks()
+    background.add_task(emit_welcome, session)
+    return JSONResponse(
+        {"session_id": session.session_id, "created_at": session.created_at},
+        status_code=201,
+        background=background,
+    )
 
 
 async def get_session(request: Request) -> JSONResponse:
@@ -320,11 +302,13 @@ async def post_session_message(request: Request) -> JSONResponse:
         return _json_error("invalid_message", "Body requires role='user' and non-empty content")
 
     store.append_message(session_id, "user", content)
-    _emit(session, {"type": "thinking", "visible": True}, buffered=False)
+    await _emit(session, {"type": "thinking", "visible": True}, buffered=False)
 
+    background = BackgroundTasks()
     if session.pending_gate:
         pending = dict(session.pending_gate)
-        _spawn_agent_job(
+        background.add_task(
+            _run_agent_job,
             session=session,
             user_query=pending.get("query", ""),
             gate_selection=content,
@@ -332,12 +316,13 @@ async def post_session_message(request: Request) -> JSONResponse:
             gate_options=pending.get("options", []),
         )
     else:
-        _spawn_agent_job(
+        background.add_task(
+            _run_agent_job,
             session=session,
             user_query=content,
             gate_selection=None,
         )
-    return JSONResponse({"ok": True, "accepted": True}, status_code=202)
+    return JSONResponse({"ok": True, "accepted": True}, status_code=202, background=background)
 
 
 async def resume_session(request: Request) -> JSONResponse:
@@ -413,8 +398,8 @@ async def stream_events(request: Request) -> StreamingResponse | JSONResponse:
                     break
 
                 try:
-                    event = await asyncio.to_thread(session.event_queue.get, True, 15)
-                except Empty:
+                    event = await asyncio.wait_for(session.event_queue.get(), timeout=15.0)
+                except asyncio.TimeoutError:
                     yield b": keepalive\n\n"
                     continue
 

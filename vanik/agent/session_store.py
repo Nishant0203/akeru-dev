@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from queue import Queue
 from threading import Lock
 from typing import Any
 
@@ -23,7 +23,8 @@ class SessionState:
     last_response_events: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=500))
     history_turn_count: int = 0
     last_active: datetime = field(default_factory=lambda: datetime.now(UTC))
-    event_queue: Queue[dict[str, Any]] = field(default_factory=Queue)
+    # Must be asyncio.Queue: producers and SSE consumer share the Starlette event loop.
+    event_queue: asyncio.Queue[dict[str, Any]] = field(default_factory=asyncio.Queue)
     events_lock: Any = field(default_factory=Lock, repr=False)
     sse_lock: Any = field(default_factory=Lock, repr=False)
     has_active_sse: bool = False
