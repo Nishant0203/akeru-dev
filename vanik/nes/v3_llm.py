@@ -1,44 +1,28 @@
-"""Manifest Search v3: LLM extraction via Claude Haiku."""
+"""Haiku / GPT-4o-mini extraction for MS v3 — via call_llm + parse_llm_json."""
 
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
+import os
+from typing import Any
 
-from agent.providers import get_completion_client
+from agent.json_parser import parse_llm_json
+from agent.prompts import MS_V3_EXTRACTION
+from agent.providers import call_llm, get_completion_client, get_model_name
 from nes.language import detect_language
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM = """You are a trade compliance entity extractor.
-Given a natural language trade query, extract the following fields and respond
-with ONLY a valid JSON object - no preamble, no markdown, no explanation.
-
-Fields:
-  product_terms   : list[str]   - key product words/phrases (e.g. ["ceramic tiles"])
-  hs_code_provided: str | null  - HS code if explicitly stated, else null
-  origin          : str | null  - ISO-2 country code of export origin, or null
-  destination     : str | null  - ISO-2 country code OR "EU" for EU bloc, or null
-  quantity        : number | null
-  unit_value_usd  : number | null
-
-Destination rules:
-  - Any EU member state as destination -> "EU"
-  - United Kingdom / UK / Britain / GB -> "GB"
-  - India / IN -> "IN"
-
-Origin rules:
-  - Resolve country names to ISO-2 codes
-  - "UK" / "Britain" / "United Kingdom" as origin -> "GB"
-
-If a field cannot be determined, use null."""
-
-_USER_TMPL = "Query: {query}"
+_extraction_error: str | None = None
 
 _CREDENTIAL_ERRORS = (
-    "api_key", "authentication", "unauthorized",
-    "permission", "api key", "invalid x-api-key",
+    "api_key",
+    "authentication",
+    "unauthorized",
+    "permission",
+    "api key",
+    "invalid x-api-key",
 )
 
 
@@ -47,7 +31,16 @@ def _is_credential_error(exc: Exception) -> bool:
     return any(k in msg for k in _CREDENTIAL_ERRORS)
 
 
-def _empty_result(query: str) -> dict:
+def _get_extraction_error() -> str | None:
+    return _extraction_error
+
+
+def _set_extraction_error(msg: str | None) -> None:
+    global _extraction_error
+    _extraction_error = msg
+
+
+def _empty_result(query: str) -> dict[str, Any]:
     return {
         "product_terms": [],
         "hs_code_provided": None,
@@ -59,80 +52,92 @@ def _empty_result(query: str) -> dict:
     }
 
 
-def _extract_text_content(response: object) -> str:
-    parts = getattr(response, "content", []) or []
-    chunks: list[str] = []
-    for part in parts:
-        text = getattr(part, "text", None)
-        if text:
-            chunks.append(text)
-    return "".join(chunks).strip()
+def _coerce_product_terms(val: object) -> list[str]:
+    if val is None:
+        return []
+    if isinstance(val, str) and val.strip():
+        return [val.strip()]
+    if isinstance(val, list):
+        return [str(x).strip() for x in val if str(x).strip()]
+    return []
 
 
-def _strip_markdown_fences(raw: str) -> str:
-    text = raw.strip()
-    if not text.startswith("```"):
-        return text
+def extract_ms_v3_llm(sanitised_query: str) -> dict[str, Any]:
+    """
+    Call configured extraction model. Returns parsed dict or {} on failure.
+    Sets _extraction_error for debugging; use llm_extract() for full entity shape.
+    """
+    _set_extraction_error(None)
+    q = (sanitised_query or "").strip()
+    if not q:
+        return {}
 
-    text = text[3:]
-    if text.lower().startswith("json"):
-        text = text[4:]
-    if text.endswith("```"):
-        text = text[:-3]
-    return text.strip()
+    try:
+        client = get_completion_client()
+    except Exception as exc:
+        _set_extraction_error(str(exc))
+        logger.warning("v3_llm: no client: %s", exc)
+        return {}
+
+    model = get_model_name("extraction")
+    max_tokens = int(os.getenv("VANIK_EXTRACTION_MAX_TOKENS", "512"))
+
+    try:
+        text = call_llm(
+            client,
+            system=MS_V3_EXTRACTION,
+            user=q,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=0.1,
+        )
+    except Exception as exc:
+        _set_extraction_error(str(exc))
+        logger.warning("v3_llm: call failed: %s", exc)
+        return {}
+
+    parsed = parse_llm_json(text)
+    if not isinstance(parsed, dict):
+        _set_extraction_error("parse_llm_json returned non-dict")
+        return {}
+
+    return parsed
 
 
-async def llm_extract(raw_query: str) -> dict:
-    """Extract trade entities from raw_query using Claude Haiku."""
-    text = raw_query.strip()
+async def llm_extract(raw_query: str) -> dict[str, Any]:
+    """Extract trade entities using the configured extraction model (threaded)."""
+    text = (raw_query or "").strip()
     if not text:
         return _empty_result("")
 
     try:
-        client = get_completion_client()
-    except RuntimeError as exc:
+        get_completion_client()
+    except (RuntimeError, ValueError) as exc:
         logger.error("v3_llm client init failed: %s", exc)
-        return {
-            "_extraction_error": "configuration",
-            **_empty_result(text),
-        }
+        return {"_extraction_error": "configuration", **_empty_result(text)}
+    except Exception as exc:
+        logger.error("v3_llm client init failed: %s", exc)
+        return {"_extraction_error": "configuration", **_empty_result(text)}
 
-    raw = ""
+    def _run() -> dict[str, Any]:
+        try:
+            return extract_ms_v3_llm(text)
+        except Exception as exc:
+            if _is_credential_error(exc):
+                raise
+            logger.error("v3_llm extract failed: %s", exc)
+            return {}
+
     try:
-        response = await asyncio.to_thread(
-            client.messages.create,
-            model="claude-haiku-4-5-20251001",
-            max_tokens=256,
-            system=_SYSTEM,
-            messages=[{"role": "user", "content": _USER_TMPL.format(query=text)}],
-        )
-        raw = _strip_markdown_fences(_extract_text_content(response))
-        result = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        logger.warning("v3_llm JSON parse failed: %s - raw: %r", exc, raw)
-        result = {}
+        result = await asyncio.to_thread(_run)
     except Exception as exc:
         if _is_credential_error(exc):
             logger.error("v3_llm credential error: %s", exc)
-            return {
-                "_extraction_error": "credential",
-                **_empty_result(text),
-            }
+            return {"_extraction_error": "credential", **_empty_result(text)}
         logger.error("v3_llm call failed (transient): %s", exc)
         result = {}
 
-    def _coerce_product_terms(val: object) -> list[str]:
-        if val is None:
-            return []
-        if isinstance(val, str) and val.strip():
-            return [val.strip()]
-        if isinstance(val, list):
-            out = [str(x).strip() for x in val if str(x).strip()]
-            return out
-        return []
-
     pts = _coerce_product_terms(result.get("product_terms"))
-    # Never substitute the full raw query as product_terms (avoids FTS / search poisoning).
 
     return {
         "product_terms": pts,

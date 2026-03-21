@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>φ² · MCP surfaces &amp; Vidhi · Akeru</title>
-  <meta name="description" content="Sample note for φ² Orionis: how MCP servers and API routing fit the Akeru platform — explore terms with Vidhi." />
+  <title>φ² · The boundary problem · Akeru</title>
+  <meta name="description" content="φ² Orionis: the boundary problem in trade compliance agents — minimum data across trust boundaries, filters, and on-prem paths." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+Devanagari:wght@300;400&family=JetBrains+Mono:wght@300;400&display=swap" />
@@ -146,25 +146,6 @@
       margin-top: 2rem;
       opacity: 0.55;
     }
-    .anchor-hint {
-      position: fixed;
-      bottom: 1.4rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(4, 10, 32, 0.85);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(143, 180, 232, 0.14);
-      padding: 0.45rem 1.1rem;
-      font-family: var(--font-mono);
-      font-size: 0.60rem;
-      letter-spacing: 0.12em;
-      color: rgba(143, 180, 232, 0.55);
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 50;
-      transition: opacity 0.5s;
-    }
-    .anchor-hint.hidden { opacity: 0; }
     @media (max-width: 700px) {
       .nav-links { display: none; }
       .post-wrap { padding-top: 5.5rem; }
@@ -190,51 +171,59 @@
 <main class="post-wrap">
   <div class="post-meta">
     <span class="post-star">φ² Orionis</span>
-    <span class="post-date">2026 · sample · akeru.dev</span>
+    <span class="post-date">2026 · akeru.dev</span>
   </div>
 
-  <h1 class="post-title">Platform surfaces &amp; the MCP stack</h1>
+  <h1 class="post-title">The boundary problem</h1>
   <p class="post-subtitle">
-    A short φ² companion note (replaceable): how tools reach tariff data and how the gateway routes traffic.
-    Highlighted phrases open Vidhi with anchor context.
+    Trade compliance agents cross several trust boundaries. What crosses each edge — and what should not — defines whether an architecture is safe for enterprise manifests.
   </p>
   <div class="post-divider"></div>
 
   <article class="post-body">
     <p>
-      Vanik exposes compliance logic through multiple surfaces. The architecture document describes
-      three MCP servers (WTO, UK tariff, EU TARIC) and how clients connect using
-      <span class="vidhi-anchor" data-concept="streamable-http">streamable HTTP</span>
-      rather than stdio — so browser and worker runtimes can share the same contract.
+      Every serious deployment faces the same geometric fact: computation does not float in the abstract; it runs somewhere. The moment data leaves a tenant-controlled zone — VPC, browser sandbox, or air-gapped floor — you inherit a
+      <span class="vidhi-anchor" data-concept="boundary-problem">boundary problem</span>.
+      The question is not only encryption in transit but whether the <em>content</em> itself is appropriate for the sink on the other side.
     </p>
 
-    <h2>Trust at the boundary</h2>
+    <h2>Filtering before the model</h2>
     <p>
-      The init handshake can carry an
-      <span class="vidhi-anchor" data-concept="hmac-handshake">HMAC token</span>
-      so only configured callers invoke tools. That sits alongside the public
-      <code>api.akeru.dev</code> routes described in the platform map.
+      A practical first control is an
+      <span class="vidhi-anchor" data-concept="information-filter">information filter</span>:
+      strip purchase-order references, aggressive pricing lines, and counterparty names before any call that might log prompts externally. That is not a substitute for legal review; it reduces accidental exfiltration and yields an audit trail of what was removed.
     </p>
 
-    <h2>Tools and schemas</h2>
+    <h2>Minimum sufficient input</h2>
     <p>
-      Each server advertises
-      <span class="vidhi-anchor" data-concept="tool-schemas">tool schemas</span>
-      the model (or orchestrator) uses to plan calls. Vidhi can walk through how those map to
-      Module 3 search strategies on the Vanik side.
+      Tariff lookup rarely needs a full commercial invoice. The orchestrator can work from
+      <span class="vidhi-anchor" data-concept="minimum-sufficient-input">minimum sufficient input</span>
+      — product terms, origin, destination, and sometimes an explicit HS code — and refuse to guess codes the user never stated. Smaller prompts are cheaper, clearer, and easier to reason about under DPIA-style review.
+    </p>
+
+    <h2>When the schedule guesses for you</h2>
+    <p>
+      Batch pipelines sometimes auto-pick the first HS match when the user supplied no code. That
+      <span class="vidhi-anchor" data-concept="hs-code-bypass">HS code bypass</span>
+      must be flagged for human review: the rate is only as good as the match, and the liability stays with the operator, not the model.
+    </p>
+
+    <h2>On-premise and VPC paths</h2>
+    <p>
+      Regulated tenants often require an
+      <span class="vidhi-anchor" data-concept="on-premise-path">on-premise path</span>:
+      run extraction and normalisation inside their network, then exchange only normalised rate structs with downstream narration. The same code paths can be repointed to local or dedicated endpoints without changing the contract surface.
     </p>
 
     <div class="vidhi-prompt">
       <div class="vidhi-prompt-eyebrow">Explore with Vidhi</div>
       <p class="vidhi-prompt-body">
-        Click any <strong>highlighted phrase</strong> to ask Vidhi about that concept, grounded in
-        the architecture document plus this page’s anchor context.
+        Click any <strong>highlighted phrase</strong> to ask Vidhi about that concept with this page as anchor context.
       </p>
     </div>
 
     <p>
-      For the full chat UI (model picker, Gemini unlock), use
-      <a href="/vidhi/" style="color: var(--accent);">/vidhi/</a>.
+      For the full walkthrough agent, open <a href="/vidhi/" style="color: var(--accent);">/vidhi/</a>.
     </p>
   </article>
 
@@ -244,42 +233,52 @@
       <a href="/" class="post-nav-link">Mrigashira →</a>
     </nav>
     <p class="post-footer-constellation">
-      Mrigashira · λ Meissa · φ¹ · φ² / © 2026 akeru · sample doc
+      Mrigashira · λ Meissa · φ¹ · φ² / © 2026 akeru
     </p>
   </footer>
 </main>
 
-<div class="anchor-hint" id="anchor-hint">
-  ✦ &nbsp; Click highlighted phrases to explore with Vidhi
-</div>
-
-<!-- Server Tier-1: shared/concepts/phi2.yaml (inline JSON mirrors it for static preview) -->
+<!-- Mirrors shared/concepts/phi2.yaml -->
 <script type="application/json" id="phi2-concepts">
 {
   "post_id": "phi2",
-  "post_title": "Platform surfaces & MCP stack (sample)",
-  "default_section": "mcp",
+  "post_title": "The boundary problem & enterprise privacy",
+  "default_section": "privacy",
   "concepts": {
-    "streamable-http": {
-      "concept_key": "streamable-http",
-      "label": "streamable HTTP",
-      "section": "mcp",
+    "boundary-problem": {
+      "concept_key": "boundary-problem",
+      "label": "boundary problem",
+      "section": "privacy",
       "opening_mode": "answer",
-      "context": "Reader selected 'streamable HTTP' on the φ² sample post. Explain why Vanik MCP servers use streamable HTTP transport instead of stdio: browser and edge workers cannot spawn subprocesses; HTTP aligns with api.akeru.dev routing and Caddy. Reference MCP protocol stack sections in the architecture doc (Sections 4a, 5)."
+      "context": "Reader selected 'boundary problem' on the φ² post. Explain how moving computation across a trust boundary (browser, API gateway, external LLM) changes what data can leave the tenant: raw manifests vs minimum sufficient input, and why Vanik treats the LLM as an untrusted sink unless explicitly isolated."
     },
-    "hmac-handshake": {
-      "concept_key": "hmac-handshake",
-      "label": "HMAC handshake",
-      "section": "mcp",
+    "information-filter": {
+      "concept_key": "information-filter",
+      "label": "information filter",
+      "section": "privacy",
       "opening_mode": "answer",
-      "context": "Reader selected 'HMAC token' in the φ² post trust-boundary paragraph. Explain HMAC authentication in the MCP init handshake: what is signed, where keys live, and how this differs from anonymous public tariff API calls. Keep it concrete per the architecture document."
+      "context": "Reader selected 'information filter' on φ². Describe stripping PO numbers, unit pricing, and counterparty hints before any external model call; tie to audit logs (strip_log) and why this is weaker than full on-prem isolation but necessary for cloud extraction paths."
     },
-    "tool-schemas": {
-      "concept_key": "tool-schemas",
-      "label": "tool schemas",
-      "section": "mcp",
+    "minimum-sufficient-input": {
+      "concept_key": "minimum-sufficient-input",
+      "label": "minimum sufficient input",
+      "section": "privacy",
       "opening_mode": "answer",
-      "context": "Reader selected 'tool schemas' on φ². Describe how MCP tool schemas are exposed to callers, how they relate to the three servers (wto, uk-tariff, eu-taric), and how Vanik orchestration chooses tools vs internal Module 3 execution. Cite the doc’s MCP / platform surfaces sections."
+      "context": "Reader selected 'minimum sufficient input'. Contrast full shipment text vs product terms + corridor + optional HS for tariff lookup; relate to Manifest Search sufficiency and when v3 LLM fallback is triggered."
+    },
+    "hs-code-bypass": {
+      "concept_key": "hs-code-bypass",
+      "label": "HS code bypass",
+      "section": "privacy",
+      "opening_mode": "answer",
+      "context": "Reader selected 'HS code bypass'. Explain batch auto-gate (__auto__) when no code is supplied: first schedule match, needs_review flag, and operational risk vs explicit human_confirmed selection."
+    },
+    "on-premise-path": {
+      "concept_key": "on-premise-path",
+      "label": "on-premise path",
+      "section": "privacy",
+      "opening_mode": "answer",
+      "context": "Reader selected 'on-premise path'. Outline how an enterprise could keep raw manifests inside VPC, run extraction locally, and only exchange normalized tariff structs with a synthesiser — mapping to result_normaliser and optional local MODEL_PROVIDER."
     }
   }
 }
@@ -336,20 +335,9 @@
       el.addEventListener("click", function (e) {
         e.preventDefault();
         VidhiPanel.open(key, cfg);
-        hideHint();
       });
     });
   }
-
-  const hintEl = document.getElementById("anchor-hint");
-  let hintHidden = false;
-  function hideHint() {
-    if (hintHidden) return;
-    hintHidden = true;
-    hintEl.classList.add("hidden");
-  }
-  window.addEventListener("scroll", hideHint, { once: true, passive: true });
-  setTimeout(hideHint, 8000);
 
   wireAnchors();
 })();

@@ -164,21 +164,8 @@ footer {
 
 
 
-@keyframes hintFadeIn { to { opacity: 1; } }
-
-/* ── MEISSA TRIGGER — hit area, pointer cursor ── */
-#meissa-trigger {
-  position: fixed;
-  z-index: 30;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-/* ── PHI1 / PHI2 TRIGGERS — same hit area as Meissa ── */
+/* ── CONSTELLATION STAR LINKS — λ → Vanik, φ¹ → phi1, φ² → phi2 ── */
+#meissa-trigger,
 #phi1-trigger,
 #phi2-trigger {
   position: fixed;
@@ -189,83 +176,12 @@ footer {
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: auto;
-}
-
-/* ── INVOKE BAR — hidden until Meissa is hovered ── */
-#invoke-bar {
-  position: fixed;
-  z-index: 60;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-#invoke-bar.hover-show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ── VIDHI BAR — hidden until φ² is hovered ── */
-#vidhi-bar {
-  position: fixed;
-  z-index: 60;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-#vidhi-bar.hover-show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ── PHI1 BAR — φ¹ blog (Vidhi opens from in-post anchors) ── */
-#phi1-bar {
-  position: fixed;
-  z-index: 60;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-#phi1-bar.hover-show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Stack two invoke links above φ² */
-.star-hover-bar--stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.invoke-link--compact {
-  font-size: 20px;
-  opacity: 0.92;
-}
-
-.invoke-link {
-  display: block;
   text-decoration: none;
-  font-family: 'Cormorant Infant', serif;
-  font-size: 24px;
-  font-weight: 300;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  color: var(--gold);
-  white-space: nowrap;
-  cursor: pointer;
-  padding: 4px 0;
+  color: transparent;
+  background: transparent;
   border: none;
-  background: none;
   outline: none;
-  box-shadow: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.invoke-link:hover {
-  color: #E2DDD6;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── MOBILE ── */
@@ -443,24 +359,9 @@ footer {
 
 <canvas id="sky"></canvas>
 
-<div id="meissa-trigger" aria-label="λ Orionis — Meissa"></div>
-<div id="phi1-trigger" aria-label="φ¹ Orionis — Phi 1"></div>
-<div id="phi2-trigger" aria-label="φ² Orionis — Phi 2"></div>
-
-<div id="invoke-bar" role="group" aria-label="Invoke Vanik">
-  <a id="invoke-vanik-link" href="/vanik" class="invoke-link" title="Invoke Vanik">Invoke Vanik</a>
-</div>
-
-<div id="phi1-bar" role="group" aria-label="φ¹ Orionis note">
-  <a href="/phi1/" class="invoke-link" title="φ¹ Orionis — RAG &amp; query layer">φ¹ · note</a>
-</div>
-
-<div id="vidhi-bar" class="star-hover-bar--stack" role="group" aria-label="φ² Orionis — note and Vidhi">
-  <a href="/phi2/" class="invoke-link invoke-link--compact" title="φ² Orionis — MCP &amp; surfaces">φ² · note</a>
-  <a id="invoke-vidhi-star-link" href="/vidhi/" class="invoke-link" title="Vidhi · विधि">Vidhi <span style="font-family:'Noto Sans Devanagari',sans-serif; font-size:14px; letter-spacing:0.04em; opacity:0.85;">विधि</span></a>
-</div>
-
-
+<a id="meissa-trigger" href="/vanik/" aria-label="λ Orionis — Meissa — Vanik"></a>
+<a id="phi1-trigger" href="/phi1/" aria-label="φ¹ Orionis — phi1"></a>
+<a id="phi2-trigger" href="/phi2/" aria-label="φ² Orionis — phi2"></a>
 
 <div id="ui">
   <header>
@@ -550,11 +451,7 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
   var VANIK_API = window.VANIK_API_URL || "";
 
-  // Invocation is tied to the phrase "Invoke Vanik": the link targets the chat page (same origin).
-  var invokeLink = document.getElementById('invoke-vanik-link');
-  if (invokeLink) {
-    invokeLink.href = (window.location.origin || '') + '/vanik';
-  }
+  // Star links use same-origin absolute paths (/vanik/, /phi1/, /phi2/).
 
   // Vidhi invocation: clicking "Vidhi / विधि" opens the Vidhi walkthrough agent.
   var vidhiLink = document.getElementById('invoke-vidhi-link');
@@ -906,94 +803,22 @@ function drawConstellation (M) {
    MEISSA DOM OVERLAY
 ═══════════════════════════════════════════════════════════════ */
 var meissaTrigger = document.getElementById('meissa-trigger');
-var invokeBar     = document.getElementById('invoke-bar');
-var invokeReady   = false;
-
 var phi1Trigger   = document.getElementById('phi1-trigger');
-var phi1Bar       = document.getElementById('phi1-bar');
-var phi1Ready     = false;
-
 var phi2Trigger   = document.getElementById('phi2-trigger');
-var vidhiBar      = document.getElementById('vidhi-bar');
-var vidhiReady    = false;
-
-// Show invoke bar on hover over Meissa star
-meissaTrigger.addEventListener('mouseenter', function () {
-  invokeBar.classList.add('hover-show');
-});
-meissaTrigger.addEventListener('mouseleave', function (e) {
-  // Keep visible if cursor moved onto the invoke bar itself
-  if (!invokeBar.contains(e.relatedTarget)) {
-    invokeBar.classList.remove('hover-show');
-  }
-});
-invokeBar.addEventListener('mouseleave', function (e) {
-  if (e.relatedTarget !== meissaTrigger) {
-    invokeBar.classList.remove('hover-show');
-  }
-});
-
-// Show φ¹ note bar on hover over φ¹ star
-phi1Trigger.addEventListener('mouseenter', function () {
-  phi1Bar.classList.add('hover-show');
-});
-phi1Trigger.addEventListener('mouseleave', function (e) {
-  if (!phi1Bar.contains(e.relatedTarget)) {
-    phi1Bar.classList.remove('hover-show');
-  }
-});
-phi1Bar.addEventListener('mouseleave', function (e) {
-  if (e.relatedTarget !== phi1Trigger) {
-    phi1Bar.classList.remove('hover-show');
-  }
-});
-
-// Show Vidhi bar on hover over φ² star
-phi2Trigger.addEventListener('mouseenter', function () {
-  vidhiBar.classList.add('hover-show');
-});
-phi2Trigger.addEventListener('mouseleave', function (e) {
-  if (!vidhiBar.contains(e.relatedTarget)) {
-    vidhiBar.classList.remove('hover-show');
-  }
-});
-vidhiBar.addEventListener('mouseleave', function (e) {
-  if (e.relatedTarget !== phi2Trigger) {
-    vidhiBar.classList.remove('hover-show');
-  }
-});
 
 function updateMeissaOverlay (cx, cy) {
-  // Star hit-area
   meissaTrigger.style.left = cx + 'px';
   meissaTrigger.style.top  = cy + 'px';
-
-  // Invoke bar: centered above the star, clear of the glow
-  invokeBar.style.left = cx + 'px';
-  invokeBar.style.top  = (cy - 30) + 'px';
-
-  // Mark ready after first frame (prevents flash at 0,0 on load)
-  if (!invokeReady) { invokeReady = true; }
 }
 
 function updatePhi1Overlay (cx, cy) {
   phi1Trigger.style.left = cx + 'px';
   phi1Trigger.style.top  = cy + 'px';
-  phi1Bar.style.left = cx + 'px';
-  phi1Bar.style.top  = (cy - 30) + 'px';
-  if (!phi1Ready) { phi1Ready = true; }
 }
 
 function updatePhi2Overlay (cx, cy) {
-  // Star hit-area
   phi2Trigger.style.left = cx + 'px';
   phi2Trigger.style.top  = cy + 'px';
-
-  // Stacked φ² note + Vidhi — sit a bit higher so both links fit
-  vidhiBar.style.left = cx + 'px';
-  vidhiBar.style.top  = (cy - 52) + 'px';
-
-  if (!vidhiReady) { vidhiReady = true; }
 }
 
 

@@ -1,4 +1,4 @@
-"""Output formatter/synthesiser."""
+"""Output formatter/synthesiser — LLM narrative + template fallback."""
 
 from __future__ import annotations
 
@@ -6,9 +6,12 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 
+from agent.prompts import SYNTHESIS_NARRATIVE_EN, SYNTHESIS_NARRATIVE_HI
+from agent.providers import call_llm, get_completion_client, get_model_name
+
 logger = logging.getLogger(__name__)
 
-_HINDI_SYSTEM = """You are a trade compliance assistant. Given a short English sentence describing MFN tariff rates for an HS code, translate it into fluent Hindi (Devanagari script). Return ONLY the Hindi translation — no preamble, no explanation."""
+_HINDI_TRANSLATE_SYSTEM = """You are a trade compliance assistant. Given a short English sentence describing MFN tariff rates for an HS code, translate it into fluent Hindi (Devanagari script). Return ONLY the Hindi translation — no preamble, no explanation."""
 
 
 def _rate_or_unavailable(rate: dict, err: dict | None) -> tuple[float | None, str | None]:
@@ -17,14 +20,69 @@ def _rate_or_unavailable(rate: dict, err: dict | None) -> tuple[float | None, st
     return rate.get("mfn_rate_pct"), None
 
 
-def _extract_text_content(response: object) -> str:
-    parts = getattr(response, "content", []) or []
-    chunks: list[str] = []
-    for part in parts:
-        text = getattr(part, "text", None)
-        if text:
-            chunks.append(text)
-    return "".join(chunks).strip()
+def _template_narrative(
+    *,
+    commodity_code: str,
+    uk_val: float | None,
+    uk_note: str | None,
+    eu_val: float | None,
+    eu_note: str | None,
+    in_val: float | None,
+    in_note: str | None,
+    failed_corridors: list[str] | None,
+) -> str:
+    def fmt(value: float | None, note: str | None) -> str:
+        if value is not None:
+            return f"{value}%"
+        return note or "unavailable"
+
+    narrative_en = (
+        f"MFN rates for HS {commodity_code}: "
+        f"GB {fmt(uk_val, uk_note)} (UK Trade Tariff API), "
+        f"EU {fmt(eu_val, eu_note)} (EU XI Tariff API), "
+        f"IN {fmt(in_val, in_note)} (WTO Timeseries API)."
+    )
+    narrative_en += (
+        " India import: IGST and cess depend on sub-classification (typically 18% or 28% IGST "
+        "bracket); MFN shown is baseline — verify FTA / preferential schemes separately."
+    )
+    if failed_corridors:
+        narrative_en += (
+            " Rates for "
+            + ", ".join(failed_corridors)
+            + " could not be retrieved (timeout or API error)."
+        )
+    return narrative_en
+
+
+def _facts_user_block(
+    *,
+    commodity_code: str,
+    description: str,
+    origin: str,
+    destination: str,
+    uk_val: float | None,
+    uk_note: str | None,
+    eu_val: float | None,
+    eu_note: str | None,
+    in_val: float | None,
+    in_note: str | None,
+    failed_corridors: list[str] | None,
+    uk_rate: dict,
+    eu_rate: dict,
+    in_rate: dict,
+) -> str:
+    lines = [
+        f"HS code: {commodity_code}",
+        f"Description: {description or '(none)'}",
+        f"Route context: origin={origin}, selected destination={destination}",
+        f"UK (GB) MFN: {uk_val if uk_val is not None else uk_note} source={uk_rate.get('source')}",
+        f"EU MFN: {eu_val if eu_val is not None else eu_note} source={eu_rate.get('source')}",
+        f"India import MFN: {in_val if in_val is not None else in_note} source={in_rate.get('source')}",
+    ]
+    if failed_corridors:
+        lines.append(f"Failed corridors: {', '.join(failed_corridors)}")
+    return "\n".join(lines)
 
 
 async def build(
@@ -41,7 +99,7 @@ async def build(
     lang: str = "en",
     failed_corridors: list[str] | None = None,
 ) -> dict:
-    """Build narrative + structured LandedCost output. Hindi path uses LLM for fluent text."""
+    """Build narrative + structured LandedCost output. LLM narrative with template fallback."""
     destination = destination.upper()
 
     uk_val, uk_note = _rate_or_unavailable(uk_rate, corridor_errors.get("GB"))
@@ -51,47 +109,81 @@ async def build(
     rate_by_destination = {"GB": uk_val, "EU": eu_val, "IN": in_val}
     selected_rate = rate_by_destination.get(destination)
 
-    def fmt(value: float | None, note: str | None) -> str:
-        if value is not None:
-            return f"{value}%"
-        return note or "unavailable"
-
-    narrative_en = (
-        f"MFN rates for HS {commodity_code}: "
-        f"GB {fmt(uk_val, uk_note)} (UK Trade Tariff API), "
-        f"EU {fmt(eu_val, eu_note)} (EU XI Tariff API), "
-        f"IN {fmt(in_val, in_note)} (WTO Timeseries API)."
-    )
-    narrative_en += (
-        " India import: IGST and cess depend on sub-classification (typically 18% or 28% IGST "
-        "bracket); MFN shown is baseline — verify FTA / preferential schemes separately."
+    template_en = _template_narrative(
+        commodity_code=commodity_code,
+        uk_val=uk_val,
+        uk_note=uk_note,
+        eu_val=eu_val,
+        eu_note=eu_note,
+        in_val=in_val,
+        in_note=in_note,
+        failed_corridors=failed_corridors,
     )
 
-    if failed_corridors:
-        narrative_en += (
-            " Rates for "
-            + ", ".join(failed_corridors)
-            + " could not be retrieved (timeout or API error)."
-        )
+    facts = _facts_user_block(
+        commodity_code=commodity_code,
+        description=description,
+        origin=origin,
+        destination=destination,
+        uk_val=uk_val,
+        uk_note=uk_note,
+        eu_val=eu_val,
+        eu_note=eu_note,
+        in_val=in_val,
+        in_note=in_note,
+        failed_corridors=failed_corridors,
+        uk_rate=uk_rate,
+        eu_rate=eu_rate,
+        in_rate=in_rate,
+    )
 
-    narrative = narrative_en
+    narrative = template_en
     if lang == "hi":
-        try:
-            from agent.providers import get_completion_client
+        system = SYNTHESIS_NARRATIVE_HI
+        model_task = "synthesis_hindi"
+    else:
+        system = SYNTHESIS_NARRATIVE_EN
+        model_task = "synthesis"
 
-            client = get_completion_client()
-            response = await asyncio.to_thread(
-                client.messages.create,
-                model="claude-haiku-4-5-20251001",
-                max_tokens=256,
-                system=_HINDI_SYSTEM,
-                messages=[{"role": "user", "content": narrative_en}],
+    try:
+        client = get_completion_client()
+        model = get_model_name(model_task)
+
+        def _call() -> str:
+            return call_llm(
+                client,
+                system=system,
+                user=f"FACTS:\n{facts}",
+                model=model,
+                max_tokens=384,
+                temperature=0.2,
             )
-            hindi_text = _extract_text_content(response)
-            if hindi_text:
-                narrative = hindi_text
-        except Exception as exc:
-            logger.warning("synthesiser Hindi path failed, using English: %s", exc)
+
+        llm_text = (await asyncio.to_thread(_call)).strip()
+        if llm_text:
+            narrative = llm_text
+    except Exception as exc:
+        logger.warning("synthesiser LLM narrative failed, using template/translate: %s", exc)
+        narrative = template_en
+        if lang == "hi":
+            try:
+                client = get_completion_client()
+
+                def _translate() -> str:
+                    return call_llm(
+                        client,
+                        system=_HINDI_TRANSLATE_SYSTEM,
+                        user=template_en,
+                        model=get_model_name("synthesis_hindi"),
+                        max_tokens=256,
+                        temperature=0.2,
+                    )
+
+                hindi_text = (await asyncio.to_thread(_translate)).strip()
+                if hindi_text:
+                    narrative = hindi_text
+            except Exception as exc2:
+                logger.warning("synthesiser Hindi translate fallback failed: %s", exc2)
 
     return {
         "ok": True,

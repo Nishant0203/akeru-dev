@@ -12,6 +12,7 @@ from nes.orchestrator import ms_extract
 from agent.confirmation_gate import format_options, resolve_selection
 from agent.errors import msg
 from agent.guardrails import validate_agent_output
+from agent.result_normaliser import normalise_rate_result, to_corridor_error, to_synthesis_rate
 from agent.synthesiser import build
 
 MCP_TIMEOUT = 8.0
@@ -30,12 +31,6 @@ def _missing_route_fields(entities: dict) -> list[str]:
     if not entities.get("destination"):
         missing.append("destination")
     return missing
-
-
-def _unwrap_tool_result(result: dict) -> tuple[dict | None, dict | None]:
-    if result.get("ok"):
-        return result.get("data", {}), None
-    return None, result.get("error", {"code": "unknown_error", "message": "Unknown error"})
 
 
 async def _lookup_corridor(hs_code: str, destination: str) -> dict | Exception:
@@ -65,18 +60,13 @@ async def _lookup_and_synthesise(
         _lookup_corridor(hs6, "IN"),
     )
 
-    def normalize(raw: dict | Exception, corridor: str) -> tuple[dict | None, dict | None]:
-        if isinstance(raw, Exception):
-            return None, {
-                "code": "timeout_or_transport_error",
-                "message": str(raw),
-                "source": corridor,
-            }
-        return _unwrap_tool_result(raw)
+    uk_n = normalise_rate_result(uk_raw, "GB")
+    eu_n = normalise_rate_result(eu_raw, "EU")
+    in_n = normalise_rate_result(in_raw, "IN")
 
-    uk_rate, uk_error = normalize(uk_raw, "GB")
-    eu_rate, eu_error = normalize(eu_raw, "EU")
-    in_rate, in_error = normalize(in_raw, "IN")
+    uk_rate, uk_error = to_synthesis_rate(uk_n), to_corridor_error(uk_n)
+    eu_rate, eu_error = to_synthesis_rate(eu_n), to_corridor_error(eu_n)
+    in_rate, in_error = to_synthesis_rate(in_n), to_corridor_error(in_n)
 
     errors = {"GB": uk_error, "EU": eu_error, "IN": in_error}
     _lang = entities.get("_lang") or "en"
@@ -223,6 +213,13 @@ async def vanik_agent(
         )
         confirmed_code = str(options[0]["commodity_code"])
         selected_description = str(options[0].get("description", ""))
+        return await _lookup_and_synthesise(
+            entities=entities,
+            confirmed_code=confirmed_code,
+            human_confirmed=False,
+            hs_code_source="auto_selected",
+            description=selected_description,
+        )
     else:
         try:
             confirmed_code = resolve_selection(gate_selection, options)
