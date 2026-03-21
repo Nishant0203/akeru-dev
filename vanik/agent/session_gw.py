@@ -34,13 +34,16 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
 CORS_ORIGINS = [
     "https://akeru.dev",
     "https://www.akeru.dev",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 from batch.batch_parser import parse_batch_bytes, parse_upload_csv
@@ -970,6 +973,40 @@ async def admin_upload_schema(request: Request) -> JSONResponse:
     return JSONResponse({"ok": True, "schema_id": schema_id, "saved": str(dest)})
 
 
+async def batch_demo(request: Request) -> JSONResponse:
+    """GET /v1/batch/demo — static 11-row snapshot, or ?run=true for 100 live POs."""
+    from agent.batch_demo import run_demo_batch, static_demo_payload
+
+    run_live = request.query_params.get("run") == "true"
+    if run_live:
+        payload = await run_demo_batch()
+    else:
+        payload = static_demo_payload()
+    return JSONResponse(payload)
+
+
+async def api_corridors(request: Request) -> JSONResponse:
+    """GET /v1/corridors/{hs_code}/{destination} — multi-origin comparison."""
+    from agent.corridor_analyser import analyse_corridors
+
+    hs = request.path_params.get("hs_code", "")
+    dest = request.path_params.get("destination", "")
+    uv = request.query_params.get("unit_value_usd")
+    garment = request.query_params.get("garment") == "true"
+    try:
+        uv_f = float(uv) if uv not in (None, "") else None
+    except ValueError:
+        return _json_error("invalid_unit_value", "unit_value_usd must be numeric", status=400)
+    data = await analyse_corridors(
+        hs,
+        dest,
+        unit_value_usd=uv_f,
+        quantity=1.0,
+        garment_pricing=garment,
+    )
+    return JSONResponse(data)
+
+
 routes = [
     Route("/sessions", create_session, methods=["POST"]),
     Route("/sessions/{session_id}", get_session, methods=["GET"]),
@@ -983,6 +1020,8 @@ routes = [
     Route("/v1/query", api_query, methods=["POST"]),
     Route("/v1/batch", api_batch, methods=["POST"]),
     Route("/v1/batch/upload", batch_upload, methods=["POST"]),
+    Route("/v1/batch/demo", batch_demo, methods=["GET"]),
+    Route("/v1/corridors/{hs_code}/{destination}", api_corridors, methods=["GET"]),
     Route("/v1/batch/jobs/{job_id}", batch_job_status, methods=["GET"]),
     Route("/v1/batch/jobs/{job_id}/download", batch_job_download, methods=["GET"]),
     Route("/v1/admin/dictionary/ingest", admin_dictionary_ingest, methods=["POST"]),
@@ -993,9 +1032,21 @@ routes = [
     Route("/health", health, methods=["GET"]),
 ]
 
+_batch_demo_dir = _vanik_root / "batch-demo"
+_starlette_routes: list = []
+if _batch_demo_dir.is_dir():
+    _starlette_routes.append(
+        Mount(
+            "/batch-demo",
+            StaticFiles(directory=str(_batch_demo_dir), html=True),
+            name="batch_demo",
+        )
+    )
+_starlette_routes.extend(routes)
+
 app = Starlette(
     debug=False,
-    routes=routes,
+    routes=_starlette_routes,
     on_startup=[_dictionary_startup, _batch_startup],
     middleware=[
         Middleware(

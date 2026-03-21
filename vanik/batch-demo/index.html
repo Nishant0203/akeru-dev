@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vanik — Batch demo (100 POs)</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --text: #e7ecf3;
+      --muted: #8b98a5;
+      --accent: #38bdf8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --border: #2d3a4d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1.25rem;
+      line-height: 1.45;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+    button, .tab {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    button.primary { background: #0369a1; border-color: #0ea5e9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; }
+    .tab { opacity: 0.7; }
+    .tab.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+    }
+    .card .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .card .val { font-size: 1.15rem; font-weight: 600; }
+    input[type="search"] {
+      flex: 1;
+      min-width: 180px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.75rem; }
+    .filters button { font-size: 0.8rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 0.35rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { cursor: pointer; user-select: none; color: var(--muted); font-weight: 600; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge.ok { background: rgba(52,211,153,0.2); color: var(--ok); }
+    .badge.review { background: rgba(251,191,36,0.2); color: var(--warn); }
+    .badge.fail { background: rgba(248,113,113,0.2); color: var(--err); }
+    .badge.ddp { background: rgba(139,152,165,0.25); color: var(--muted); }
+    .detail-row { display: none; }
+    .detail-row.visible { display: table-row; }
+    .detail {
+      background: #111820;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .corridor-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .corridor-block h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .muted { color: var(--muted); font-size: 0.85rem; }
+    .error { color: var(--err); }
+    #status { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Vanik batch demo</h1>
+  <p class="sub">
+    100 synthetic POs — landed cost pipeline + optional live run.
+    <strong>Corridor analysis</strong> compares origins for the same HS &amp; destination (public tariff data only).
+  </p>
+
+  <div class="tabs">
+    <button type="button" class="tab active" data-tab="results">Results</button>
+    <button type="button" class="tab" data-tab="corridor">Corridor analysis</button>
+  </div>
+
+  <div class="toolbar">
+    <button type="button" class="primary" id="btnRun">▶ Run live (100 POs)</button>
+    <input type="search" id="search" placeholder="Search PO, product, HS…" />
+    <span id="status"></span>
+  </div>
+
+  <div class="filters" id="filters">
+    <button type="button" data-f="all">All</button>
+    <button type="button" data-f="ok">Rates found</button>
+    <button type="button" data-f="review">Needs review</button>
+    <button type="button" data-f="fail">Failed</button>
+    <button type="button" data-f="gb">GB corridor</button>
+    <button type="button" data-f="eu">EU corridor</button>
+    <button type="button" data-f="in">IN import</button>
+  </div>
+
+  <div id="panel-results">
+    <div class="cards" id="cards"></div>
+    <div style="overflow-x: auto;">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-k="po">PO</th>
+            <th data-k="product">Product</th>
+            <th data-k="corridor">Corridor</th>
+            <th data-k="hs">HS</th>
+            <th data-k="status">Status</th>
+            <th data-k="goods">Goods USD</th>
+            <th data-k="duty">Duty USD</th>
+            <th data-k="landed">Landed USD</th>
+            <th data-k="rate">Rate %</th>
+            <th data-k="incoterm">Incoterm</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="panel-corridor" style="display: none;">
+    <p class="muted" id="corridorNote"></p>
+    <div id="corridorContent"></div>
+  </div>
+
+  <script>
+    const API = "/v1/batch/demo";
+    let payload = null;
+    let sortKey = "po";
+    let sortDir = 1;
+    let filter = "all";
+
+    function money(x) {
+      if (x == null || x === "" || Number.isNaN(Number(x))) return "—";
+      return Number(x).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function rowCorridor(r) {
+      const m = r.demo_meta || {};
+      return (m.origin || "") + " → " + (m.destination || "");
+    }
+
+    function badge(r) {
+      const f = (r.demo_meta && r.demo_meta.flags) || [];
+      if (f.includes("ddp")) return '<span class="badge ddp">DDP</span>';
+      if (!r.ok) return '<span class="badge fail">failed</span>';
+      if (r.needs_review) return '<span class="badge review">review</span>';
+      return '<span class="badge ok">ok</span>';
+    }
+
+    function matchesFilter(r) {
+      if (filter === "all") return true;
+      const m = r.demo_meta || {};
+      const dest = (m.destination || "").toUpperCase();
+      if (filter === "ok") return r.ok && !r.needs_review;
+      if (filter === "review") return r.needs_review;
+      if (filter === "fail") return !r.ok;
+      if (filter === "gb") return dest === "GB";
+      if (filter === "eu") return dest === "EU";
+      if (filter === "in") return dest === "IN";
+      return true;
+    }
+
+    function matchesSearch(r, q) {
+      if (!q) return true;
+      const m = r.demo_meta || {};
+      const hay = [r.po, m.product, r.query, (r.landed && r.landed.hs_code) || ""].join(" ").toLowerCase();
+      return hay.includes(q.toLowerCase());
+    }
+
+    function renderCards(sum) {
+      const el = document.getElementById("cards");
+      if (!sum) { el.innerHTML = ""; return; }
+      const items = [
+        ["Total rows", sum.total_rows],
+        ["OK", sum.ok],
+        ["Needs review", sum.needs_review],
+        ["Failed", sum.failed],
+        ["Rates found", sum.rates_found],
+        ["HS provided", sum.hs_provided],
+        ["Goods value", "$" + money(sum.total_goods_value_usd)],
+        ["Total duty", "$" + money(sum.total_duty_usd)],
+        ["Total landed", "$" + money(sum.total_landed_usd)],
+      ];
+      el.innerHTML = items.map(([a, b]) => `<div class="card"><div class="label">${a}</div><div class="val">${b}</div></div>`).join("");
+    }
+
+    function renderTable(rows) {
+      const q = document.getElementById("search").value.trim();
+      let list = rows.filter((r) => matchesFilter(r) && matchesSearch(r, q));
+      list = [...list].sort((a, b) => {
+        let va, vb;
+        if (sortKey === "po") { va = a.po; vb = b.po; }
+        else if (sortKey === "product") { va = (a.demo_meta || {}).product; vb = (b.demo_meta || {}).product; }
+        else if (sortKey === "corridor") { va = rowCorridor(a); vb = rowCorridor(b); }
+        else if (sortKey === "hs") { va = (a.landed || {}).hs_code; vb = (b.landed || {}).hs_code; }
+        else if (sortKey === "status") { va = a.status; vb = b.status; }
+        else if (sortKey === "goods") { va = +(a.landed || {}).goods_value_usd || 0; vb = +(b.landed || {}).goods_value_usd || 0; }
+        else if (sortKey === "duty") { va = +(a.landed || {}).duty_usd || 0; vb = +(b.landed || {}).duty_usd || 0; }
+        else if (sortKey === "landed") { va = +(a.landed || {}).landed_usd || 0; vb = +(b.landed || {}).landed_usd || 0; }
+        else if (sortKey === "rate") { va = +(a.landed || {}).mfn_rate_pct || (a.landed || {}).verification_rate_pct || 0; vb = +(b.landed || {}).mfn_rate_pct || (b.landed || {}).verification_rate_pct || 0; }
+        else if (sortKey === "incoterm") { va = (a.demo_meta || {}).incoterm; vb = (b.demo_meta || {}).incoterm; }
+        else { va = a.po; vb = b.po; }
+        if (typeof va === "number") return (va - vb) * sortDir;
+        return String(va || "").localeCompare(String(vb || "")) * sortDir;
+      });
+
+      const tb = document.getElementById("tbody");
+      tb.innerHTML = list.map((r) => {
+        const L = r.landed || {};
+        const m = r.demo_meta || {};
+        const rate = L.mfn_rate_pct != null ? L.mfn_rate_pct : L.verification_rate_pct;
+        const detail = [
+          r.message && `<div><strong>Message:</strong> ${escapeHtml(r.message)}</div>`,
+          r.spell_note && `<div><strong>Spell:</strong> ${escapeHtml(r.spell_note)}</div>`,
+          L.description && `<div><strong>Desc:</strong> ${escapeHtml(L.description)}</div>`,
+          L.basis && `<div><strong>Basis:</strong> ${escapeHtml(L.basis)}</div>`,
+        ].filter(Boolean).join("");
+        return `<tr class="data-row" data-po="${escapeHtml(r.po)}">
+          <td>${escapeHtml(r.po)}</td>
+          <td>${escapeHtml(m.product || "")}</td>
+          <td>${escapeHtml(rowCorridor(r))}</td>
+          <td>${escapeHtml(String(L.hs_code || "—"))}</td>
+          <td>${badge(r)}</td>
+          <td>${money(L.goods_value_usd)}</td>
+          <td>${money(L.duty_usd)}</td>
+          <td>${money(L.landed_usd)}</td>
+          <td>${rate != null ? rate : "—"}</td>
+          <td>${escapeHtml(m.incoterm || "—")}</td>
+        </tr>
+        ${detail ? `<tr class="detail-row"><td colspan="10" class="detail">${detail}</td></tr>` : ""}`;
+      }).join("");
+
+      tb.querySelectorAll("tr.data-row").forEach((tr) => {
+        tr.addEventListener("click", () => {
+          const n = tr.nextElementSibling;
+          if (n && n.classList.contains("detail-row")) n.classList.toggle("visible");
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      if (!s) return "";
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+    }
+
+    function renderCorridor() {
+      const note = document.getElementById("corridorNote");
+      const box = document.getElementById("corridorContent");
+      if (!payload || !payload.corridor_analysis) {
+        box.innerHTML = "<p class='error'>No corridor data.</p>";
+        return;
+      }
+      const ca = payload.corridor_analysis;
+      note.textContent = ca.note || "";
+      const products = ca.products || [];
+      if (!products.length) {
+        box.innerHTML = "<p class='muted'>No corridor blocks (run live with GB/EU HS rows for API-backed analysis).</p>";
+        return;
+      }
+      box.innerHTML = products.map((block) => {
+        if (block.ranked) {
+          return renderStaticCorridorBlock(block);
+        }
+        if (block.analysis) {
+          return renderLiveCorridorBlock(block);
+        }
+        return "";
+      }).join("");
+    }
+
+    function renderStaticCorridorBlock(block) {
+      const rows = (block.ranked || []).map((r) =>
+        `<tr><td>${r.origin}</td><td>${r.destination}</td><td>$${money(r.unit_value_usd)}</td>
+        <td>${r.effective_duty_pct}%</td><td>${escapeHtml(r.duty_basis || "")}</td>
+        <td>$${money(r.landed_per_unit_usd)}</td></tr>`).join("");
+      const rec = block.recommended;
+      return `<div class="corridor-block"><h3>${escapeHtml(block.product)} → ${block.destination}</h3>
+        <p class="muted">HS ${escapeHtml(block.hs_code || "")} · lowest landed / unit: <strong>${rec ? rec.origin : "—"}</strong></p>
+        <table><thead><tr><th>Origin</th><th>Dest</th><th>Unit $</th><th>Eff. duty</th><th>Basis</th><th>Landed/u</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+
+    function renderLiveCorridorBlock(block) {
+      const a = block.analysis;
+      if (!a.ok) return `<div class="corridor-block error">${escapeHtml(JSON.stringify(a.error))}</div>`;
+      const ranked = a.ranked || [];
+      const rows = ranked.map((r) =>
+        `<tr><td>${r.origin}</td><td>${escapeHtml(r.duty_basis || "")}</td><td>${r.mfn_rate_pct != null ? r.mfn_rate_pct : "—"}</td>
+        <td>${r.effective_duty_pct != null ? r.effective_duty_pct : "—"}</td>
+        <td>$${money(r.unit_value_usd)}</td><td>$${money(r.landed_per_unit_usd)}</td>
+        <td>${r.preference ? escapeHtml(r.preference.scheme || "") : "—"}</td></tr>`).join("");
+      const sav = a.savings_vs_base;
+      return `<div class="corridor-block"><h3>HS ${escapeHtml(block.hs_code)} → ${escapeHtml(block.destination)}</h3>
+        ${sav ? `<p class="muted">Best <strong>${sav.best_origin}</strong> vs base ${sav.base_origin}: $${sav.vs_base_per_unit}/unit</p>` : ""}
+        <table><thead><tr><th>Origin</th><th>Basis</th><th>MFN%</th><th>Eff%</th><th>Unit$</th><th>Landed/u</th><th>Scheme</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+
+    function render() {
+      if (!payload) return;
+      renderCards(payload.summary);
+      renderTable(payload.results || []);
+      renderCorridor();
+    }
+
+    async function load(staticOnly) {
+      document.getElementById("status").textContent = staticOnly ? "Loading snapshot…" : "Running 100 POs (may take minutes)…";
+      document.getElementById("btnRun").disabled = true;
+      try {
+        const url = staticOnly ? API : API + "?run=true";
+        const res = await fetch(url);
+        payload = await res.json();
+        if (!payload.ok) throw new Error(payload.error || "bad response");
+        document.getElementById("status").textContent =
+          (payload.mode === "live" ? "Live · " : "Static · ") +
+          (payload.results || []).length +
+          " rows" +
+          (payload.results_full_count ? " (preview of " + payload.results_full_count + ")" : "");
+      } catch (e) {
+        document.getElementById("status").textContent = "Error: " + e.message;
+      }
+      document.getElementById("btnRun").disabled = false;
+      render();
+    }
+
+    document.getElementById("btnRun").addEventListener("click", () => load(false));
+    document.getElementById("search").addEventListener("input", () => render());
+
+    document.querySelectorAll("#filters button").forEach((b) => {
+      b.addEventListener("click", () => {
+        filter = b.getAttribute("data-f") || "all";
+        render();
+      });
+    });
+
+    document.querySelectorAll(".tab").forEach((t) => {
+      t.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+        t.classList.add("active");
+        const tab = t.getAttribute("data-tab");
+        document.getElementById("panel-results").style.display = tab === "results" ? "block" : "none";
+        document.getElementById("panel-corridor").style.display = tab === "corridor" ? "block" : "none";
+      });
+    });
+
+    document.querySelectorAll("#tbl th[data-k]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const k = th.getAttribute("data-k");
+        if (sortKey === k) sortDir *= -1;
+        else { sortKey = k; sortDir = 1; }
+        render();
+      });
+    });
+
+    load(true);
+  </script>
+</body>
+</html>
