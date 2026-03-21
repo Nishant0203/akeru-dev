@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -183,6 +184,79 @@ def search_tariff_rows_by_description(term: str, limit: int = 10) -> list[dict[s
             (t, limit),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def _fts_and_words(term: str) -> str | None:
+    """Build FTS5 AND query from alphabetic tokens (min length 3)."""
+    words = re.findall(r"[A-Za-z]{3,}", term.lower())
+    # de-dupe preserving order
+    seen: set[str] = set()
+    uniq = []
+    for w in words:
+        if w not in seen:
+            seen.add(w)
+            uniq.append(w)
+    if len(uniq) < 2:
+        return None
+    return " AND ".join(uniq)
+
+
+def search_tariff_rows(term: str, limit: int = 10) -> list[dict[str, Any]]:
+    """
+    Search local tariff DB: FTS phrase → FTS AND(tokens) → LIKE phrase → LIKE all tokens.
+    Works across doc_type (no doc_type filter).
+    """
+    raw = (term or "").strip()
+    if not raw:
+        return []
+
+    rows = search_tariff_rows_by_fts(raw, limit)
+    if rows:
+        return rows
+
+    and_expr = _fts_and_words(raw)
+    if and_expr:
+        with _connect() as conn:
+            try:
+                fts_rows = conn.execute(
+                    """
+                    SELECT t.doc_type, t.hs_code, t.description, t.bcd_rate_pct, t.unit, t.notes, t.created_at
+                    FROM tariff_fts
+                    JOIN tariff_rows t ON t.id = tariff_fts.rowid
+                    WHERE tariff_fts MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                    """,
+                    (and_expr, limit),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                fts_rows = []
+        if fts_rows:
+            return [dict(r) for r in fts_rows]
+
+    like_full = search_tariff_rows_by_description(raw, limit)
+    if like_full:
+        return like_full
+
+    words = re.findall(r"[A-Za-z]{3,}", raw.lower())
+    if len(words) >= 2:
+        cond = " AND ".join("description LIKE ?" for _ in words)
+        params = [f"%{w}%" for w in words[:6]] + [limit]
+        with _connect() as conn:
+            multi = conn.execute(
+                f"""
+                SELECT doc_type, hs_code, description, bcd_rate_pct, unit, notes, created_at
+                FROM tariff_rows
+                WHERE {cond}
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                params,
+            ).fetchall()
+        if multi:
+            return [dict(r) for r in multi]
+
+    return []
 
 
 def lookup_hs(hs_code: str, doc_type: str = "cbic") -> list[dict[str, Any]]:

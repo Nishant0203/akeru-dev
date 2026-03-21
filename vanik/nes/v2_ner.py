@@ -203,13 +203,24 @@ _STOPWORD_SET: frozenset[str] = frozenset(
 )
 
 
+def _strip_country_literals(text: str) -> str:
+    """Remove country names/phrases so they never remain in product_terms."""
+    out = text
+    for _code, pattern in _COUNTRY_PATTERNS:
+        out = re.sub(pattern, " ", out, flags=re.IGNORECASE)
+    out = _EU_DEST_RE.sub(" ", out)
+    return out
+
+
 def _extract_product_terms(text: str) -> list[str]:
     """Core product phrase only: no HS corridor noise, no stopwords or country names."""
     # 1. Strip HS codes (search uses separate hs_code_provided)
     stripped = HS_PATTERN.sub(" ", text)
-    # 2. Strip corridor / logistics tokens
+    # 2. Strip country mentions (handles odd word order, missing prepositions)
+    stripped = _strip_country_literals(stripped)
+    # 3. Strip corridor / logistics tokens
     stripped = _CORRIDOR_RE.sub(" ", stripped)
-    # 3. Tokenise; drop short tokens and stopwords
+    # 4. Tokenise; drop short tokens and stopwords
     tokens: list[str] = []
     for w in stripped.split():
         t = w.lower().strip(".,;:!?\"'")

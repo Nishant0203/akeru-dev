@@ -99,6 +99,7 @@ def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[d
     if not query:
         return []
 
+    results: list[dict[str, Any]] = []
     try:
         results = _search_api(query, top_k)
         seen_codes = {r.get("commodity_code", "") for r in results}
@@ -112,16 +113,20 @@ def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[d
                     results.append(r)
                     seen_codes.add(code)
 
-        return results[:top_k]
-
+        results = results[:top_k]
     except Exception:
-        try:
-            from mcp_servers.vanik_docs.db import search_tariff_rows_by_description
+        results = []
 
-            rows = search_tariff_rows_by_description(query, limit=top_k)
+    if not results:
+        try:
+            from mcp_servers.vanik_docs.db import search_tariff_rows
+
+            rows = search_tariff_rows(query, limit=top_k)
             return [
                 {"commodity_code": r.get("hs_code", ""), "description": r.get("description", "")}
                 for r in rows
+                if r.get("hs_code") and r.get("description")
             ]
         except Exception:
             return []
+    return results

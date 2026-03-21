@@ -11,6 +11,14 @@ from agent.vanik_agent import vanik_agent
 DEFAULT_CONCURRENCY = 5
 
 
+def batch_max_items() -> int:
+    """Maximum rows per batch job (upload + synchronous /v1/batch)."""
+    try:
+        return max(1, min(5000, int(os.getenv("VANIK_BATCH_MAX_ITEMS", "500"))))
+    except ValueError:
+        return 500
+
+
 async def _one(
     idx: int,
     item: dict[str, Any],

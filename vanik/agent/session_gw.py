@@ -7,6 +7,7 @@ import json
 import logging
 import os
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 try:
@@ -39,9 +40,12 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
-from batch.batch_parser import parse_batch_bytes
-from batch.batch_processor import process_batch
+from batch.batch_parser import parse_batch_bytes, parse_upload_csv
+from batch.batch_processor import batch_max_items, process_batch
 from batch.batch_reporter import results_to_csv
+from batch.job_store import create_job, get_job, update_job
+from batch.object_store import download as batch_store_download
+from batch.object_store import upload as batch_store_upload
 
 from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
 from agent.guardrails import validate_agent_output
@@ -520,7 +524,7 @@ async def api_query(request: Request) -> JSONResponse:
     return JSONResponse(payload)
 
 
-BATCH_ITEM_LIMIT = 500
+MAX_BATCH_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
 async def api_batch(request: Request) -> Response | JSONResponse:
@@ -532,10 +536,11 @@ async def api_batch(request: Request) -> Response | JSONResponse:
     except (json.JSONDecodeError, ValueError) as exc:
         return _json_error("invalid_batch", str(exc))
 
-    if len(items) > BATCH_ITEM_LIMIT:
+    limit = batch_max_items()
+    if len(items) > limit:
         return _json_error(
             "batch_too_large",
-            f"Maximum {BATCH_ITEM_LIMIT} items per request",
+            f"Maximum {limit} items per request",
             status=413,
         )
 
@@ -548,6 +553,135 @@ async def api_batch(request: Request) -> Response | JSONResponse:
             headers={"Content-Disposition": 'attachment; filename="vanik_batch.csv"'},
         )
     return JSONResponse({"ok": True, "count": len(results), "results": results})
+
+
+async def _run_batch_job(job_id: str, items: list[dict[str, Any]]) -> None:
+    """Background worker: process_batch → results CSV in object store."""
+    update_job(job_id, status="processing")
+    try:
+        results = await process_batch(items)
+        csv_raw = results_to_csv(list(results)).encode("utf-8")
+        output_key = batch_store_upload(csv_raw, "results.csv", job_id)
+
+        succeeded = sum(1 for r in results if r.get("ok"))
+        failed = sum(1 for r in results if not r.get("ok"))
+        needs_review = sum(1 for r in results if r.get("needs_review"))
+
+        update_job(
+            job_id,
+            status="done",
+            output_key=output_key,
+            succeeded=succeeded,
+            failed=failed,
+            needs_review=needs_review,
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("Batch job %s failed", job_id)
+        update_job(
+            job_id,
+            status="failed",
+            error=str(exc)[:2000],
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+
+
+async def batch_upload(request: Request) -> JSONResponse:
+    """POST /v1/batch/upload — multipart CSV; returns job_id, async processing."""
+    try:
+        form = await request.form()
+    except Exception as exc:
+        return _json_error("invalid_form", str(exc))
+
+    file = form.get("file")
+    if file is None:
+        return _json_error("missing_file", "Upload a CSV file using the form field 'file'")
+
+    content = await file.read()
+    if len(content) > MAX_BATCH_UPLOAD_BYTES:
+        return _json_error("file_too_large", "Maximum file size is 5MB")
+
+    try:
+        text = content.decode("utf-8")
+        items = parse_upload_csv(text)
+    except UnicodeDecodeError:
+        return _json_error("invalid_encoding", "File must be UTF-8")
+    except ValueError as exc:
+        return _json_error("parse_error", str(exc))
+
+    limit = batch_max_items()
+    if not items:
+        return _json_error("empty_file", "No valid rows found (need product, origin, destination).")
+    if len(items) > limit:
+        return _json_error(
+            "too_many_rows",
+            f"Maximum {limit} rows per batch. Your file has {len(items)}.",
+            status=413,
+        )
+
+    job_id = create_job()
+    input_key = batch_store_upload(content, "input.csv", job_id)
+    update_job(job_id, input_key=input_key, total=len(items))
+
+    background = BackgroundTasks()
+    background.add_task(_run_batch_job, job_id, items)
+    return JSONResponse(
+        {
+            "ok": True,
+            "job_id": job_id,
+            "status": "queued",
+            "total_rows": len(items),
+            "message": "Batch job queued. Poll GET /v1/batch/jobs/{job_id} for status.",
+        },
+        background=background,
+    )
+
+
+async def batch_job_status(request: Request) -> JSONResponse:
+    """GET /v1/batch/jobs/{job_id} — status and optional download path."""
+    job_id = request.path_params["job_id"]
+    job = get_job(job_id)
+    if not job:
+        return _json_error("job_not_found", "Job not found", status=404)
+
+    payload: dict[str, Any] = {
+        "ok": True,
+        "job_id": job_id,
+        "status": job["status"],
+        "total": job["total"],
+        "succeeded": job["succeeded"],
+        "failed": job["failed"],
+        "needs_review": job["needs_review"],
+        "created_at": job["created_at"],
+        "completed_at": job["completed_at"],
+    }
+    if job["status"] == "done":
+        dl = f"/v1/batch/jobs/{job_id}/download"
+        payload["download_path"] = dl
+        payload["download_url"] = dl
+    if job["status"] == "failed":
+        payload["error"] = job["error"]
+    return JSONResponse(payload)
+
+
+async def batch_job_download(request: Request) -> Response | JSONResponse:
+    """GET /v1/batch/jobs/{job_id}/download — results CSV."""
+    job_id = request.path_params["job_id"]
+    job = get_job(job_id)
+    if not job or job["status"] != "done" or not job.get("output_key"):
+        return _json_error("not_ready", "Job not complete or no output", status=404)
+
+    try:
+        body = batch_store_download(job["output_key"])
+    except Exception as exc:
+        logger.exception("Batch download failed for %s", job_id)
+        return _json_error("download_error", str(exc), status=500)
+
+    return Response(
+        body,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="vanik_batch_{job_id}.csv"'},
+    )
 
 
 async def health(request: Request) -> JSONResponse:
@@ -567,6 +701,9 @@ routes = [
     Route("/anchors/{anchor_id}", delete_anchor_record, methods=["DELETE"]),
     Route("/v1/query", api_query, methods=["POST"]),
     Route("/v1/batch", api_batch, methods=["POST"]),
+    Route("/v1/batch/upload", batch_upload, methods=["POST"]),
+    Route("/v1/batch/jobs/{job_id}", batch_job_status, methods=["GET"]),
+    Route("/v1/batch/jobs/{job_id}/download", batch_job_download, methods=["GET"]),
     Route("/health", health, methods=["GET"]),
 ]
 
