@@ -23,3 +23,8 @@ venv/
 # Local scratch / tool extractions
 .tmp-*/
 .review-files-zip/
+
+# Vanik local SQLite / build artifacts
+vanik/var/
+vanik/data/*.db
+*.egg-info/

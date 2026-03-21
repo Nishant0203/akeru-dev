@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+from tempfile import NamedTemporaryFile
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,6 +31,7 @@ from starlette.applications import Starlette
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.datastructures import UploadFile
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
@@ -43,7 +46,7 @@ CORS_ORIGINS = [
 from batch.batch_parser import parse_batch_bytes, parse_upload_csv
 from batch.batch_processor import batch_max_items, process_batch
 from batch.batch_reporter import results_to_csv
-from batch.job_store import create_job, get_job, update_job
+from batch.job_store import create_job, delete_lane_b_rows, get_job, load_lane_b_rows, save_lane_b_rows, update_job
 from batch.object_store import download as batch_store_download
 from batch.object_store import upload as batch_store_upload
 
@@ -74,7 +77,7 @@ def _session_payload(session: SessionState) -> dict[str, Any]:
 
 
 # Gate/clarify/error replay on SSE reconnect duplicates UI (e.g. double classification gate).
-_REPLAY_EXCLUDED_EVENT_TYPES = frozenset({"gate", "clarify", "error"})
+_REPLAY_EXCLUDED_EVENT_TYPES = frozenset({"gate", "clarify", "error", "disambiguate"})
 
 
 async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
@@ -145,6 +148,7 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
     status = result.get("status")
 
     if status == "awaiting_confirmation":
+        session.pending_disambiguation = None
         session.pending_gate = {
             "query": user_query,
             "entities": result.get("entities", {}),
@@ -158,6 +162,28 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
                 "options": result.get("options", []),
                 "allow_manual": result.get("allow_manual_hs", True),
                 "message": result.get("message", "Select one option or provide a 6/8/10-digit code."),
+            },
+        )
+        return
+
+    if status == "awaiting_disambiguation":
+        session.pending_gate = None
+        session.pending_disambiguation = {
+            "query": user_query,
+            "entities": result.get("entities", {}),
+            "options": result.get("options", []),
+            "original_term": result.get("original_term", ""),
+            "chapter_hint": result.get("chapter_hint"),
+        }
+        session.state = "awaiting_disambiguation"
+        await _emit(
+            session,
+            {
+                "type": "disambiguate",
+                "message": result.get("message", "Which option fits best?"),
+                "options": result.get("options", []),
+                "original_term": result.get("original_term", ""),
+                "chapter_hint": result.get("chapter_hint"),
             },
         )
         return
@@ -323,7 +349,52 @@ async def post_session_message(request: Request) -> JSONResponse:
     await _emit(session, {"type": "thinking", "visible": True}, buffered=False)
 
     background = BackgroundTasks()
-    if session.pending_gate:
+    if session.pending_disambiguation:
+        pending = dict(session.pending_disambiguation)
+        opts = list(pending.get("options") or [])
+        selected: dict[str, Any] | None = None
+        key = content.strip()
+        if key.isdigit():
+            idx = int(key) - 1
+            if 0 <= idx < len(opts):
+                selected = opts[idx]
+        else:
+            for o in opts:
+                if not isinstance(o, dict):
+                    continue
+                if str(o.get("id", "")).strip() == key:
+                    selected = o
+                    break
+                if str(o.get("label", "")).strip().lower() == key.lower():
+                    selected = o
+                    break
+        if not selected:
+            session.state = "awaiting_disambiguation"
+            await _emit(
+                session,
+                {
+                    "type": "error",
+                    "code": "invalid_disambiguation",
+                    "message": "Please reply with an option number or id.",
+                },
+            )
+            await _emit(session, {"type": "thinking", "visible": False}, buffered=False)
+            return JSONResponse({"ok": False, "error": "invalid_disambiguation"}, status_code=400)
+
+        entities = dict(pending.get("entities") or {})
+        pt = list(selected.get("product_terms") or [])
+        if pt:
+            entities["product_terms"] = pt
+        session.pending_disambiguation = None
+        session.state = "active"
+        background.add_task(
+            _run_agent_job,
+            session=session,
+            user_query=str(pending.get("query", "")),
+            gate_selection=None,
+            precomputed_entities=entities,
+        )
+    elif session.pending_gate:
         pending = dict(session.pending_gate)
         background.add_task(
             _run_agent_job,
@@ -569,8 +640,10 @@ async def _run_batch_job(job_id: str, items: list[dict[str, Any]]) -> None:
     """Background worker: process_batch → results CSV in object store."""
     update_job(job_id, status="processing")
     try:
+        save_lane_b_rows(job_id, items)
         results = await process_batch(items)
-        csv_raw = results_to_csv(list(results)).encode("utf-8")
+        refs = load_lane_b_rows(job_id, len(results))
+        csv_raw = results_to_csv(list(results), lane_b=refs).encode("utf-8")
         output_key = batch_store_upload(csv_raw, "results.csv", job_id)
 
         succeeded = sum(1 for r in results if r.get("ok"))
@@ -613,7 +686,13 @@ async def batch_upload(request: Request) -> JSONResponse:
 
     try:
         text = content.decode("utf-8")
-        items = parse_upload_csv(text)
+        schema_id = (form.get("schema_id") or form.get("schema") or "").strip() or None
+        if schema_id:
+            from schema.schema_adapter import adapt_upload_csv
+
+            items = adapt_upload_csv(text, schema_id)
+        else:
+            items = parse_upload_csv(text)
     except UnicodeDecodeError:
         return _json_error("invalid_encoding", "File must be UTF-8")
     except ValueError as exc:
@@ -687,16 +766,208 @@ async def batch_job_download(request: Request) -> Response | JSONResponse:
         logger.exception("Batch download failed for %s", job_id)
         return _json_error("download_error", str(exc), status=500)
 
+    cleanup = BackgroundTasks()
+    cleanup.add_task(delete_lane_b_rows, job_id)
     return Response(
         body,
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="vanik_batch_{job_id}.csv"'},
+        background=cleanup,
     )
 
 
 async def health(request: Request) -> JSONResponse:
     _ = request
     return JSONResponse(build_health_snapshot())
+
+
+async def _dictionary_startup() -> None:
+    try:
+        from dictionary.seeds import ensure_builtin_entity_seed, ensure_builtin_product_seed
+
+        ensure_builtin_entity_seed()
+        ensure_builtin_product_seed()
+    except Exception as exc:
+        logger.warning("dictionary seed: %s", exc)
+
+
+async def _batch_startup() -> None:
+    """Fail stale ``processing`` jobs so operators can retry after restart."""
+    try:
+        from batch.job_store import mark_stale_processing_jobs_failed
+
+        n = mark_stale_processing_jobs_failed()
+        if n:
+            logger.warning("batch: marked %s interrupted job(s) as failed after restart", n)
+    except Exception as exc:
+        logger.warning("batch startup: %s", exc)
+
+
+def _admin_dictionary_auth_fail(request: Request) -> JSONResponse | None:
+    _ = request
+    key = (os.getenv("VANIK_ADMIN_KEY") or "").strip()
+    if not key:
+        return _json_error(
+            "admin_disabled",
+            "Dictionary admin is disabled (set VANIK_ADMIN_KEY).",
+            status=503,
+        )
+    supplied = (request.headers.get("x-admin-key") or "").strip()
+    if supplied != key:
+        return _json_error("unauthorized", "Invalid or missing X-Admin-Key header.", status=401)
+    return None
+
+
+async def admin_dictionary_ingest(request: Request) -> JSONResponse:
+    err = _admin_dictionary_auth_fail(request)
+    if err:
+        return err
+    dict_type = (request.headers.get("x-dictionary-type") or "").strip()
+    if dict_type not in ("product", "entity", "grade", "business_unit"):
+        return _json_error(
+            "invalid_type",
+            "X-Dictionary-Type must be one of: product, entity, grade, business_unit",
+        )
+    try:
+        form = await request.form()
+    except Exception as exc:
+        return _json_error("invalid_form", str(exc))
+
+    file = form.get("file")
+    if file is None or not isinstance(file, UploadFile):
+        return _json_error("missing_file", "Multipart form field 'file' (CSV or JSON) is required")
+
+    content = await file.read()
+    if not content:
+        return _json_error("empty_file", "Uploaded file is empty")
+
+    from dictionary.entity_stripper import dictionary_db_path_str
+    from dictionary.ingestor import DictionaryIngestor
+
+    suffix = Path(getattr(file, "filename", None) or "").suffix.lower()
+    if suffix not in (".csv", ".json"):
+        return _json_error("unsupported_format", "Upload a .csv or .json dictionary file")
+
+    ingestor = DictionaryIngestor(dictionary_db_path_str())
+    tmp_path: str | None = None
+    try:
+        with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        name = getattr(file, "filename", None) or f"upload{suffix}"
+        if suffix == ".csv":
+            batch_id = ingestor.ingest_csv(tmp_path, dict_type, source_name=name)
+        else:
+            batch_id = ingestor.ingest_json(tmp_path, dict_type, source_name=name)
+    except ValueError as exc:
+        return _json_error("parse_error", str(exc))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("dictionary ingest failed")
+        return _json_error("ingest_failed", str(exc), status=500)
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "batch_id": batch_id,
+            "type": dict_type,
+            "message": "Dictionary loaded. Active immediately.",
+        }
+    )
+
+
+async def admin_dictionary_status(request: Request) -> JSONResponse:
+    err = _admin_dictionary_auth_fail(request)
+    if err:
+        return err
+    from dictionary.dictionary_index import DictionaryIndex
+    from dictionary.entity_stripper import dictionary_db_path_str
+
+    _ = request
+    idx = DictionaryIndex(dictionary_db_path_str())
+    batches = idx.list_batches(None)
+    counts = {
+        "product": idx.count_entries("product"),
+        "entity": idx.count_entries("entity"),
+        "grade": idx.count_entries("grade"),
+        "business_unit": idx.count_entries("business_unit"),
+    }
+    return JSONResponse({"ok": True, "batches": batches, "entry_counts": counts})
+
+
+async def admin_batch_retry(request: Request) -> JSONResponse:
+    """POST /v1/admin/batch/retry/{job_id} — re-queue from stored input CSV."""
+    err = _admin_dictionary_auth_fail(request)
+    if err:
+        return err
+    job_id = request.path_params["job_id"]
+    job = get_job(job_id)
+    if not job or not job.get("input_key"):
+        return _json_error("job_not_found", "Job or stored input missing", status=404)
+    try:
+        text = batch_store_download(job["input_key"]).decode("utf-8")
+        items = parse_upload_csv(text)
+    except Exception as exc:
+        return _json_error("retry_failed", str(exc), status=400)
+
+    limit = batch_max_items()
+    if not items:
+        return _json_error("empty_retry", "No rows parsed from stored input")
+    if len(items) > limit:
+        return _json_error("batch_too_large", f"Maximum {limit} rows per batch", status=413)
+
+    new_id = create_job()
+    input_key = batch_store_upload(text.encode("utf-8"), "input.csv", new_id)
+    update_job(new_id, input_key=input_key, total=len(items))
+    background = BackgroundTasks()
+    background.add_task(_run_batch_job, new_id, items)
+    return JSONResponse(
+        {
+            "ok": True,
+            "job_id": new_id,
+            "status": "queued",
+            "retried_from": job_id,
+            "total_rows": len(items),
+        },
+        background=background,
+    )
+
+
+async def admin_list_schemas(request: Request) -> JSONResponse:
+    err = _admin_dictionary_auth_fail(request)
+    if err:
+        return err
+    _ = request
+    root = Path(__file__).resolve().parent.parent / "config" / "schemas"
+    root.mkdir(parents=True, exist_ok=True)
+    names = sorted(p.stem for p in root.glob("*.yaml"))
+    return JSONResponse({"ok": True, "schemas": names})
+
+
+async def admin_upload_schema(request: Request) -> JSONResponse:
+    err = _admin_dictionary_auth_fail(request)
+    if err:
+        return err
+    schema_id = request.path_params["schema_id"]
+    if not re.fullmatch(r"[\w][\w.-]{0,63}", schema_id):
+        return _json_error("invalid_schema_id", "Use letters, digits, dot, hyphen", status=400)
+    try:
+        form = await request.form()
+    except Exception as exc:
+        return _json_error("invalid_form", str(exc))
+    file = form.get("file")
+    if file is None or not isinstance(file, UploadFile):
+        return _json_error("missing_file", "Multipart field 'file' (YAML) is required")
+    body = await file.read()
+    if not body:
+        return _json_error("empty_file", "Empty upload")
+    root = Path(__file__).resolve().parent.parent / "config" / "schemas"
+    root.mkdir(parents=True, exist_ok=True)
+    dest = root / f"{schema_id}.yaml"
+    dest.write_bytes(body)
+    return JSONResponse({"ok": True, "schema_id": schema_id, "saved": str(dest)})
 
 
 routes = [
@@ -714,12 +985,18 @@ routes = [
     Route("/v1/batch/upload", batch_upload, methods=["POST"]),
     Route("/v1/batch/jobs/{job_id}", batch_job_status, methods=["GET"]),
     Route("/v1/batch/jobs/{job_id}/download", batch_job_download, methods=["GET"]),
+    Route("/v1/admin/dictionary/ingest", admin_dictionary_ingest, methods=["POST"]),
+    Route("/v1/admin/dictionary/status", admin_dictionary_status, methods=["GET"]),
+    Route("/v1/admin/batch/retry/{job_id}", admin_batch_retry, methods=["POST"]),
+    Route("/v1/admin/schemas", admin_list_schemas, methods=["GET"]),
+    Route("/v1/admin/schemas/{schema_id}", admin_upload_schema, methods=["POST"]),
     Route("/health", health, methods=["GET"]),
 ]
 
 app = Starlette(
     debug=False,
     routes=routes,
+    on_startup=[_dictionary_startup, _batch_startup],
     middleware=[
         Middleware(
             CORSMiddleware,

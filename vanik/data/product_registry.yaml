@@ -1,0 +1,137 @@
+# Product dictionary seed — ingested into dictionary.db (dict_type=product).
+# Ambiguous terms trigger clarification before HS search (see ambiguous_terms).
+
+products:
+  cotton_shirts:
+    canonical: "Cotton shirts"
+    chapter: "62"
+    hs_heading: "6205"
+    aliases:
+      - "shirts of cotton"
+      - "woven cotton shirts"
+    common_misspellings:
+      - "coton shirts"
+
+  cotton_shorts:
+    canonical: "Cotton shorts"
+    chapter: "62"
+    hs_heading: "6204"
+    aliases:
+      - "shorts of cotton"
+
+  brake_callipers:
+    canonical: "Brake callipers"
+    chapter: "87"
+    hs_heading: "8708"
+    aliases:
+      - "brake calipers"
+      - "disc brakes"
+      - "vehicle brake callipers"
+
+  titanium_fasteners:
+    canonical: "Titanium fasteners"
+    chapter: "81"
+    hs_heading: "8108"
+    aliases:
+      - "titanium screws"
+      - "ti fasteners"
+
+  hot_rolled_coils:
+    canonical: "Hot rolled steel coils"
+    chapter: "72"
+    hs_heading: "7208"
+    aliases:
+      - "HRC"
+      - "hot rolled coil"
+
+  steel_wire_rod:
+    canonical: "Steel wire rod"
+    chapter: "72"
+    hs_heading: "7213"
+    aliases:
+      - "wire rod"
+
+# Single-token or exact phrases that need user clarification before search.
+ambiguous_terms:
+  steel:
+    question: "What form is the steel in?"
+    options:
+      - id: sheet_plate
+        label: "Sheet or plate"
+        product_terms: ["steel sheet"]
+      - id: wire_rod
+        label: "Wire rod"
+        product_terms: ["steel wire rod"]
+      - id: hot_rolled_coil
+        label: "Hot rolled coil (HRC)"
+        product_terms: ["hot rolled steel coils"]
+
+  cotton:
+    question: "What cotton product are you moving?"
+    options:
+      - id: shirts
+        label: "Shirts"
+        product_terms: ["cotton shirts"]
+      - id: shorts
+        label: "Shorts"
+        product_terms: ["cotton shorts"]
+
+  aluminium:
+    question: "Which aluminium goods — raw, worked, or articles?"
+    options:
+      - id: unwrought
+        label: "Unwrought / ingots"
+        product_terms: ["unwrought aluminium"]
+      - id: articles
+        label: "Articles / manufactured"
+        product_terms: ["aluminium articles"]
+
+  aluminum:
+    question: "Which aluminium goods — raw, worked, or articles?"
+    options:
+      - id: unwrought
+        label: "Unwrought / ingots"
+        product_terms: ["unwrought aluminium"]
+      - id: articles
+        label: "Articles / manufactured"
+        product_terms: ["aluminium articles"]
+
+  plastic:
+    question: "What kind of plastic goods (e.g. film, containers, articles)?"
+    options:
+      - id: film
+        label: "Film / sheet"
+        product_terms: ["plastic film"]
+      - id: containers
+        label: "Containers / boxes"
+        product_terms: ["plastic containers"]
+
+  parts:
+    question: "Parts for which machine or vehicle (e.g. motor vehicle, aircraft)?"
+    options:
+      - id: auto
+        label: "Motor vehicle parts"
+        product_terms: ["motor vehicle parts"]
+      - id: generic
+        label: "General mechanical parts"
+        product_terms: ["mechanical parts"]
+
+  components:
+    question: "Components for which end-use (e.g. electronics, vehicles)?"
+    options:
+      - id: electronics
+        label: "Electronic components"
+        product_terms: ["electronic components"]
+      - id: vehicle
+        label: "Vehicle components"
+        product_terms: ["motor vehicle components"]
+
+  materials:
+    question: "Which material or product family?"
+    options:
+      - id: textiles
+        label: "Textiles / fabrics"
+        product_terms: ["textile materials"]
+      - id: metals
+        label: "Metals"
+        product_terms: ["metal materials"]
