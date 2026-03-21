@@ -92,41 +92,58 @@ def _search_api(query: str, top_k: int) -> list[dict[str, Any]]:
     return []
 
 
-def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[dict[str, Any]]:
-    """Search UK Trade Tariff API. Full phrase first; if few results, also try fuzzy with words."""
-    query = " ".join(product_terms) if isinstance(product_terms, list) else product_terms
-    query = (query or "").strip()
-    if not query:
+def _merge_api_results(query: str, top_k: int) -> list[dict[str, Any]]:
+    """Single-query UK API search with in-query word expansion."""
+    results = _search_api(query, top_k)
+    seen_codes = {r.get("commodity_code", "") for r in results}
+    words = [w for w in query.split() if len(w) > 3]
+    if len(words) > 1 and len(results) < top_k:
+        for r in _search_api(" ".join(words), top_k):
+            code = r.get("commodity_code", "")
+            if code and code not in seen_codes:
+                results.append(r)
+                seen_codes.add(code)
+    return results[:top_k]
+
+
+def _local_tariff_search(query: str, top_k: int) -> list[dict[str, Any]]:
+    try:
+        from mcp_servers.vanik_docs.db import search_tariff_rows
+
+        rows = search_tariff_rows(query, limit=top_k)
+        return [
+            {"commodity_code": r.get("hs_code", ""), "description": r.get("description", "")}
+            for r in rows
+            if r.get("hs_code") and r.get("description")
+        ]
+    except Exception:
         return []
 
-    results: list[dict[str, Any]] = []
+
+def search_hs_schedule(product_terms: list[str] | str, top_k: int = 3) -> list[dict[str, Any]]:
+    """Try product_terms[0] first (keeps material qualifiers), then broader fallbacks; then local DB."""
+    if isinstance(product_terms, str):
+        terms = [product_terms.strip()] if product_terms.strip() else []
+    else:
+        terms = [str(t).strip() for t in product_terms if str(t).strip()]
+    if not terms:
+        return []
+
+    out: list[dict[str, Any]] = []
     try:
-        results = _search_api(query, top_k)
-        seen_codes = {r.get("commodity_code", "") for r in results}
-
-        # If exact match returned few options, also try fuzzy with meaningful words
-        words = [w for w in query.split() if len(w) > 3]
-        if len(words) > 1 and len(results) < top_k:
-            for r in _search_api(" ".join(words), top_k):
-                code = r.get("commodity_code", "")
-                if code and code not in seen_codes:
-                    results.append(r)
-                    seen_codes.add(code)
-
-        results = results[:top_k]
+        for q in terms:
+            chunk = _merge_api_results(q, top_k)
+            if chunk:
+                out = chunk
+                break
     except Exception:
-        results = []
+        out = []
 
-    if not results:
-        try:
-            from mcp_servers.vanik_docs.db import search_tariff_rows
+    if not out:
+        for q in terms:
+            chunk = _local_tariff_search(q, top_k)
+            if chunk:
+                out = chunk
+                break
 
-            rows = search_tariff_rows(query, limit=top_k)
-            return [
-                {"commodity_code": r.get("hs_code", ""), "description": r.get("description", "")}
-                for r in rows
-                if r.get("hs_code") and r.get("description")
-            ]
-        except Exception:
-            return []
-    return results
+    return out[:top_k]

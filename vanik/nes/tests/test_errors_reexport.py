@@ -4,6 +4,6 @@ from nes.errors import msg
 
 
 def test_nes_errors_msg() -> None:
-    text = msg("no_match", "en", searched="test product")
-    assert "test product" in text
+    text = msg("no_match", "en", searched="widgets")
+    assert "widgets" in text
     assert "hs" in text.lower() or "code" in text.lower()

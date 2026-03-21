@@ -3,15 +3,15 @@ from nes.v2_ner import extract_v2
 
 def test_ms_v2_product_terms_strip_corridor_not_raw_query() -> None:
     entities = extract_v2("cotton shirts from India to UK")
-    assert entities["product_terms"] == ["cotton shirts"]
+    assert entities["product_terms"] == ["cotton shirts", "shirts"]
     assert entities["origin"] == "IN"
     assert entities["destination"] == "GB"
 
 
 def test_ms_v2_cotton_shorts_without_from_preposition() -> None:
-    """Country names stripped from product_terms even when 'from' is missing."""
+    """Country names stripped; primary+fallback terms when 'from' is missing."""
     entities = extract_v2("cotton shorts india to UK")
-    assert entities["product_terms"] == ["cotton shorts"]
+    assert entities["product_terms"] == ["cotton shorts", "shorts"]
     assert entities["origin"] == "IN"
     assert entities["destination"] == "GB"
 

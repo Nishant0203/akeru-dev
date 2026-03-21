@@ -1,23 +1,32 @@
-"""Output formatter/synthesiser — LLM narrative + template fallback."""
+"""Output formatter/synthesiser — LLM narrative + rich template fallback."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 from datetime import UTC, datetime
-
 from agent.prompts import SYNTHESIS_NARRATIVE_EN, SYNTHESIS_NARRATIVE_HI
 from agent.providers import call_llm, get_completion_client, get_model_name
 
 logger = logging.getLogger(__name__)
 
-_HINDI_TRANSLATE_SYSTEM = """You are a trade compliance assistant. Given a short English sentence describing MFN tariff rates for an HS code, translate it into fluent Hindi (Devanagari script). Return ONLY the Hindi translation — no preamble, no explanation."""
+_HINDI_TRANSLATE_SYSTEM = """You are a trade compliance assistant. Given a short English passage about MFN tariff rates for an HS code, translate it into fluent Hindi (Devanagari script). Preserve structure and numbers. Return ONLY the Hindi translation — no preamble, no explanation."""
 
 
 def _rate_or_unavailable(rate: dict, err: dict | None) -> tuple[float | None, str | None]:
     if err:
-        return None, f"unavailable ({err.get('code', 'error')})"
+        code = err.get("code", "error")
+        msg = err.get("message", "")
+        detail = msg if msg and msg != code else code
+        return None, detail
     return rate.get("mfn_rate_pct"), None
+
+
+def _fmt_rate_line(val: float | None, note: str | None, api_label: str) -> str:
+    if val is not None:
+        return f"{val}% ({api_label})"
+    reason = (note or "unknown").strip()
+    return f"unavailable — {reason} ({api_label})"
 
 
 def _template_narrative(
@@ -29,30 +38,68 @@ def _template_narrative(
     eu_note: str | None,
     in_val: float | None,
     in_note: str | None,
-    failed_corridors: list[str] | None,
+    origin: str,
+    destination: str,
+    description: str,
+    product_terms: list[str] | None,
 ) -> str:
-    def fmt(value: float | None, note: str | None) -> str:
-        if value is not None:
-            return f"{value}%"
-        return note or "unavailable"
+    """Ordered narrative: what was asked, MFN meaning, rates, IGST, missing-corridor actions."""
+    terms = product_terms if isinstance(product_terms, list) else None
+    product_label = (description or "").strip() or (
+        " ".join(str(t).strip() for t in terms if str(t).strip()) if terms else ""
+    )
+    if not product_label:
+        product_label = "the selected product"
 
-    narrative_en = (
-        f"MFN rates for HS {commodity_code}: "
-        f"GB {fmt(uk_val, uk_note)} (UK Trade Tariff API), "
-        f"EU {fmt(eu_val, eu_note)} (EU XI Tariff API), "
-        f"IN {fmt(in_val, in_note)} (WTO Timeseries API)."
+    corridor_label = ""
+    if origin and destination:
+        corridor_label = f"{origin} → {destination}"
+
+    context_line = (
+        f"Tariff lookup for {product_label} (HS {commodity_code})"
+        + (f", corridor {corridor_label}" if corridor_label else "")
+        + "."
     )
-    narrative_en += (
-        " India import: IGST and cess depend on sub-classification (typically 18% or 28% IGST "
-        "bracket); MFN shown is baseline — verify FTA / preferential schemes separately."
+
+    mfn_line = (
+        "MFN (Most Favoured Nation) rates are the standard import duties applied to goods "
+        "from countries without a preferential trade agreement. These are baseline rates — "
+        "no India–UK or India–EU FTA is currently in force for these lines, so MFN applies."
     )
-    if failed_corridors:
-        narrative_en += (
-            " Rates for "
-            + ", ".join(failed_corridors)
-            + " could not be retrieved (timeout or API error)."
+
+    rates_line = (
+        "Rates: "
+        f"GB {_fmt_rate_line(uk_val, uk_note, 'UK Trade Tariff API')}, "
+        f"EU {_fmt_rate_line(eu_val, eu_note, 'EU XI Tariff API')}, "
+        f"IN {_fmt_rate_line(in_val, in_note, 'WTO Timeseries API')}."
+    )
+
+    igst_line = (
+        "India import rate shown is Basic Customs Duty only. IGST (typically 18% or 28% "
+        "depending on sub-classification) and cess apply additionally — verify the full "
+        "duty stack before calculating landed cost."
+    )
+
+    missing_lines: list[str] = []
+    if eu_val is None:
+        missing_lines.append(
+            "EU rate could not be retrieved. Landed cost for the EU cannot be confirmed "
+            "from this lookup. Check trade-tariff.service.gov.uk/xi for the XI tariff "
+            "directly, or retry — the EU XI API occasionally returns no data for specific codes."
         )
-    return narrative_en
+    if uk_val is None:
+        missing_lines.append(
+            "UK rate could not be retrieved. Retry or check trade-tariff.service.gov.uk "
+            "manually for the UK Trade Tariff."
+        )
+    if in_val is None:
+        missing_lines.append(
+            "India import rate could not be retrieved from WTO. Check cbic.gov.in for the "
+            "current BCD rate or retry later."
+        )
+
+    parts = [context_line, mfn_line, rates_line, igst_line, *missing_lines]
+    return " ".join(parts)
 
 
 def _facts_user_block(
@@ -61,6 +108,7 @@ def _facts_user_block(
     description: str,
     origin: str,
     destination: str,
+    product_terms: list[str] | None,
     uk_val: float | None,
     uk_note: str | None,
     eu_val: float | None,
@@ -72,9 +120,11 @@ def _facts_user_block(
     eu_rate: dict,
     in_rate: dict,
 ) -> str:
+    pt = " | ".join(str(t) for t in (product_terms or []) if str(t).strip())
     lines = [
         f"HS code: {commodity_code}",
         f"Description: {description or '(none)'}",
+        f"Product terms: {pt or '(none)'}",
         f"Route context: origin={origin}, selected destination={destination}",
         f"UK (GB) MFN: {uk_val if uk_val is not None else uk_note} source={uk_rate.get('source')}",
         f"EU MFN: {eu_val if eu_val is not None else eu_note} source={eu_rate.get('source')}",
@@ -98,9 +148,11 @@ async def build(
     description: str = "",
     lang: str = "en",
     failed_corridors: list[str] | None = None,
+    product_terms: list[str] | None = None,
 ) -> dict:
     """Build narrative + structured LandedCost output. LLM narrative with template fallback."""
     destination = destination.upper()
+    origin_u = (origin or "").upper()
 
     uk_val, uk_note = _rate_or_unavailable(uk_rate, corridor_errors.get("GB"))
     eu_val, eu_note = _rate_or_unavailable(eu_rate, corridor_errors.get("EU"))
@@ -117,14 +169,18 @@ async def build(
         eu_note=eu_note,
         in_val=in_val,
         in_note=in_note,
-        failed_corridors=failed_corridors,
+        origin=origin_u,
+        destination=destination,
+        description=description,
+        product_terms=product_terms,
     )
 
     facts = _facts_user_block(
         commodity_code=commodity_code,
         description=description,
-        origin=origin,
+        origin=origin_u,
         destination=destination,
+        product_terms=product_terms,
         uk_val=uk_val,
         uk_note=uk_note,
         eu_val=eu_val,
@@ -155,7 +211,7 @@ async def build(
                 system=system,
                 user=f"FACTS:\n{facts}",
                 model=model,
-                max_tokens=384,
+                max_tokens=512,
                 temperature=0.2,
             )
 
@@ -175,7 +231,7 @@ async def build(
                         system=_HINDI_TRANSLATE_SYSTEM,
                         user=template_en,
                         model=get_model_name("synthesis_hindi"),
-                        max_tokens=256,
+                        max_tokens=512,
                         temperature=0.2,
                     )
 
@@ -203,7 +259,7 @@ async def build(
                 "vanik.compliance.LandedCost": {
                     "hs_code": commodity_code,
                     "description": description,
-                    "origin": origin,
+                    "origin": origin_u,
                     "destination": destination,
                     "mfn_rate_pct": selected_rate,
                     "uk_mfn_rate_pct": uk_val,
