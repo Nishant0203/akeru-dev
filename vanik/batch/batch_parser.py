@@ -101,6 +101,14 @@ def parse_upload_csv(data: str) -> list[dict[str, Any]]:
     qkey = fields.get("quantity")
     uvkey = fields.get("unit_value_usd") or fields.get("unit_value")
 
+    mapped_headers = {pkey, okey, dkey}
+    if hskey:
+        mapped_headers.add(hskey)
+    if qkey:
+        mapped_headers.add(qkey)
+    if uvkey:
+        mapped_headers.add(uvkey)
+
     rows: list[dict[str, Any]] = []
     for row in reader:
         product = (row.get(pkey) or "").strip()
@@ -126,6 +134,16 @@ def parse_upload_csv(data: str) -> list[dict[str, Any]]:
                 item["unit_value_usd"] = float(row[uvkey])
             except (TypeError, ValueError):
                 item["unit_value_usd"] = row.get(uvkey)
+
+        ref: dict[str, str] = {}
+        for h in reader.fieldnames or []:
+            if not h or h in mapped_headers:
+                continue
+            v = (row.get(h) or "").strip()
+            if v:
+                ref[h] = v
+        if ref:
+            item["reference"] = ref
         rows.append(item)
     return rows
 

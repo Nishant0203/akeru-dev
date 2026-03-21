@@ -1,7 +1,8 @@
-"""SQLite job metadata for async batch uploads."""
+"""SQLite job metadata + optional Lane B row references."""
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import uuid
@@ -38,6 +39,22 @@ def _conn() -> sqlite3.Connection:
         )
         """
     )
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS batch_row_refs (
+            job_id     TEXT NOT NULL,
+            row_index  INTEGER NOT NULL,
+            ref_json   TEXT NOT NULL,
+            PRIMARY KEY (job_id, row_index)
+        )
+        """
+    )
+    c.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_batch_row_refs_job
+        ON batch_row_refs (job_id)
+        """
+    )
     return c
 
 
@@ -67,3 +84,62 @@ def update_job(job_id: str, **kwargs: Any) -> None:
     with _conn() as c:
         c.execute(f"UPDATE batch_jobs SET {sets} WHERE job_id=?", vals)
         c.commit()
+
+
+def save_lane_b_rows(job_id: str, items: list[dict[str, Any]]) -> None:
+    """Persist Lane B ``reference`` payloads by row index."""
+    with _conn() as c:
+        for i, item in enumerate(items):
+            ref = item.get("reference")
+            if not ref:
+                continue
+            c.execute(
+                """
+                INSERT OR REPLACE INTO batch_row_refs (job_id, row_index, ref_json)
+                VALUES (?,?,?)
+                """,
+                (job_id, i, json.dumps(ref, ensure_ascii=False)),
+            )
+        c.commit()
+
+
+def load_lane_b_rows(job_id: str, n: int) -> list[dict[str, Any] | None]:
+    """Return list length ``n`` with dict or None per row."""
+    out: list[dict[str, Any] | None] = [None] * n
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT row_index, ref_json FROM batch_row_refs WHERE job_id=? ORDER BY row_index",
+            (job_id,),
+        ).fetchall()
+    for r in rows:
+        idx = int(r["row_index"])
+        if 0 <= idx < n:
+            try:
+                out[idx] = json.loads(r["ref_json"])
+            except json.JSONDecodeError:
+                out[idx] = {}
+    return out
+
+
+def delete_lane_b_rows(job_id: str) -> None:
+    with _conn() as c:
+        c.execute("DELETE FROM batch_row_refs WHERE job_id=?", (job_id,))
+        c.commit()
+
+
+def mark_stale_processing_jobs_failed(
+    reason: str = "Server restarted while job was processing; use admin batch retry or re-upload.",
+) -> int:
+    """Mark jobs left in ``processing`` as failed (startup cleanup after crash/deploy)."""
+    now = datetime.now(UTC).isoformat()
+    with _conn() as c:
+        cur = c.execute(
+            """
+            UPDATE batch_jobs
+            SET status = 'failed', error = ?, completed_at = ?
+            WHERE status = 'processing'
+            """,
+            (reason, now),
+        )
+        c.commit()
+        return int(cur.rowcount or 0)

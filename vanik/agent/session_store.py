@@ -19,6 +19,7 @@ class SessionState:
     created_at: str
     state: str = "created"
     messages: list[dict[str, str]] = field(default_factory=list)
+    pending_disambiguation: dict[str, Any] | None = None
     pending_gate: dict[str, Any] | None = None
     last_response_events: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=500))
     history_turn_count: int = 0

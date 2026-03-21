@@ -1,0 +1,13 @@
+# Default schema: same lane-A columns as batch_parser.parse_upload_csv PO layout.
+customer_id: generic
+field_mapping:
+  product_category:
+    source_column: product
+  origin:
+    source_column: origin
+  destination:
+    source_column: destination
+  hs_code:
+    source_column: hs_code
+reference_fields: []
+# With reference_fields empty, unmapped CSV columns are attached as Lane B reference.

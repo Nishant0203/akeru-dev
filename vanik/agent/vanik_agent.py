@@ -8,6 +8,7 @@ import warnings
 from mcp_servers.vanik_api.tools.lookup_mfn import get_mfn_rate
 from mcp_servers.vanik_api.tools.search_hs_schedule import search_hs_schedule
 from nes.orchestrator import ms_extract
+from nes.query_builder import DisambiguationRequired, build_hs_search_terms
 
 from agent.confirmation_gate import format_options, resolve_selection
 from agent.errors import msg
@@ -33,16 +34,6 @@ def _no_match_search_label(entities: dict, user_query: str) -> str:
 def is_valid_hs_format(code: str) -> bool:
     """HS format guardrail: allow 6/8/10-digit numeric codes."""
     return code.isdigit() and len(code) in {6, 8, 10}
-
-
-def _no_match_search_label(entities: dict, user_query: str) -> str:
-    terms = entities.get("product_terms")
-    if isinstance(terms, list) and terms:
-        parts = [str(t).strip() for t in terms if str(t).strip()]
-        if parts:
-            return " ".join(parts)
-    raw = (entities.get("_raw") or user_query or "").strip()
-    return raw if raw else "your search"
 
 
 def _missing_route_fields(entities: dict) -> list[str]:
@@ -225,7 +216,20 @@ async def vanik_agent(
 
     options = gate_options
     if options is None:
-        options = format_options(search_hs_schedule(product_terms=entities["product_terms"]))
+        plan = build_hs_search_terms(entities)
+        if isinstance(plan, DisambiguationRequired):
+            _lang = entities.get("_lang") or "en"
+            return {
+                "ok": False,
+                "status": "awaiting_disambiguation",
+                "message": plan.question,
+                "options": plan.options,
+                "original_term": plan.original_term,
+                "chapter_hint": plan.chapter_hint,
+                "entities": entities,
+                "_lang": _lang,
+            }
+        options = format_options(search_hs_schedule(product_terms=plan))
 
     if not options:
         _lang = entities.get("_lang") or "en"

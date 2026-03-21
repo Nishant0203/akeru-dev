@@ -18,6 +18,7 @@ dependencies = [
   "sentence-transformers",
   "python-dotenv>=1.0.0",
   "pyyaml>=6.0",
+  "rapidfuzz>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -30,7 +31,7 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = "-q"
-testpaths = ["agent/tests", "batch/tests", "nes/tests", "mcp_servers/vanik_api/tests", "mcp_servers/vanik_docs/tests"]
+testpaths = ["agent/tests", "batch/tests", "dictionary/tests", "nes/tests", "mcp_servers/vanik_api/tests", "mcp_servers/vanik_docs/tests"]
 
 [tool.ruff]
 line-length = 100
@@ -40,4 +41,4 @@ select = ["E", "F", "I", "UP"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agent*", "batch*", "config*", "evaluation*", "manifest_search*", "mcp_servers*", "nes*"]
+include = ["agent*", "batch*", "config*", "dictionary*", "evaluation*", "manifest_search*", "mcp_servers*", "nes*", "schema*"]

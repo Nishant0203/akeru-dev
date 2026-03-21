@@ -1,0 +1,19 @@
+# Example customer schema (documented in consolidated v3).
+customer_id: garment_co
+field_mapping:
+  product_category:
+    source_column: product
+  origin:
+    source_column: origin_country
+    transform: iso2_normalise
+  destination:
+    source_column: destination
+    transform: iso2_normalise
+  hs_code:
+    source_column: tariff_code
+reference_fields:
+  - po_number
+  - supplier
+  - quantity
+  - unit_price
+  - style_code

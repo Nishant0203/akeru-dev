@@ -1,0 +1,17 @@
+# Optional wordlist for spell correction (one token per line, lowercase).
+# Regenerate from tariff DB with: python -m vanik.scripts.build_tariff_dictionary (when added).
+# Built-in minimal domain words:
+cotton
+calliper
+caliper
+shirt
+shirts
+shorts
+fastener
+fasteners
+titanium
+aluminium
+aluminum
+tariff
+commodity
+nomenclature
