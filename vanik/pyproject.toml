@@ -40,4 +40,4 @@ select = ["E", "F", "I", "UP"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agent*", "batch*", "config*", "evaluation*", "mcp_servers*", "nes*"]
+include = ["agent*", "batch*", "config*", "evaluation*", "manifest_search*", "mcp_servers*", "nes*"]
