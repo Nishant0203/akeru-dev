@@ -39,6 +39,10 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+from batch.batch_parser import parse_batch_bytes
+from batch.batch_processor import process_batch
+from batch.batch_reporter import results_to_csv
+
 from agent.anchor_store import create_anchor, delete_anchor, list_anchors, rename_anchor
 from agent.guardrails import validate_agent_output
 from agent.health import build_health_snapshot
@@ -516,6 +520,36 @@ async def api_query(request: Request) -> JSONResponse:
     return JSONResponse(payload)
 
 
+BATCH_ITEM_LIMIT = 500
+
+
+async def api_batch(request: Request) -> Response | JSONResponse:
+    """POST batch: JSON or CSV body; JSON results or CSV when Accept: text/csv."""
+    raw = await request.body()
+    ct = request.headers.get("content-type", "")
+    try:
+        items = parse_batch_bytes(ct, raw)
+    except (json.JSONDecodeError, ValueError) as exc:
+        return _json_error("invalid_batch", str(exc))
+
+    if len(items) > BATCH_ITEM_LIMIT:
+        return _json_error(
+            "batch_too_large",
+            f"Maximum {BATCH_ITEM_LIMIT} items per request",
+            status=413,
+        )
+
+    results = await process_batch(items)
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/csv" in accept:
+        return Response(
+            results_to_csv(list(results)),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="vanik_batch.csv"'},
+        )
+    return JSONResponse({"ok": True, "count": len(results), "results": results})
+
+
 async def health(request: Request) -> JSONResponse:
     _ = request
     return JSONResponse(build_health_snapshot())
@@ -532,6 +566,7 @@ routes = [
     Route("/anchors/{anchor_id}", patch_anchor, methods=["PATCH"]),
     Route("/anchors/{anchor_id}", delete_anchor_record, methods=["DELETE"]),
     Route("/v1/query", api_query, methods=["POST"]),
+    Route("/v1/batch", api_batch, methods=["POST"]),
     Route("/health", health, methods=["GET"]),
 ]
 

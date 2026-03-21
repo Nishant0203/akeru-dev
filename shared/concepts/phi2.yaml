@@ -1,22 +1,34 @@
 post_id: 'phi2'
-post_title: "Platform surfaces & MCP stack (sample)"
-default_section: 'mcp'
+post_title: "The boundary problem & enterprise privacy"
+default_section: 'privacy'
 concepts:
-  streamable-http:
-    label: "streamable HTTP"
-    section: 'mcp'
+  boundary-problem:
+    label: "boundary problem"
+    section: 'privacy'
     opening_mode: 'answer'
     context: |
-      Reader selected 'streamable HTTP' on the φ² sample post. Explain why Vanik MCP servers use streamable HTTP transport instead of stdio: browser and edge workers cannot spawn subprocesses; HTTP aligns with api.akeru.dev routing and Caddy. Reference MCP protocol stack sections in the architecture doc (Sections 4a, 5).
-  hmac-handshake:
-    label: "HMAC handshake"
-    section: 'mcp'
+      Reader selected 'boundary problem' on the φ² post. Explain how moving computation across a trust boundary (browser, API gateway, external LLM) changes what data can leave the tenant: raw manifests vs minimum sufficient input, and why Vanik treats the LLM as an untrusted sink unless explicitly isolated.
+  information-filter:
+    label: "information filter"
+    section: 'privacy'
     opening_mode: 'answer'
     context: |
-      Reader selected 'HMAC token' in the φ² post trust-boundary paragraph. Explain HMAC authentication in the MCP init handshake: what is signed, where keys live, and how this differs from anonymous public tariff API calls. Keep it concrete per the architecture document.
-  tool-schemas:
-    label: "tool schemas"
-    section: 'mcp'
+      Reader selected 'information filter' on φ². Describe stripping PO numbers, unit pricing, and counterparty hints before any external model call; tie to audit logs (strip_log) and why this is weaker than full on-prem isolation but necessary for cloud extraction paths.
+  minimum-sufficient-input:
+    label: "minimum sufficient input"
+    section: 'privacy'
     opening_mode: 'answer'
     context: |
-      Reader selected 'tool schemas' on φ². Describe how MCP tool schemas are exposed to callers, how they relate to the three servers (wto, uk-tariff, eu-taric), and how Vanik orchestration chooses tools vs internal Module 3 execution. Cite the doc’s MCP / platform surfaces sections.
+      Reader selected 'minimum sufficient input'. Contrast full shipment text vs product terms + corridor + optional HS for tariff lookup; relate to Manifest Search sufficiency and when v3 LLM fallback is triggered.
+  hs-code-bypass:
+    label: "HS code bypass"
+    section: 'privacy'
+    opening_mode: 'answer'
+    context: |
+      Reader selected 'HS code bypass'. Explain batch auto-gate (__auto__) when no code is supplied: first schedule match, needs_review flag, and operational risk vs explicit human_confirmed selection.
+  on-premise-path:
+    label: "on-premise path"
+    section: 'privacy'
+    opening_mode: 'answer'
+    context: |
+      Reader selected 'on-premise path'. Outline how an enterprise could keep raw manifests inside VPC, run extraction locally, and only exchange normalized tariff structs with a synthesiser — mapping to result_normaliser and optional local MODEL_PROVIDER.
