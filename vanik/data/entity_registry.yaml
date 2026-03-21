@@ -1,0 +1,15 @@
+# Known legal / trade entity names to strip before NER / LLM (unstructured proper nouns).
+# Extend with canonical + variants per organisation.
+entities:
+  tata_steel:
+    canonical: "Tata Steel"
+    variants:
+      - "TATA STEEL"
+      - "TataSteel"
+  boeing:
+    canonical: "Boeing"
+    variants: []
+  bharat_forge:
+    canonical: "Bharat Forge"
+    variants:
+      - "BHARAT FORGE"
