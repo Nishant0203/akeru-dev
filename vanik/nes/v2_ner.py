@@ -213,21 +213,24 @@ def _strip_country_literals(text: str) -> str:
 
 
 def _extract_product_terms(text: str) -> list[str]:
-    """Core product phrase only: no HS corridor noise, no stopwords or country names."""
-    # 1. Strip HS codes (search uses separate hs_code_provided)
+    """Primary phrase (e.g. cotton shirts) + optional last-token fallback (shirts) for search."""
     stripped = HS_PATTERN.sub(" ", text)
-    # 2. Strip country mentions (handles odd word order, missing prepositions)
     stripped = _strip_country_literals(stripped)
-    # 3. Strip corridor / logistics tokens
     stripped = _CORRIDOR_RE.sub(" ", stripped)
-    # 4. Tokenise; drop short tokens and stopwords
     tokens: list[str] = []
     for w in stripped.split():
         t = w.lower().strip(".,;:!?\"'")
         if len(t) > 2 and t not in _STOPWORD_SET:
             tokens.append(t)
     primary = " ".join(tokens).strip()
-    return [primary] if primary else []
+    if not primary:
+        return []
+    words = primary.split()
+    fallback = words[-1] if len(words) > 1 else None
+    out_terms = [primary]
+    if fallback and fallback != primary:
+        out_terms.append(fallback)
+    return out_terms
 
 
 def extract_v2(raw_query: str) -> dict:

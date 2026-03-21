@@ -73,10 +73,14 @@ def _session_payload(session: SessionState) -> dict[str, Any]:
     }
 
 
+# Gate/clarify/error replay on SSE reconnect duplicates UI (e.g. double classification gate).
+_REPLAY_EXCLUDED_EVENT_TYPES = frozenset({"gate", "clarify", "error"})
+
+
 async def _emit(session: SessionState, event: dict[str, Any], *, buffered: bool = True) -> None:
     if session.is_closed:
         return
-    if buffered:
+    if buffered and event.get("type") not in _REPLAY_EXCLUDED_EVENT_TYPES:
         with session.events_lock:
             session.last_response_events.append(event)
     await session.event_queue.put(event)
@@ -174,15 +178,21 @@ async def _handle_agent_result(session: SessionState, user_query: str, result: d
 
     if not result.get("ok"):
         session.state = "active"
-        await _emit(
-            session,
-            {
-                "type": "error",
-                "code": status or "agent_error",
-                "message": result.get("message", "Unable to complete query."),
-                "details": result.get("errors") or result.get("error"),
-            },
-        )
+        err_payload: dict[str, Any] = {
+            "type": "error",
+            "code": status or "agent_error",
+            "message": result.get("message", "Unable to complete query."),
+            "details": result.get("errors") or result.get("error"),
+        }
+        if status == "rates_unavailable":
+            err_payload["code"] = "rates_unavailable"
+            if result.get("narrative"):
+                err_payload["narrative"] = result.get("narrative")
+            if result.get("corridor_norm") is not None:
+                err_payload["corridor_norm"] = result.get("corridor_norm")
+            if result.get("hs_code"):
+                err_payload["hs_code"] = result.get("hs_code")
+        await _emit(session, err_payload)
         return
 
     valid, reason = validate_agent_output(result)

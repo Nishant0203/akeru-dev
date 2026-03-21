@@ -35,6 +35,16 @@ def is_valid_hs_format(code: str) -> bool:
     return code.isdigit() and len(code) in {6, 8, 10}
 
 
+def _no_match_search_label(entities: dict, user_query: str) -> str:
+    terms = entities.get("product_terms")
+    if isinstance(terms, list) and terms:
+        parts = [str(t).strip() for t in terms if str(t).strip()]
+        if parts:
+            return " ".join(parts)
+    raw = (entities.get("_raw") or user_query or "").strip()
+    return raw if raw else "your search"
+
+
 def _missing_route_fields(entities: dict) -> list[str]:
     missing: list[str] = []
     if not entities.get("origin"):
@@ -84,12 +94,29 @@ async def _lookup_and_synthesise(
     failed_corridors = [c for c in ("GB", "EU", "IN") if errors.get(c)]
 
     if all(errors.values()):
+        resolved_description = (description or "").strip()
+        if not resolved_description:
+            terms = entities.get("product_terms")
+            if isinstance(terms, list) and terms:
+                resolved_description = str(terms[0])
+        product_bits = resolved_description or "the selected product"
+        narrative = (
+            f"Rates for HS {confirmed_code} ({product_bits}) could not be retrieved from any "
+            "source. This is usually a temporary API or network issue. "
+            f"UK: {uk_n.get('reason', 'unavailable')}. "
+            f"EU: {eu_n.get('reason', 'unavailable')}. "
+            f"IN: {in_n.get('reason', 'unavailable')}. "
+            "Try again in a few minutes, or check trade-tariff.service.gov.uk directly "
+            "for the UK rate."
+        )
         return {
             "ok": False,
-            "status": "upstream_error",
+            "status": "rates_unavailable",
             "hs_code": confirmed_code,
+            "message": narrative,
+            "narrative": narrative,
             "errors": [errors["GB"], errors["EU"], errors["IN"]],
-            "message": msg("upstream_error_all", _lang),
+            "corridor_norm": {"GB": uk_n, "EU": eu_n, "IN": in_n},
         }
 
     resolved_description = description or ""
@@ -97,6 +124,9 @@ async def _lookup_and_synthesise(
         terms = entities.get("product_terms")
         if isinstance(terms, list) and terms:
             resolved_description = str(terms[0])
+
+    pt = entities.get("product_terms")
+    product_terms_list = pt if isinstance(pt, list) else None
 
     synthesized = await build(
         commodity_code=confirmed_code,
@@ -111,6 +141,7 @@ async def _lookup_and_synthesise(
         description=resolved_description,
         lang=_lang,
         failed_corridors=failed_corridors,
+        product_terms=product_terms_list,
     )
 
     valid, reason = validate_agent_output(synthesized)

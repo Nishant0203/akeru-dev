@@ -84,6 +84,21 @@ def test_agent_returns_partial_result_when_one_corridor_fails() -> None:
     assert data["uk_status"] == "ok"
 
 
+def _all_corridors_fail(_hs: str, _dest: str) -> dict:
+    return {"ok": False, "error": {"code": "no_data", "message": "unavailable"}}
+
+
+def test_agent_rates_unavailable_when_all_corridors_fail() -> None:
+    with patch("agent.vanik_agent.get_mfn_rate", side_effect=_all_corridors_fail):
+        result = asyncio.run(
+            vanik_agent("duty on brake parts from india to uk", hs_code_provided="8708301090")
+        )
+    assert result["ok"] is False
+    assert result["status"] == "rates_unavailable"
+    assert "8708301090" in (result.get("narrative") or "")
+    assert result.get("corridor_norm")
+
+
 def test_agent_uses_gate_option_description_in_synthesised_output() -> None:
     entities = {
         "product_terms": ["brake parts"],
