@@ -60,6 +60,76 @@ def _parse_csv_string(data: str) -> list[dict[str, Any]]:
     return rows
 
 
+_ISO_TO_EN: dict[str, str] = {
+    "IN": "India",
+    "GB": "UK",
+    "UK": "UK",
+    "EU": "the EU",
+    "DE": "Germany",
+    "FR": "France",
+    "IT": "Italy",
+    "ES": "Spain",
+    "NL": "Netherlands",
+    "BE": "Belgium",
+    "PL": "Poland",
+    "US": "USA",
+    "CN": "China",
+    "JP": "Japan",
+}
+
+
+def _expand_place(code: str) -> str:
+    u = (code or "").strip().upper()
+    return _ISO_TO_EN.get(u, (code or "").strip())
+
+
+def parse_upload_csv(data: str) -> list[dict[str, Any]]:
+    """
+    PO-style CSV: product, origin, destination, hs_code (optional), quantity, unit_value_usd.
+    Builds a natural-language query for vanik_agent.
+    """
+    reader = csv.DictReader(io.StringIO(data))
+    if not reader.fieldnames:
+        raise ValueError("CSV must include a header row")
+    fields = {h.strip().lower(): h for h in reader.fieldnames if h}
+    pkey = fields.get("product") or fields.get("description") or fields.get("item")
+    okey = fields.get("origin") or fields.get("from") or fields.get("export")
+    dkey = fields.get("destination") or fields.get("to") or fields.get("import")
+    if not pkey or not okey or not dkey:
+        raise ValueError("Required columns: product, origin, destination (or synonyms)")
+    hskey = fields.get("hs_code") or fields.get("hs") or fields.get("hs_code_provided")
+    qkey = fields.get("quantity")
+    uvkey = fields.get("unit_value_usd") or fields.get("unit_value")
+
+    rows: list[dict[str, Any]] = []
+    for row in reader:
+        product = (row.get(pkey) or "").strip()
+        origin = (row.get(okey) or "").strip()
+        dest = (row.get(dkey) or "").strip()
+        if not product or not origin or not dest:
+            continue
+        hs_raw = (row.get(hskey) or "").strip() if hskey else ""
+        query = (
+            f"{product} from {_expand_place(origin)} to {_expand_place(dest)}"
+        )
+        item: dict[str, Any] = {
+            "query": query,
+            "hs_code": hs_raw or None,
+        }
+        if qkey and row.get(qkey):
+            try:
+                item["quantity"] = float(row[qkey])
+            except (TypeError, ValueError):
+                item["quantity"] = row.get(qkey)
+        if uvkey and row.get(uvkey):
+            try:
+                item["unit_value_usd"] = float(row[uvkey])
+            except (TypeError, ValueError):
+                item["unit_value_usd"] = row.get(uvkey)
+        rows.append(item)
+    return rows
+
+
 def parse_batch_bytes(content_type: str | None, raw: bytes) -> list[dict[str, Any]]:
     """Parse raw POST body: application/json or text/csv."""
     ct = (content_type or "").split(";")[0].strip().lower()

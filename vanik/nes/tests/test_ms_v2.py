@@ -8,6 +8,14 @@ def test_ms_v2_product_terms_strip_corridor_not_raw_query() -> None:
     assert entities["destination"] == "GB"
 
 
+def test_ms_v2_cotton_shorts_without_from_preposition() -> None:
+    """Country names stripped from product_terms even when 'from' is missing."""
+    entities = extract_v2("cotton shorts india to UK")
+    assert entities["product_terms"] == ["cotton shorts"]
+    assert entities["origin"] == "IN"
+    assert entities["destination"] == "GB"
+
+
 def test_ms_v2_sets_lang() -> None:
     entities = extract_v2("duty on brake parts from india to uk")
     assert entities.get("_lang") == "en"

@@ -6,8 +6,8 @@ _MESSAGES: dict[str, dict[str, str]] = {
     "needs_clarification_both": {
         "en": (
             "I need a bit more to work with. Could you tell me where the goods are "
-            "coming from and where they're headed? For example: "
-            "'ceramic tiles from India to the UK'."
+            "coming from and where they're headed? "
+            "For example: the export country and the import country."
         ),
         "hi": (
             "मुझे थोड़ी और जानकारी चाहिए। कृपया बताएं कि सामान कहाँ से आ रहा है "
@@ -52,14 +52,12 @@ _MESSAGES: dict[str, dict[str, str]] = {
     },
     "no_match": {
         "en": (
-            "I couldn't find a matching commodity code for that product. "
-            "Try a simpler term (e.g. 'ceramic tiles' instead of 'floor covering material'), "
-            "or enter a 6, 8, or 10-digit HS code directly."
+            "No HS code match found for '{searched}'. "
+            "Try a shorter product description or enter a 6, 8, or 10-digit HS code directly."
         ),
         "hi": (
-            "उस उत्पाद के लिए कोई मिलता-जुलता कमोडिटी कोड नहीं मिला। "
-            "एक सरल शब्द आज़माएं (जैसे 'सिरेमिक टाइलें') "
-            "या सीधे 6, 8, या 10-अंकीय HS कोड दर्ज करें।"
+            "'{searched}' के लिए कोई HS कोड मैच नहीं मिला। "
+            "छोटा उत्पाद विवरण आज़माएं या सीधे 6, 8, या 10-अंकीय HS कोड दर्ज करें।"
         ),
     },
     "gate_prompt": {

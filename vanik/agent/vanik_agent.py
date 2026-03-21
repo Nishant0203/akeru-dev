@@ -19,6 +19,17 @@ MCP_TIMEOUT = 8.0
 _AUTO_GATE_SELECTION = "__auto__"
 
 
+def _no_match_search_label(entities: dict, user_query: str) -> str:
+    """User-visible fragment for no_match — extracted terms, else sanitised raw query."""
+    terms = entities.get("product_terms")
+    if isinstance(terms, list) and terms:
+        parts = [str(t).strip() for t in terms if str(t).strip()]
+        if parts:
+            return " ".join(parts)
+    raw = (entities.get("_raw") or user_query or "").strip()
+    return raw if raw else "your search"
+
+
 def is_valid_hs_format(code: str) -> bool:
     """HS format guardrail: allow 6/8/10-digit numeric codes."""
     return code.isdigit() and len(code) in {6, 8, 10}
@@ -187,10 +198,11 @@ async def vanik_agent(
 
     if not options:
         _lang = entities.get("_lang") or "en"
+        searched = _no_match_search_label(entities, user_query)
         return {
             "ok": False,
             "status": "no_match",
-            "message": msg("no_match", _lang),
+            "message": msg("no_match", _lang, searched=searched),
             "allow_manual_hs": True,
         }
 
