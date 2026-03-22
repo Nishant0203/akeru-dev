@@ -245,35 +245,58 @@ footer {
 }
 
 /* ═══════════════════════════════════════════
-   MOBILE — two-section scroll
-   Section 1 (#ui):             solid bg, min-height 100svh, text only
-   Section 2 (#canvas-section): transparent, height 100svh, constellation
-   Canvas: position:fixed — works correctly with native iOS window scroll
-   DO NOT set overflow on body — iOS Safari breaks fixed elements when
-   body is the scroll container. Natural document height drives scroll.
+   MOBILE PORTRAIT — scroll reveal
+   ─────────────────────────────────────────
+   #sky (fixed, z:0)    — always painting, full viewport
+   #ui  (relative, z:10) — transparent, min-height 100svh
+                           gradient overlay makes text readable
+                           sky shows through underneath
+   #canvas-section       — transparent, height 100svh
+                           constellation scrolls into view here
+   ─────────────────────────────────────────
+   Constellation origin is off-screen (below viewport) at
+   scrollY=0 so it never bleeds into the text section.
+   scroll-aware JS moves it up as user scrolls to section 2.
 ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
 
-  html, body {
-    height: auto;
-    /* No overflow setting — natural document scroll, iOS Safari safe */
-  }
+  /* body: natural document height drives scroll — no overflow needed */
+  html { height: auto; }
+  body { height: auto; }
 
-  /* Text section: position relative so sky-mobile canvas is absolute within it */
   #ui {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    grid-template-columns: none;
-    grid-template-rows: none;
     padding: 32px 26px 36px;
     min-height: 100svh;
     min-height: 100vh;
-    background: var(--bg);
+    background: transparent;   /* fixed sky shows through */
     z-index: 10;
-    pointer-events: auto;  /* CRITICAL: stop touches falling through to canvas */
-    overflow: hidden;      /* contains sky-mobile canvas */
+    pointer-events: auto;      /* block touches reaching canvas below */
+  }
+
+  /* Gradient overlay — top 70% opaque enough for text, fades to transparent */
+  #ui::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(4,6,12,0.92) 0%,
+      rgba(4,6,12,0.80) 35%,
+      rgba(4,6,12,0.50) 65%,
+      transparent       100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* All content above gradient overlay */
+  header, .middle, footer {
+    position: relative;
+    z-index: 1;
   }
 
   header { grid-column: auto; grid-row: auto; }
@@ -310,8 +333,7 @@ footer {
     align-self: flex-end;
   }
 
-  /* Canvas section: transparent, full viewport height —
-     fixed canvas is revealed beneath as user scrolls here */
+  /* Section 2: transparent — fixed canvas revealed beneath */
   #canvas-section {
     display: block;
     position: relative;
@@ -320,17 +342,6 @@ footer {
     width: 100%;
     background: transparent;
     z-index: 5;
-    pointer-events: none;
-  }
-
-  /* Starfield canvas behind text section on mobile only */
-  #sky-mobile {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
     pointer-events: none;
   }
 
@@ -352,11 +363,10 @@ footer {
   }
 }
 
-/* desktop: hide canvas section spacer and mobile footer */
+/* desktop: hide mobile elements */
 @media (min-width: 681px) {
   #canvas-section { display: none; }
   #mobile-footer  { display: none; }
-  #sky-mobile     { display: none; }
 }
 </style>
 </head>
@@ -371,9 +381,6 @@ footer {
 
 <!-- ── Main UI ─────────────────────────────────── -->
 <div id="ui">
-
-  <!-- Mobile-only starfield canvas — sits behind text content -->
-  <canvas id="sky-mobile"></canvas>
 
   <header>
     <div class="wordmark">
@@ -420,14 +427,12 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   Fixed #sky: constellation + full-viewport effects. Mobile: #sky-mobile
-   inside #ui draws starfield behind copy; document scroll (no body overflow).
-   Touch: preventDefault only when dragging a star so iOS can scroll.
+   Fixed #sky everywhere. Mobile: #ui::before gradient over starfield;
+   project() shifts constellation by scrollY. Touch: preventDefault only
+   on star drag so the page can scroll.
 ═══════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
-var canvasM = document.getElementById('sky-mobile');  /* mobile text-section starfield */
-var ctxM    = canvasM ? canvasM.getContext('2d') : null;
 var CW, CH, VW, VH, IS_MOBILE;
 
 function resize () {
@@ -439,13 +444,6 @@ function resize () {
   CH = canvas.height = VH * dpr;
   canvas.style.width  = VW + 'px';
   canvas.style.height = VH + 'px';
-  /* Size sky-mobile to match the #ui section (same as viewport on mobile) */
-  if (IS_MOBILE && canvasM) {
-    canvasM.width  = VW * dpr;
-    canvasM.height = VH * dpr;
-    canvasM.style.width  = VW + 'px';
-    canvasM.style.height = VH + 'px';
-  }
 }
 
 /* Defer first resize to rAF so iOS Safari completes layout first */
@@ -907,36 +905,6 @@ function tick (now) {
       ctx.moveTo(shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len);
       ctx.lineTo(shoot.x, shoot.y);
       ctx.strokeStyle=tr; ctx.lineWidth=1.4*dpr; ctx.stroke();
-    }
-  }
-
-  /* ── sky-mobile: stars on the text section (mobile portrait only) ── */
-  if (IS_MOBILE && ctxM && canvasM.width > 0) {
-    var mW=canvasM.width, mH=canvasM.height;
-    ctxM.clearRect(0,0,mW,mH);
-    var mbg=ctxM.createLinearGradient(0,0,0,mH);
-    mbg.addColorStop(0.00,'rgba(2,4,10,1)');
-    mbg.addColorStop(0.60,'rgba(4,6,14,1)');
-    mbg.addColorStop(1.00,'rgba(6,9,22,1)');
-    ctxM.fillStyle=mbg; ctxM.fillRect(0,0,mW,mH);
-    for (var mfi=0; mfi<field.length; mfi++) {
-      var ms=field[mfi];
-      var msa=ms.a*(1-ms.ta+ms.ta*Math.sin(ms.tw));
-      var msx=ms.x*mW, msy=ms.y*mH, msr=ms.r*dpr;
-      var mhue=ms.warm?'rgba(255,230,200,':'rgba(230,230,240,';
-      ctxM.beginPath(); ctxM.arc(msx,msy,msr,0,Math.PI*2);
-      ctxM.fillStyle=mhue+msa+')'; ctxM.fill();
-    }
-    if (shoot) {
-      var mtr=ctxM.createLinearGradient(
-        shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len,
-        shoot.x, shoot.y);
-      mtr.addColorStop(0,'rgba(220,228,255,0)');
-      mtr.addColorStop(1,'rgba(220,228,255,'+(shoot.life*0.80)+')');
-      ctxM.beginPath();
-      ctxM.moveTo(shoot.x-shoot.vx*shoot.len,shoot.y-shoot.vy*shoot.len);
-      ctxM.lineTo(shoot.x,shoot.y);
-      ctxM.strokeStyle=mtr; ctxM.lineWidth=1.4*dpr; ctxM.stroke();
     }
   }
 
