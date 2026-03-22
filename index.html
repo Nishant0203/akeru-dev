@@ -26,7 +26,6 @@ body {
   width: 100%;
   background: var(--bg);
   color: var(--ink);
-  /* Mobile default: scrollable. Desktop overrides below. */
 }
 
 /* Desktop only: lock scroll */
@@ -125,10 +124,20 @@ header {
 
 .cta-group {
   display: flex;
-  align-items: baseline;
-  gap: 2.4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.1rem;
   pointer-events: auto;
-  flex-wrap: wrap;
+}
+
+/* Desktop: side-by-side CTAs in the left column (mobile stays stacked) */
+@media (min-width: 681px) {
+  .cta-group {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 2.4rem;
+    flex-wrap: wrap;
+  }
 }
 
 /* Both CTAs — underline style, no box */
@@ -236,91 +245,89 @@ footer {
 }
 
 /* ═══════════════════════════════════════════
-   MOBILE — scrollable, text first
+   MOBILE — single viewport, text top, constellation bottom
+   Canvas stays position:fixed — shows through transparent #ui
 ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
 
-  /* Text section — solid bg, full viewport, normal flow */
+  body {
+    overflow: hidden;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* #ui covers full screen but transparent — sky shows through */
   #ui {
-    position: relative;
+    position: fixed;
+    inset: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     grid-template-columns: none;
     grid-template-rows: none;
-    padding: 32px 26px 40px;
-    min-height: 100svh;
-    min-height: 100vh;
-    background: var(--bg);
+    padding: 32px 26px 36px;
+    background: transparent;   /* sky visible behind text */
     z-index: 10;
   }
 
-  /* Footer hidden inside #ui on mobile — shown in canvas-section instead */
-  #ui footer { display: none; }
+  /* Subtle gradient behind text only — ensures readability */
+  #ui::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 65%;
+    background: linear-gradient(
+      to bottom,
+      rgba(4,6,12,0.82) 0%,
+      rgba(4,6,12,0.55) 55%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
 
   header { grid-column: auto; grid-row: auto; }
 
   .middle {
     grid-column: auto; grid-row: auto;
     padding-right: 0;
-    padding-top: 3rem;
-    flex: 1;
-    justify-content: center;
+    padding-top: 0;
+    flex: none;          /* don't stretch — sit naturally below header */
+    justify-content: flex-start;
   }
 
   .hero-title {
-    font-size: clamp(2.4rem, 10vw, 3.4rem);
-    margin-bottom: 1.1rem;
+    font-size: clamp(2.2rem, 9.5vw, 3.2rem);
+    margin-bottom: 0.85rem;
   }
 
   .platform-desc {
-    font-size: 16px;
+    font-size: 15px;
     max-width: none;
-    margin-bottom: 2rem;
+    margin-bottom: 1.6rem;
   }
 
   .cta-primary, .cta-secondary { font-size: 10px; }
-  .cta-group { gap: 2rem; }
 
-  .fn-name  { font-size: 13px; }
+  .fn-name  { font-size: 12px; }
   .wordmark { font-size: 14px; }
-  .wm-kanji { font-size: 16px; }
+  .wm-kanji { font-size: 15px; }
 
-  /* Canvas reveal section:
-     - position: relative so it participates in page flow and can be scrolled to
-     - background: transparent so the fixed canvas (#sky, z-index:0) shows through
-     - z-index: 1 — above the fixed canvas z=0 background but below #ui z=10
-       The canvas is FIXED so it stays in place as the page scrolls past #ui;
-       when #canvas-section scrolls into view the solid #ui background lifts away
-       and the fixed canvas is revealed underneath */
-  #canvas-section {
-    display: block;
-    position: relative;
-    height: 100svh;
-    height: 100vh;
-    width: 100%;
-    z-index: 1;
-    background: transparent;
-    pointer-events: none;
-  }
-
-  /* Mobile footer — bottom-right of canvas section */
-  #mobile-footer {
-    display: block;
-    position: absolute;
-    bottom: 32px;
-    right: 26px;
+  /* Footer bottom-right, floats over constellation */
+  footer {
+    grid-column: auto;
+    grid-row: auto;
     text-align: right;
-    pointer-events: none;
+    align-self: flex-end;
   }
 
-  /* Star triggers stay fixed, active once canvas is visible */
-  #meissa-trigger,
-  #phi1-trigger,
-  #phi2-trigger { pointer-events: auto; }
+  /* #canvas-section hidden on mobile — no scroll needed */
+  #canvas-section { display: none; }
+  #mobile-footer  { display: none; }
 
   @media (max-width: 380px) {
-    .cta-group { flex-direction: column; align-items: flex-start; gap: 1.4rem; }
+    .cta-group { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
+    .hero-title { font-size: 2rem; }
   }
 }
 
@@ -330,28 +337,7 @@ footer {
   #mobile-footer  { display: none; }
 }
 
-/* ── Mobile canvas — absolute inside canvas-section, not fixed ── */
-/* This is what makes iOS Safari work. Fixed elements don't render  */
-/* reliably in scroll areas on WebKit. Canvas moves into the flow.  */
-@media (max-width: 680px) {
-  #sky {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  #canvas-section {
-    position: relative;
-    overflow: hidden;
-  }
-  /* Star triggers also move to absolute within canvas-section */
-  #meissa-trigger,
-  #phi1-trigger,
-  #phi2-trigger {
-    position: absolute;
-    /* JS still positions them via left/top — works with absolute too */
-  }
-}
+/* Mobile canvas override removed — canvas stays position:fixed on all viewports */
 </style>
 </head>
 <body>
@@ -411,68 +397,28 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   On desktop: canvas stays at body level, position:fixed
-   On mobile:  canvas is moved inside #canvas-section,
-               position:absolute — iOS Safari requires this
+   Canvas stays position:fixed on all viewports.
+   On mobile #ui is transparent so the fixed sky shows through.
 ═══════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
-var section = document.getElementById('canvas-section');
 var CW, CH, VW, VH, IS_MOBILE;
-
-function applyMobileCanvas () {
-  if (section && canvas.parentNode !== section) {
-    section.insertBefore(canvas, section.firstChild);
-  }
-  /* Also move star triggers so they sit inside the scrollable section */
-  ['meissa-trigger','phi1-trigger','phi2-trigger'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el && el.parentNode !== section) section.appendChild(el);
-  });
-}
-
-function applyDesktopCanvas () {
-  if (canvas.parentNode !== document.body) {
-    document.body.insertBefore(canvas, document.body.firstChild);
-  }
-  /* Return star triggers to body */
-  ['meissa-trigger','phi1-trigger','phi2-trigger'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el && el.parentNode !== document.body) {
-      document.body.insertBefore(el, document.body.firstChild);
-    }
-  });
-}
 
 function resize () {
   var dpr = window.devicePixelRatio || 1;
   IS_MOBILE = window.innerWidth <= 680;
-
-  if (IS_MOBILE) {
-    applyMobileCanvas();
-  } else {
-    applyDesktopCanvas();
-  }
-
-  /* Always size against window — canvas fills 100% of its container
-     (viewport on desktop, 100svh section on mobile). Using
-     section.offsetHeight at parse time returns 0 on iOS Safari
-     before CSS layout has run. window.innerWidth/Height is
-     always available and correct. */
   VW = window.innerWidth;
   VH = window.innerHeight;
-
   CW = canvas.width  = VW * dpr;
   CH = canvas.height = VH * dpr;
   canvas.style.width  = VW + 'px';
   canvas.style.height = VH + 'px';
 }
 
-/* Defer first resize to rAF so iOS Safari has completed layout
-   before we read dimensions and start the render loop */
+/* Defer first resize to rAF so iOS Safari completes layout first */
 requestAnimationFrame(function () {
   resize();
-  requestAnimationFrame(tick);   /* start loop only after first resize */
+  requestAnimationFrame(tick);
 });
 window.addEventListener('resize', resize);
 
@@ -544,12 +490,12 @@ for (var si = 0; si < S.length; si++) {
   }
 }
 
-var K_HOME   = 0.038;   /* softer home spring — stars wander visibly */
+var K_HOME   = 0.055;   /* moderate home spring */
 var K_LINK   = 0.022;
 var DAMP     = 0.920;
-var BREATH_A = 28.0;    /* strong breathing oscillation */
+var BREATH_A = 16.0;    /* visible but not excessive */
 var BREATH_W = 0.13;
-var NOISE    = 0.65;    /* Brownian drift clearly visible */
+var NOISE    = 0.18;    /* gentle Brownian drift */
 var AUTO_SPIN = 0.000055;
 
 var rotX = -0.24, rotY = 0.32;
@@ -585,7 +531,7 @@ function project (local, M) {
        originY = VH * 0.42  (slightly above centre, looks good)
   ──────────────────────────────────────────────────────────────── */
   var originX = IS_MOBILE ? VW * 0.50 : VW * 0.70;
-  var originY = IS_MOBILE ? VH * 0.44 : VH * 0.48;
+  var originY = IS_MOBILE ? VH * 0.65 : VH * 0.48;  /* mobile: bottom 60% leaves text room */
 
   return {
     x:  (originX + w[0] * sc * p) * dpr,
@@ -724,21 +670,12 @@ var phi1Trigger   = document.getElementById('phi1-trigger');
 var phi2Trigger   = document.getElementById('phi2-trigger');
 
 function updateOverlays (pos) {
-  /* Viewport px from project(); on mobile triggers are position:absolute inside
-     #canvas-section — offset by section rect so hit targets align with stars. */
-  var ox = 0;
-  var oy = 0;
-  if (IS_MOBILE && section) {
-    var sr = section.getBoundingClientRect();
-    ox = sr.left;
-    oy = sr.top;
-  }
-  meissaTrigger.style.left = (pos.lambda.cx - ox) + 'px';
-  meissaTrigger.style.top  = (pos.lambda.cy - oy) + 'px';
-  phi1Trigger.style.left   = (pos.phi1.cx - ox) + 'px';
-  phi1Trigger.style.top    = (pos.phi1.cy - oy) + 'px';
-  phi2Trigger.style.left   = (pos.phi2.cx - ox) + 'px';
-  phi2Trigger.style.top    = (pos.phi2.cy - oy) + 'px';
+  meissaTrigger.style.left = pos.lambda.cx + 'px';
+  meissaTrigger.style.top  = pos.lambda.cy + 'px';
+  phi1Trigger.style.left   = pos.phi1.cx   + 'px';
+  phi1Trigger.style.top    = pos.phi1.cy   + 'px';
+  phi2Trigger.style.left   = pos.phi2.cx   + 'px';
+  phi2Trigger.style.top    = pos.phi2.cy   + 'px';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -894,22 +831,30 @@ function tick (now) {
   /* Shooting star */
   nextShoot -= dt;
   if (nextShoot<0 && !shoot) {
-    shoot={ x:(0.15+Math.random()*0.5)*CW, y:(0.05+Math.random()*0.2)*CH,
-            vx:(1.5+Math.random()*2.5)*CW*0.001, vy:(0.5+Math.random()*1.5)*CH*0.001,
-            life:1.0, len:60+Math.random()*80 };
-    nextShoot=7000+Math.random()*18000;
+    shoot={
+      x:  (0.10 + Math.random() * 0.55) * CW,
+      y:  (0.04 + Math.random() * 0.25) * CH,
+      vx: (1.8  + Math.random() * 2.8)  * CW  * 0.001,
+      vy: (0.4  + Math.random() * 1.2)  * CH  * 0.001,
+      life: 1.0,
+      len: 70 + Math.random() * 90
+    };
+    nextShoot = 4000 + Math.random() * 10000;
   }
   if (shoot) {
-    shoot.x+=shoot.vx; shoot.y+=shoot.vy; shoot.life-=0.025;
+    shoot.x+=shoot.vx; shoot.y+=shoot.vy; shoot.life-=0.022;
     if (shoot.life<=0) { shoot=null; }
     else {
-      var tr=ctx.createLinearGradient(shoot.x-shoot.vx*shoot.len,shoot.y-shoot.vy*shoot.len,shoot.x,shoot.y);
+      var tr=ctx.createLinearGradient(
+        shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len,
+        shoot.x, shoot.y
+      );
       tr.addColorStop(0,'rgba(220,228,255,0)');
-      tr.addColorStop(1,'rgba(220,228,255,'+(shoot.life*0.6)+')');
+      tr.addColorStop(1,'rgba(220,228,255,'+(shoot.life*0.80)+')');
       ctx.beginPath();
-      ctx.moveTo(shoot.x-shoot.vx*shoot.len,shoot.y-shoot.vy*shoot.len);
-      ctx.lineTo(shoot.x,shoot.y);
-      ctx.strokeStyle=tr; ctx.lineWidth=1.2*dpr; ctx.stroke();
+      ctx.moveTo(shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len);
+      ctx.lineTo(shoot.x, shoot.y);
+      ctx.strokeStyle=tr; ctx.lineWidth=1.4*dpr; ctx.stroke();
     }
   }
 
