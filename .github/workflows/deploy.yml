@@ -16,10 +16,22 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
             cd /opt/akeru-dev
             git pull origin main
             find . -name "*.pyc" -delete
-            find . -name "__pycache__" -type d -exec rm -rf {} +
+            find . -name "__pycache__" -type d -exec rm -rf {} + || true
             systemctl restart vanik
-            sleep 3
-            systemctl is-active vanik
+            # is-active exits 3 while "activating" — 3s is often too short for Vanik.
+            for i in $(seq 1 60); do
+              if systemctl is-active --quiet vanik; then
+                echo "vanik: active"
+                systemctl is-active vanik
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "vanik: timeout waiting for active (120s)"
+            systemctl status vanik --no-pager -l || true
+            journalctl -u vanik -n 80 --no-pager || true
+            exit 1
