@@ -130,7 +130,7 @@ header {
   pointer-events: auto;
 }
 
-/* Desktop: side-by-side CTAs in the left column (mobile stays stacked) */
+/* Desktop: horizontal CTAs in the left column */
 @media (min-width: 681px) {
   .cta-group {
     flex-direction: row;
@@ -245,43 +245,46 @@ footer {
 }
 
 /* ═══════════════════════════════════════════
-   MOBILE — single viewport, text top, constellation bottom
-   Canvas stays position:fixed — shows through transparent #ui
+   MOBILE — two-section scroll
+   Section 1 (#ui):            solid bg, full viewport, text only
+   Section 2 (#canvas-section): transparent, full viewport, constellation
+   Canvas: position:fixed, always painting, origin tracks scroll
 ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
 
   body {
-    overflow: hidden;
-    height: 100vh;
-    height: 100svh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: auto;
+    /* Prevent rubber-band bounce revealing canvas behind #ui */
+    overscroll-behavior-y: none;
   }
 
-  /* #ui covers full screen but transparent — sky shows through */
+  /* Text section: solid bg so constellation is hidden beneath */
   #ui {
-    position: fixed;
-    inset: 0;
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     grid-template-columns: none;
     grid-template-rows: none;
     padding: 32px 26px 36px;
-    background: transparent;   /* sky visible behind text */
+    min-height: 100svh;
+    min-height: 100vh;
+    background: var(--bg);  /* solid — hides constellation */
     z-index: 10;
   }
 
-  /* Subtle gradient behind text only — ensures readability */
-  #ui::before {
+  /* Stars still visible on text section — canvas paints stars everywhere
+     but constellation is off-screen (see JS originY logic) */
+
+  /* Punch a hole at bottom of text section so field stars bleed through */
+  #ui::after {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 65%;
-    background: linear-gradient(
-      to bottom,
-      rgba(4,6,12,0.82) 0%,
-      rgba(4,6,12,0.55) 55%,
-      transparent 100%
-    );
+    bottom: 0; left: 0; right: 0;
+    height: 28%;
+    background: linear-gradient(to bottom, transparent, var(--bg));
     pointer-events: none;
     z-index: -1;
   }
@@ -292,7 +295,7 @@ footer {
     grid-column: auto; grid-row: auto;
     padding-right: 0;
     padding-top: 0;
-    flex: none;          /* don't stretch — sit naturally below header */
+    flex: none;
     justify-content: flex-start;
   }
 
@@ -313,7 +316,6 @@ footer {
   .wordmark { font-size: 14px; }
   .wm-kanji { font-size: 15px; }
 
-  /* Footer bottom-right, floats over constellation */
   footer {
     grid-column: auto;
     grid-row: auto;
@@ -321,12 +323,32 @@ footer {
     align-self: flex-end;
   }
 
-  /* #canvas-section hidden on mobile — no scroll needed */
-  #canvas-section { display: none; }
-  #mobile-footer  { display: none; }
+  /* Canvas section: transparent — fixed canvas reveals beneath */
+  #canvas-section {
+    display: block;
+    position: relative;
+    height: 100svh;
+    height: 100vh;
+    width: 100%;
+    background: transparent;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  #mobile-footer {
+    display: block;
+    position: absolute;
+    bottom: 32px;
+    right: 26px;
+    text-align: right;
+    pointer-events: none;
+  }
+
+  #meissa-trigger,
+  #phi1-trigger,
+  #phi2-trigger { pointer-events: auto; }
 
   @media (max-width: 380px) {
-    .cta-group { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
     .hero-title { font-size: 2rem; }
   }
 }
@@ -336,8 +358,6 @@ footer {
   #canvas-section { display: none; }
   #mobile-footer  { display: none; }
 }
-
-/* Mobile canvas override removed — canvas stays position:fixed on all viewports */
 </style>
 </head>
 <body>
@@ -397,8 +417,8 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   Canvas stays position:fixed on all viewports.
-   On mobile #ui is transparent so the fixed sky shows through.
+   Fixed #sky on all viewports. Mobile: solid #ui then scroll to
+   #canvas-section; project() shifts constellation by scrollY.
 ═══════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
@@ -523,15 +543,30 @@ function project (local, M) {
   var p   = FL / (FL + w[2] * sc);
 
   /* ── Origin position ──────────────────────────────────────────
-     Desktop: shifted right — constellation occupies right 52%
-       originX = VW * 0.70
-       originY = VH * 0.48  (vertically centred in right column)
-     Mobile:  centred — full viewport canvas reveal section
-       originX = VW * 0.50
-       originY = VH * 0.42  (slightly above centre, looks good)
+     Desktop: fixed right column
+       originX = VW * 0.70,  originY = VH * 0.48
+
+     Mobile: scroll-aware — constellation starts off the bottom of
+     the fixed canvas viewport when scrollY=0 (hidden behind #ui),
+     then rises into centre as user scrolls to #canvas-section.
+
+     scrollFrac = scrollY / VH
+       0  (top of page) → originY = VH * 1.35  (off canvas, invisible)
+       1  (canvas section) → originY = VH * 0.48 (centred)
+
+     This means the fixed canvas always renders the constellation —
+     it is simply outside the viewport on screen 1. No clipping,
+     no re-parenting, no stacking tricks required. Works on iOS Safari.
   ──────────────────────────────────────────────────────────────── */
-  var originX = IS_MOBILE ? VW * 0.50 : VW * 0.70;
-  var originY = IS_MOBILE ? VH * 0.65 : VH * 0.48;  /* mobile: bottom 60% leaves text room */
+  var originX, originY;
+  if (IS_MOBILE) {
+    var scrollFrac = Math.min(Math.max((window.scrollY || window.pageYOffset) / VH, 0), 1);
+    originX = VW * 0.50;
+    originY = VH * (1.35 - scrollFrac * 0.87); /* 1.35 → 0.48 */
+  } else {
+    originX = VW * 0.70;
+    originY = VH * 0.48;
+  }
 
   return {
     x:  (originX + w[0] * sc * p) * dpr,
