@@ -469,12 +469,12 @@ for (var si = 0; si < S.length; si++) {
   }
 }
 
-var K_HOME   = 0.085;
-var K_LINK   = 0.018;
-var DAMP     = 0.910;
-var BREATH_A = 8.0;
-var BREATH_W = 0.17;
-var NOISE    = 0.09;
+var K_HOME   = 0.038;   /* softer home spring — stars wander visibly */
+var K_LINK   = 0.022;
+var DAMP     = 0.920;
+var BREATH_A = 28.0;    /* strong breathing oscillation */
+var BREATH_W = 0.13;
+var NOISE    = 0.65;    /* Brownian drift clearly visible */
 var AUTO_SPIN = 0.000055;
 
 var rotX = -0.24, rotY = 0.32;
@@ -497,7 +497,7 @@ var FL = 680;
 
 function project (local, M) {
   var dpr = window.devicePixelRatio || 1;
-  var sc  = Math.min(VW, VH) * (IS_MOBILE ? 0.0032 : 0.00115);
+  var sc  = Math.min(VW, VH) * (IS_MOBILE ? 0.0032 : 0.0024);
   var w   = mv3(M, local);
   var p   = FL / (FL + w[2] * sc);
 
@@ -671,12 +671,12 @@ function nearStar (mx, my) {
 function onDown (mx, my) {
   PTR.down = true; PTR.px = mx; PTR.py = my;
   PTR.star = nearStar(mx, my);
-  if (PTR.star >= 0) { S[PTR.star]._grabbed = true; canvas.style.cursor = 'grabbing'; }
+  if (PTR.star >= 0) { S[PTR.star]._grabbed = true; document.body.style.cursor = 'grabbing'; }
   vRotX = 0; vRotY = 0;
 }
 function onMove (mx, my) {
   if (!PTR.down) {
-    canvas.style.cursor = nearStar(mx, my) >= 0 ? 'grab' : 'default';
+    document.body.style.cursor = nearStar(mx, my) >= 0 ? 'grab' : 'default';
     return;
   }
   var dx = mx-PTR.px, dy = my-PTR.py;
@@ -685,7 +685,7 @@ function onMove (mx, my) {
     var st = S[PTR.star];
     var M  = rotMat(rotX, rotY);
     var w  = mv3(M, st.pos);
-    var sc = Math.min(VW,VH)*0.00185;
+    var sc = Math.min(VW,VH) * (IS_MOBILE ? 0.0032 : 0.0024);
     var persp = FL/(FL+w[2]*sc);
     var ld = mvT3(M, [dx/(persp*sc), dy/(persp*sc), 0]);
     st.pos[0]+=ld[0]; st.pos[1]+=ld[1]; st.pos[2]+=ld[2]*0.07;
@@ -697,13 +697,21 @@ function onMove (mx, my) {
 }
 function onUp () {
   if (PTR.star>=0) { S[PTR.star]._grabbed=false; PTR.star=-1; }
-  PTR.down=false; canvas.style.cursor='default';
+  PTR.down=false; document.body.style.cursor='default';
 }
 
-canvas.addEventListener('mousedown', function(e){ onDown(e.clientX,e.clientY); });
+/* Listen on window for mousedown so fixed z-index anchors
+   over the canvas don't swallow the event before canvas sees it.
+   preventDefault on star drag stops the anchor navigation firing. */
+window.addEventListener('mousedown', function(e){
+  var idx = nearStar(e.clientX, e.clientY);
+  if (idx >= 0) e.preventDefault();   // stop anchor navigation when dragging a star
+  onDown(e.clientX, e.clientY);
+});
 window.addEventListener('mousemove', function(e){ onMove(e.clientX,e.clientY); });
 window.addEventListener('mouseup',   onUp);
 
+/* Touch — keep on canvas; touch events bubble correctly */
 canvas.addEventListener('touchstart', function(e){
   e.preventDefault();
   var t=e.touches[0]; onDown(t.clientX,t.clientY);
@@ -722,7 +730,7 @@ canvas.addEventListener('touchend', function(e){
 var frameT=0, lastFrameTs=0;
 function tick (now) {
   var dt = now - lastFrameTs; lastFrameTs = now;
-  frameT += 0.001;
+  frameT += dt * 0.001;  /* real seconds — breathing oscillation runs at natural speed */
   var dpr = window.devicePixelRatio || 1;
 
   if (!PTR.down || PTR.star >= 0) {
