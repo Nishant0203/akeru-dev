@@ -246,21 +246,20 @@ footer {
 
 /* ═══════════════════════════════════════════
    MOBILE — two-section scroll
-   Section 1 (#ui):            solid bg, full viewport, text only
-   Section 2 (#canvas-section): transparent, full viewport, constellation
-   Canvas: position:fixed, always painting, origin tracks scroll
+   Section 1 (#ui):             solid bg, min-height 100svh, text only
+   Section 2 (#canvas-section): transparent, height 100svh, constellation
+   Canvas: position:fixed — works correctly with native iOS window scroll
+   DO NOT set overflow on body — iOS Safari breaks fixed elements when
+   body is the scroll container. Natural document height drives scroll.
 ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
 
-  body {
-    overflow-y: scroll;
-    overflow-x: hidden;
+  html, body {
     height: auto;
-    /* Prevent rubber-band bounce revealing canvas behind #ui */
-    overscroll-behavior-y: none;
+    /* No overflow setting — natural document scroll, iOS Safari safe */
   }
 
-  /* Text section: solid bg so constellation is hidden beneath */
+  /* Text section: position relative so sky-mobile canvas is absolute within it */
   #ui {
     position: relative;
     display: flex;
@@ -271,22 +270,10 @@ footer {
     padding: 32px 26px 36px;
     min-height: 100svh;
     min-height: 100vh;
-    background: var(--bg);  /* solid — hides constellation */
+    background: var(--bg);
     z-index: 10;
-  }
-
-  /* Stars still visible on text section — canvas paints stars everywhere
-     but constellation is off-screen (see JS originY logic) */
-
-  /* Punch a hole at bottom of text section so field stars bleed through */
-  #ui::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 28%;
-    background: linear-gradient(to bottom, transparent, var(--bg));
-    pointer-events: none;
-    z-index: -1;
+    pointer-events: auto;  /* CRITICAL: stop touches falling through to canvas */
+    overflow: hidden;      /* contains sky-mobile canvas */
   }
 
   header { grid-column: auto; grid-row: auto; }
@@ -323,7 +310,8 @@ footer {
     align-self: flex-end;
   }
 
-  /* Canvas section: transparent — fixed canvas reveals beneath */
+  /* Canvas section: transparent, full viewport height —
+     fixed canvas is revealed beneath as user scrolls here */
   #canvas-section {
     display: block;
     position: relative;
@@ -332,6 +320,17 @@ footer {
     width: 100%;
     background: transparent;
     z-index: 5;
+    pointer-events: none;
+  }
+
+  /* Starfield canvas behind text section on mobile only */
+  #sky-mobile {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
     pointer-events: none;
   }
 
@@ -357,6 +356,7 @@ footer {
 @media (min-width: 681px) {
   #canvas-section { display: none; }
   #mobile-footer  { display: none; }
+  #sky-mobile     { display: none; }
 }
 </style>
 </head>
@@ -371,6 +371,9 @@ footer {
 
 <!-- ── Main UI ─────────────────────────────────── -->
 <div id="ui">
+
+  <!-- Mobile-only starfield canvas — sits behind text content -->
+  <canvas id="sky-mobile"></canvas>
 
   <header>
     <div class="wordmark">
@@ -417,11 +420,14 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   Fixed #sky on all viewports. Mobile: solid #ui then scroll to
-   #canvas-section; project() shifts constellation by scrollY.
+   Fixed #sky: constellation + full-viewport effects. Mobile: #sky-mobile
+   inside #ui draws starfield behind copy; document scroll (no body overflow).
+   Touch: preventDefault only when dragging a star so iOS can scroll.
 ═══════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
+var canvasM = document.getElementById('sky-mobile');  /* mobile text-section starfield */
+var ctxM    = canvasM ? canvasM.getContext('2d') : null;
 var CW, CH, VW, VH, IS_MOBILE;
 
 function resize () {
@@ -433,6 +439,13 @@ function resize () {
   CH = canvas.height = VH * dpr;
   canvas.style.width  = VW + 'px';
   canvas.style.height = VH + 'px';
+  /* Size sky-mobile to match the #ui section (same as viewport on mobile) */
+  if (IS_MOBILE && canvasM) {
+    canvasM.width  = VW * dpr;
+    canvasM.height = VH * dpr;
+    canvasM.style.width  = VW + 'px';
+    canvasM.style.height = VH + 'px';
+  }
 }
 
 /* Defer first resize to rAF so iOS Safari completes layout first */
@@ -767,18 +780,22 @@ window.addEventListener('mousedown', function(e){
 window.addEventListener('mousemove', function(e){ onMove(e.clientX,e.clientY); });
 window.addEventListener('mouseup',   onUp);
 
-/* Touch — keep on canvas; touch events bubble correctly */
+/* Touch — only preventDefault when touching a star.
+   Unconditional preventDefault blocks native page scroll on mobile. */
 canvas.addEventListener('touchstart', function(e){
-  e.preventDefault();
-  var t=e.touches[0]; onDown(t.clientX,t.clientY);
-},{ passive:false });
+  var t = e.touches[0];
+  var idx = nearStar(t.clientX, t.clientY);
+  if (idx >= 0) e.preventDefault();   /* star drag — block scroll */
+  onDown(t.clientX, t.clientY);
+}, { passive: false });
 canvas.addEventListener('touchmove', function(e){
-  e.preventDefault();
-  var t=e.touches[0]; onMove(t.clientX,t.clientY);
-},{ passive:false });
+  if (PTR.star >= 0) e.preventDefault(); /* only block scroll while dragging star */
+  var t = e.touches[0]; onMove(t.clientX, t.clientY);
+}, { passive: false });
 canvas.addEventListener('touchend', function(e){
-  e.preventDefault(); onUp();
-},{ passive:false });
+  if (PTR.star >= 0) e.preventDefault();
+  onUp();
+}, { passive: false });
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN LOOP
@@ -890,6 +907,36 @@ function tick (now) {
       ctx.moveTo(shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len);
       ctx.lineTo(shoot.x, shoot.y);
       ctx.strokeStyle=tr; ctx.lineWidth=1.4*dpr; ctx.stroke();
+    }
+  }
+
+  /* ── sky-mobile: stars on the text section (mobile portrait only) ── */
+  if (IS_MOBILE && ctxM && canvasM.width > 0) {
+    var mW=canvasM.width, mH=canvasM.height;
+    ctxM.clearRect(0,0,mW,mH);
+    var mbg=ctxM.createLinearGradient(0,0,0,mH);
+    mbg.addColorStop(0.00,'rgba(2,4,10,1)');
+    mbg.addColorStop(0.60,'rgba(4,6,14,1)');
+    mbg.addColorStop(1.00,'rgba(6,9,22,1)');
+    ctxM.fillStyle=mbg; ctxM.fillRect(0,0,mW,mH);
+    for (var mfi=0; mfi<field.length; mfi++) {
+      var ms=field[mfi];
+      var msa=ms.a*(1-ms.ta+ms.ta*Math.sin(ms.tw));
+      var msx=ms.x*mW, msy=ms.y*mH, msr=ms.r*dpr;
+      var mhue=ms.warm?'rgba(255,230,200,':'rgba(230,230,240,';
+      ctxM.beginPath(); ctxM.arc(msx,msy,msr,0,Math.PI*2);
+      ctxM.fillStyle=mhue+msa+')'; ctxM.fill();
+    }
+    if (shoot) {
+      var mtr=ctxM.createLinearGradient(
+        shoot.x-shoot.vx*shoot.len, shoot.y-shoot.vy*shoot.len,
+        shoot.x, shoot.y);
+      mtr.addColorStop(0,'rgba(220,228,255,0)');
+      mtr.addColorStop(1,'rgba(220,228,255,'+(shoot.life*0.80)+')');
+      ctxM.beginPath();
+      ctxM.moveTo(shoot.x-shoot.vx*shoot.len,shoot.y-shoot.vy*shoot.len);
+      ctxM.lineTo(shoot.x,shoot.y);
+      ctxM.strokeStyle=mtr; ctxM.lineWidth=1.4*dpr; ctxM.stroke();
     }
   }
 
