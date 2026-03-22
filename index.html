@@ -329,6 +329,29 @@ footer {
   #canvas-section { display: none; }
   #mobile-footer  { display: none; }
 }
+
+/* ── Mobile canvas — absolute inside canvas-section, not fixed ── */
+/* This is what makes iOS Safari work. Fixed elements don't render  */
+/* reliably in scroll areas on WebKit. Canvas moves into the flow.  */
+@media (max-width: 680px) {
+  #sky {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #canvas-section {
+    position: relative;
+    overflow: hidden;
+  }
+  /* Star triggers also move to absolute within canvas-section */
+  #meissa-trigger,
+  #phi1-trigger,
+  #phi2-trigger {
+    position: absolute;
+    /* JS still positions them via left/top — works with absolute too */
+  }
+}
 </style>
 </head>
 <body>
@@ -388,22 +411,69 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
+   On desktop: canvas stays at body level, position:fixed
+   On mobile:  canvas is moved inside #canvas-section,
+               position:absolute — iOS Safari requires this
 ═══════════════════════════════════════════════════════════════ */
-var canvas = document.getElementById('sky');
-var ctx    = canvas.getContext('2d');
+var canvas  = document.getElementById('sky');
+var ctx     = canvas.getContext('2d');
+var section = document.getElementById('canvas-section');
 var CW, CH, VW, VH, IS_MOBILE;
+
+function applyMobileCanvas () {
+  if (section && canvas.parentNode !== section) {
+    section.insertBefore(canvas, section.firstChild);
+  }
+  /* Also move star triggers so they sit inside the scrollable section */
+  ['meissa-trigger','phi1-trigger','phi2-trigger'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el && el.parentNode !== section) section.appendChild(el);
+  });
+}
+
+function applyDesktopCanvas () {
+  if (canvas.parentNode !== document.body) {
+    document.body.insertBefore(canvas, document.body.firstChild);
+  }
+  /* Return star triggers to body */
+  ['meissa-trigger','phi1-trigger','phi2-trigger'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el && el.parentNode !== document.body) {
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+  });
+}
 
 function resize () {
   var dpr = window.devicePixelRatio || 1;
+  IS_MOBILE = window.innerWidth <= 680;
+
+  if (IS_MOBILE) {
+    applyMobileCanvas();
+  } else {
+    applyDesktopCanvas();
+  }
+
+  /* Always size against window — canvas fills 100% of its container
+     (viewport on desktop, 100svh section on mobile). Using
+     section.offsetHeight at parse time returns 0 on iOS Safari
+     before CSS layout has run. window.innerWidth/Height is
+     always available and correct. */
   VW = window.innerWidth;
   VH = window.innerHeight;
+
   CW = canvas.width  = VW * dpr;
   CH = canvas.height = VH * dpr;
   canvas.style.width  = VW + 'px';
   canvas.style.height = VH + 'px';
-  IS_MOBILE = VW <= 680;
 }
-resize();
+
+/* Defer first resize to rAF so iOS Safari has completed layout
+   before we read dimensions and start the render loop */
+requestAnimationFrame(function () {
+  resize();
+  requestAnimationFrame(tick);   /* start loop only after first resize */
+});
 window.addEventListener('resize', resize);
 
 /* ═══════════════════════════════════════════════════════════════
@@ -654,12 +724,21 @@ var phi1Trigger   = document.getElementById('phi1-trigger');
 var phi2Trigger   = document.getElementById('phi2-trigger');
 
 function updateOverlays (pos) {
-  meissaTrigger.style.left = pos.lambda.cx + 'px';
-  meissaTrigger.style.top  = pos.lambda.cy + 'px';
-  phi1Trigger.style.left   = pos.phi1.cx   + 'px';
-  phi1Trigger.style.top    = pos.phi1.cy   + 'px';
-  phi2Trigger.style.left   = pos.phi2.cx   + 'px';
-  phi2Trigger.style.top    = pos.phi2.cy   + 'px';
+  /* Viewport px from project(); on mobile triggers are position:absolute inside
+     #canvas-section — offset by section rect so hit targets align with stars. */
+  var ox = 0;
+  var oy = 0;
+  if (IS_MOBILE && section) {
+    var sr = section.getBoundingClientRect();
+    ox = sr.left;
+    oy = sr.top;
+  }
+  meissaTrigger.style.left = (pos.lambda.cx - ox) + 'px';
+  meissaTrigger.style.top  = (pos.lambda.cy - oy) + 'px';
+  phi1Trigger.style.left   = (pos.phi1.cx - ox) + 'px';
+  phi1Trigger.style.top    = (pos.phi1.cy - oy) + 'px';
+  phi2Trigger.style.left   = (pos.phi2.cx - ox) + 'px';
+  phi2Trigger.style.top    = (pos.phi2.cy - oy) + 'px';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -836,7 +915,7 @@ function tick (now) {
 
   requestAnimationFrame(tick);
 }
-requestAnimationFrame(tick);
+/* Loop is started from the deferred resize above */
 })();
 </script>
 </body>
