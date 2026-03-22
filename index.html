@@ -26,9 +26,15 @@ body {
   width: 100%;
   background: var(--bg);
   color: var(--ink);
-  /* desktop: no scroll — full-screen canvas */
-  overflow: hidden;
-  height: 100vh;
+  /* Mobile default: scrollable. Desktop overrides below. */
+}
+
+/* Desktop only: lock scroll */
+@media (min-width: 681px) {
+  body {
+    overflow: hidden;
+    height: 100vh;
+  }
 }
 
 #sky {
@@ -145,7 +151,7 @@ header {
 }
 
 .cta-primary   { color: var(--ink); }
-.cta-secondary { color: var(--ink-mid); }
+.cta-secondary { color: var(--ink); }
 
 /* Star arrow pseudo-element — ✦ › rendered small and gold */
 .cta-primary::after,
@@ -234,12 +240,6 @@ footer {
 ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
 
-  body {
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: auto;
-  }
-
   /* Text section — solid bg, full viewport, normal flow */
   #ui {
     position: relative;
@@ -279,7 +279,6 @@ footer {
     margin-bottom: 2rem;
   }
 
-  /* No box sizing on mobile either */
   .cta-primary, .cta-secondary { font-size: 10px; }
   .cta-group { gap: 2rem; }
 
@@ -287,19 +286,25 @@ footer {
   .wordmark { font-size: 14px; }
   .wm-kanji { font-size: 16px; }
 
-  /* Canvas reveal section — fixed canvas shows through */
+  /* Canvas reveal section:
+     - position: relative so it participates in page flow and can be scrolled to
+     - background: transparent so the fixed canvas (#sky, z-index:0) shows through
+     - z-index: 1 — above the fixed canvas z=0 background but below #ui z=10
+       The canvas is FIXED so it stays in place as the page scrolls past #ui;
+       when #canvas-section scrolls into view the solid #ui background lifts away
+       and the fixed canvas is revealed underneath */
   #canvas-section {
     display: block;
+    position: relative;
     height: 100svh;
     height: 100vh;
     width: 100%;
-    position: relative;
-    z-index: 5;
+    z-index: 1;
     background: transparent;
     pointer-events: none;
   }
 
-  /* Footer lives at bottom of canvas section on mobile */
+  /* Mobile footer — bottom-right of canvas section */
   #mobile-footer {
     display: block;
     position: absolute;
@@ -309,7 +314,7 @@ footer {
     pointer-events: none;
   }
 
-  /* Star triggers stay fixed */
+  /* Star triggers stay fixed, active once canvas is visible */
   #meissa-trigger,
   #phi1-trigger,
   #phi2-trigger { pointer-events: auto; }
