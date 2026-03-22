@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import logging
 import os
@@ -1044,10 +1045,18 @@ if _batch_demo_dir.is_dir():
     )
 _starlette_routes.extend(routes)
 
+
+@asynccontextmanager
+async def _session_gw_lifespan(_app: Starlette):
+    await _dictionary_startup()
+    await _batch_startup()
+    yield
+
+
 app = Starlette(
     debug=False,
     routes=_starlette_routes,
-    on_startup=[_dictionary_startup, _batch_startup],
+    lifespan=_session_gw_lifespan,
     middleware=[
         Middleware(
             CORSMiddleware,
