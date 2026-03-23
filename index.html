@@ -107,7 +107,57 @@ header {
   line-height: 1.08;
   letter-spacing: -0.01em;
   color: var(--ink);
-  margin-bottom: 1.4rem;
+  margin: 0;
+}
+
+/* ── ROLODEX ─────────────────────────────────────────────────────────────
+   Vertical carousel — two slides, wheel/swipe/arrow to advance.
+   .rolodex clips the track; height set by JS from measured slide.
+   .rolodex-track translates between slide 0 (Y=0) and slide 1 (Y=-height).
+──────────────────────────────────────────────────────────────────────── */
+.rolodex {
+  overflow: hidden;
+  margin-bottom: 1.6rem;
+  /* fallback height; JS overwrites with exact measurement */
+  height: calc(clamp(2.8rem, 4.8vw, 5.2rem) * 1.08 * 2.3);
+  position: relative;
+}
+
+.rolodex-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 1.4s cubic-bezier(0.22, 1.56, 0.36, 1);
+  will-change: transform;
+}
+
+.rolodex-slide {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* ── SLIDE CONTENT — desc + CTAs, crossfades per active slide ── */
+.slide-meta {
+  position: relative;
+}
+
+.slide-content {
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.slide-content[aria-hidden="true"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
+
+.slide-content[aria-hidden="false"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .platform-desc {
@@ -119,7 +169,7 @@ header {
   letter-spacing: 0.02em;
   line-height: 1.65;
   max-width: 40ch;
-  margin-bottom: 3rem;
+  margin-bottom: 2.4rem;
 }
 
 .cta-group {
@@ -130,7 +180,7 @@ header {
   pointer-events: auto;
 }
 
-/* Desktop: horizontal CTAs in the left column */
+/* Desktop: horizontal CTAs in each slide */
 @media (min-width: 681px) {
   .cta-group {
     flex-direction: row;
@@ -139,6 +189,97 @@ header {
     flex-wrap: wrap;
   }
 }
+
+/* ── ROLODEX INDICATOR — two small lines, bottom of .middle ── */
+.rolodex-indicator {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2.4rem;
+  pointer-events: auto;
+}
+
+.ri-dot {
+  display: block;
+  height: 1px;
+  background: rgba(226,221,214,0.22);
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.45s ease;
+  cursor: pointer;
+}
+
+.ri-dot:not(.active) { width: 16px; }
+.ri-dot.active {
+  width: 32px;
+  background: rgba(184,154,90,0.70);
+}
+
+/* ── Blinking chevron arrows — hint that slide 2 exists ── */
+@keyframes arrowBlink {
+  0%, 100% { opacity: 0.18; transform: translateY(0); }
+  50%       { opacity: 0.75; transform: translateY(5px); }
+}
+
+.slide-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-top: 1.6rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.8s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.slide-arrows.hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.slide-arrow {
+  display: block;
+  width: 28px;
+  height: 13px;
+  position: relative;
+  animation: arrowBlink 2.2s ease-in-out infinite;
+}
+
+.slide-arrow:nth-child(2) {
+  animation-delay: 0.55s;
+}
+
+.slide-arrow::before,
+.slide-arrow::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  width: 15px;
+  height: 1.5px;
+  background: rgba(200,169,110,0.90);
+  border-radius: 1px;
+}
+.slide-arrow::before { left: 0;   transform: rotate(30deg);  transform-origin: left center; }
+.slide-arrow::after  { right: 0;  transform: rotate(-30deg); transform-origin: right center; }
+
+/* Up arrow variant — slide 2 → back to slide 1 */
+@keyframes arrowBlinkUp {
+  0%, 100% { opacity: 0.18; transform: translateY(0); }
+  50%       { opacity: 0.75; transform: translateY(-5px); }
+}
+
+.slide-arrows--up {
+  margin-top: 1.6rem;
+  margin-bottom: 0;
+}
+
+/* reverse cascade: top arrow leads */
+.slide-arrows--up .slide-arrow:nth-child(1) { animation: arrowBlinkUp 2.2s ease-in-out infinite 0s; }
+.slide-arrows--up .slide-arrow:nth-child(2) { animation: arrowBlinkUp 2.2s ease-in-out infinite 0.55s; }
+
+/* flip chevrons to point up */
+.slide-arrows--up .slide-arrow::before { transform: rotate(-30deg); transform-origin: left center; }
+.slide-arrows--up .slide-arrow::after  { transform: rotate(30deg);  transform-origin: right center; }
 
 /* Both CTAs — underline style, no box */
 .cta-primary,
@@ -309,9 +450,14 @@ footer {
     justify-content: flex-start;
   }
 
+  /* On mobile, rolodex height is slightly smaller due to font clamp */
+  .rolodex {
+    height: calc(clamp(2.2rem, 9.5vw, 3.2rem) * 1.08 * 2.3);
+    margin-bottom: 1.2rem;
+  }
+
   .hero-title {
     font-size: clamp(2.2rem, 9.5vw, 3.2rem);
-    margin-bottom: 0.85rem;
   }
 
   .platform-desc {
@@ -390,16 +536,69 @@ footer {
     </div>
   </header>
 
-  <div class="middle">
-    <h1 class="hero-title">Explore the<br>Boundary Problem.</h1>
-    <p class="platform-desc">
-      AI agents for global trade compliance.
-      Built in the open. Grounded in verifiable rates.
-    </p>
-    <div class="cta-group">
-      <a class="cta-primary"   href="/phi2/">Read</a>
-      <a class="cta-secondary" href="/vidhi/">Explore Architecture</a>
+  <div class="middle" id="middle-panel">
+
+    <!-- ── Rolodex title ── -->
+    <div class="rolodex" id="rolodex" aria-live="polite">
+      <div class="rolodex-track" id="rolodex-track">
+
+        <!-- Slide 0 — Boundary Problem -->
+        <div class="rolodex-slide" id="rslide-0">
+          <h1 class="hero-title" id="hero-0">Explore the<br>Boundary Problem.</h1>
+        </div>
+
+        <!-- Slide 1 — Reasoning Layer -->
+        <div class="rolodex-slide" id="rslide-1">
+          <h1 class="hero-title" id="hero-1">The Reasoning<br>Layer.</h1>
+        </div>
+
+      </div>
     </div>
+
+    <!-- ── Slide meta — desc + CTAs per slide ── -->
+    <div class="slide-meta">
+
+      <div class="slide-content" id="scontent-0" aria-hidden="false">
+        <p class="platform-desc">
+          AI agents for global trade compliance.<br>
+          Built in the open. Grounded in verifiable rates.
+        </p>
+        <div class="cta-group">
+          <a class="cta-primary"   href="/phi2/">Read</a>
+          <a class="cta-secondary" href="/vidhi/">Explore Architecture</a>
+        </div>
+        <!-- Blinking arrows sit directly below Explore Architecture -->
+        <div class="slide-arrows" id="slide-arrows" aria-hidden="true">
+          <span class="slide-arrow"></span>
+          <span class="slide-arrow"></span>
+        </div>
+      </div>
+
+      <div class="slide-content" id="scontent-1" aria-hidden="true">
+        <p class="platform-desc">
+          How retrieval failures begin before the search call —<br>
+          and the three-module fix.
+        </p>
+        <div class="cta-group">
+          <a class="cta-primary"   href="/phi1/">Read</a>
+          <a class="cta-secondary" href="/vidhi/">Explore Architecture</a>
+        </div>
+        <!-- Up arrow — back to slide 1, same position as down arrow on slide 0 -->
+        <div class="slide-arrows slide-arrows--up" id="slide-arrows-up" aria-hidden="true">
+          <span class="slide-arrow slide-arrow--up"></span>
+          <span class="slide-arrow slide-arrow--up"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Slide indicator ── -->
+    <div class="rolodex-indicator" id="rolodex-indicator" aria-label="Navigate slides">
+      <span class="ri-dot active" data-idx="0" role="button" tabindex="0" aria-label="Slide 1: Boundary Problem"></span>
+      <span class="ri-dot"        data-idx="1" role="button" tabindex="0" aria-label="Slide 2: Reasoning Layer"></span>
+    </div>
+
+
   </div>
 
   <footer>
@@ -427,9 +626,8 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   Fixed #sky everywhere. Mobile: #ui::before gradient over starfield;
-   project() shifts constellation by scrollY. Touch: preventDefault only
-   on star drag so the page can scroll.
+   Fixed #sky; mobile gradient #ui + scroll-aware constellation.
+   Rolodex lives in separate script below.
 ═══════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
@@ -911,6 +1109,163 @@ function tick (now) {
   requestAnimationFrame(tick);
 }
 /* Loop is started from the deferred resize above */
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ROLODEX — vertical hero title carousel
+   Primary: wheel/touchpad scroll (laptop) + touch swipe (mobile)
+   Backup:  click the blinking chevron arrows
+   Gear snap: overshoot bezier gives the click-into-place feel.
+═══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var track    = document.getElementById('rolodex-track');
+  var rolodex  = document.getElementById('rolodex');
+  var panel    = document.getElementById('middle-panel');
+  var dots     = document.querySelectorAll('.ri-dot');
+  var arrowEl  = document.getElementById('slide-arrows');
+  var contents = [
+    document.getElementById('scontent-0'),
+    document.getElementById('scontent-1')
+  ];
+
+  var current   = 0;
+  var TOTAL     = 2;
+  var animating = false;
+  var slideH    = 0;
+
+  /* ── measure & lock rolodex viewport height ── */
+  function measureSlide () {
+    var h0 = document.getElementById('rslide-0').getBoundingClientRect().height;
+    var h1 = document.getElementById('rslide-1').getBoundingClientRect().height;
+    slideH = Math.max(h0, h1);
+    rolodex.style.height = (slideH + 4) + 'px';
+  }
+
+  /* ── go to slide idx ── */
+  function goTo (idx) {
+    if (idx === current || animating) return;
+    animating = true;
+
+    track.style.transform = 'translateY(-' + (idx * slideH) + 'px)';
+
+    contents[current].setAttribute('aria-hidden', 'true');
+    contents[idx].setAttribute('aria-hidden', 'false');
+
+    dots.forEach(function (d) {
+      d.classList.toggle('active', parseInt(d.dataset.idx, 10) === idx);
+    });
+
+    /* arrows: only visible on slide 0 */
+    if (arrowEl) arrowEl.classList.toggle('hidden', idx !== 0);
+
+    current = idx;
+
+    /* unlock after the 1.4s overshoot + settle + buffer */
+    setTimeout(function () { animating = false; }, 1600);
+  }
+
+  function next () { goTo((current + 1) % TOTAL); }
+  function prev () { goTo((current - 1 + TOTAL) % TOTAL); }
+
+  /* ── wheel / touchpad (primary — laptop) ── */
+  var wheelAcc = 0;
+  var WHEEL_THRESHOLD = 60;
+  panel.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    wheelAcc += e.deltaY;
+    if (wheelAcc >  WHEEL_THRESHOLD) { next(); wheelAcc = 0; }
+    if (wheelAcc < -WHEEL_THRESHOLD) { prev(); wheelAcc = 0; }
+  }, { passive: false });
+
+  /* ── touch swipe (primary — mobile) ── */
+  var touchStartY  = null;
+  var touchStartX  = null;
+  var touchOnPanel = false;
+  var SWIPE_THRESH = 42;
+
+  panel.addEventListener('touchstart', function (e) {
+    touchStartY  = e.touches[0].clientY;
+    touchStartX  = e.touches[0].clientX;
+    touchOnPanel = true;
+  }, { passive: true });
+
+  window.addEventListener('touchend', function (e) {
+    if (!touchOnPanel || touchStartY === null) return;
+    var dy = touchStartY - e.changedTouches[0].clientY;
+    var dx = Math.abs(touchStartX - e.changedTouches[0].clientX);
+    if (Math.abs(dy) > SWIPE_THRESH && Math.abs(dy) > dx * 1.4) {
+      dy > 0 ? next() : prev();
+    }
+    touchStartY  = null;
+    touchOnPanel = false;
+  }, { passive: true });
+
+  /* ── blinking arrow click (backup) ── */
+  if (arrowEl) {
+    arrowEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      next();
+    });
+  }
+
+  var arrowUpEl = document.getElementById('slide-arrows-up');
+  if (arrowUpEl) {
+    arrowUpEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      prev();
+    });
+  }
+
+  /* ── keyboard ── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  { e.preventDefault(); prev(); }
+  });
+
+  /* ── indicator dot clicks ── */
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () {
+      goTo(parseInt(d.dataset.idx, 10));
+    });
+    d.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        goTo(parseInt(d.dataset.idx, 10));
+      }
+    });
+  });
+
+  /* ── init ── */
+  function init () {
+    measureSlide();
+    track.style.transform = 'translateY(0)';
+    contents[0].setAttribute('aria-hidden', 'false');
+    contents[1].setAttribute('aria-hidden', 'true');
+    if (arrowEl) arrowEl.classList.remove('hidden');
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(init);
+  } else {
+    window.addEventListener('load', init);
+  }
+
+  /* re-measure on resize */
+  var resizeRolodexTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeRolodexTimer);
+    resizeRolodexTimer = setTimeout(function () {
+      measureSlide();
+      track.style.transition = 'none';
+      track.style.transform  = 'translateY(-' + (current * slideH) + 'px)';
+      requestAnimationFrame(function () { track.style.transition = ''; });
+    }, 120);
+  });
+
 })();
 </script>
 </body>
