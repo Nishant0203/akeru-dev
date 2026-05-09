@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>akeru · 明ける</title>
-<meta name="description" content="Mrigashira — the fifth nakshatra. A constellation of AI agents for global trade.">
+<meta name="description" content="Will ERP systems become the trust layer for autonomous commerce? Rohini — the fourth nakshatra.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cormorant+Infant:ital,wght@1,300;1,400&family=DM+Mono:wght@300;400&family=Noto+Sans+Devanagari:wght@300;400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -46,7 +46,7 @@ body {
 
 /* ═══════════════════════════════════════════
    DESKTOP LAYOUT — two column
-═══════════════════════════════════════════ */
+═══════════════════════════════════════════════════ */
 #ui {
   position: fixed;
   inset: 0;
@@ -67,18 +67,8 @@ header {
 }
 
 .wordmark {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  color: var(--ink);
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-.wm-sep {
-  width: 1px; height: 14px;
-  background: rgba(226,221,214,0.20);
 }
 .wm-kanji {
   font-family: 'Cormorant Garamond', serif;
@@ -102,37 +92,17 @@ header {
 /* Hero title — Mistral scale */
 .hero-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(2.8rem, 4.8vw, 5.2rem);
+  font-size: clamp(2.0rem, 3.8vw, 4.2rem);
   font-weight: 400;
-  line-height: 1.08;
+  line-height: 1.10;
   letter-spacing: -0.01em;
   color: var(--ink);
   margin: 0;
 }
 
-/* ── ROLODEX ─────────────────────────────────────────────────────────────
-   Vertical carousel — two slides, wheel/swipe/arrow to advance.
-   .rolodex clips the track; height set by JS from measured slide.
-   .rolodex-track translates between slide 0 (Y=0) and slide 1 (Y=-height).
-──────────────────────────────────────────────────────────────────────── */
-.rolodex {
-  overflow: hidden;
+/* ── HERO CONTAINER ── */
+.hero-container {
   margin-bottom: 1.6rem;
-  /* fallback height; JS overwrites with exact measurement */
-  height: calc(clamp(2.8rem, 4.8vw, 5.2rem) * 1.08 * 2.3);
-  position: relative;
-}
-
-.rolodex-track {
-  display: flex;
-  flex-direction: column;
-  transition: transform 1.4s cubic-bezier(0.22, 1.56, 0.36, 1);
-  will-change: transform;
-}
-
-.rolodex-slide {
-  flex-shrink: 0;
-  width: 100%;
 }
 
 /* ── SLIDE CONTENT — desc + CTAs, crossfades per active slide ── */
@@ -178,16 +148,6 @@ header {
   align-items: flex-start;
   gap: 1.1rem;
   pointer-events: auto;
-}
-
-/* Desktop: horizontal CTAs in each slide */
-@media (min-width: 681px) {
-  .cta-group {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 2.4rem;
-    flex-wrap: wrap;
-  }
 }
 
 /* ── ROLODEX INDICATOR — two small lines, bottom of .middle ── */
@@ -269,8 +229,8 @@ header {
 }
 
 .slide-arrows--up {
-  margin-top: 1.6rem;
-  margin-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0.9rem;
 }
 
 /* reverse cascade: top arrow leads */
@@ -294,7 +254,10 @@ header {
   align-items: baseline;
   gap: 7px;
   padding: 0 0 3px 0;
+  border: none;
   border-bottom: 1px solid rgba(226,221,214,0.30);
+  background: none;
+  cursor: pointer;
   transition: color 0.22s, border-color 0.22s;
   white-space: nowrap;
   line-height: 1.6;
@@ -366,23 +329,96 @@ footer {
   color: rgba(226,221,214,0.18);
 }
 
-/* ── STAR CLICK TARGETS ── */
-#meissa-trigger,
-#phi1-trigger,
-#phi2-trigger {
+/* ═══════════════════════════════════════════
+   MODAL OVERLAY
+═══════════════════════════════════════════ */
+#modal-overlay {
   position: fixed;
-  z-index: 30;
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  backdrop-filter: blur(8px);
+  background: rgba(4, 6, 12, 0.75);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#modal-overlay.modal-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#modal-overlay:not(.modal-hidden) {
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
-  text-decoration: none;
-  color: transparent;
-  background: transparent;
-  border: none;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
+}
+
+.modal-content {
+  background: rgba(30, 35, 60, 0.95);
+  border: 1px solid rgba(184, 154, 90, 0.3);
+  border-radius: 8px;
+  padding: 48px 48px 48px 48px;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  font-size: 28px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: color 0.22s, opacity 0.22s;
+  opacity: 0.7;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  opacity: 1;
+  color: var(--gold);
+}
+
+#blog-content {
+  color: var(--ink);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+#blog-content h1,
+#blog-content h2,
+#blog-content h3 {
+  color: var(--ink);
+  margin-top: 1.6rem;
+  margin-bottom: 0.8rem;
+  font-weight: 400;
+}
+
+#blog-content p {
+  margin-bottom: 1.2rem;
+}
+
+#blog-content a {
+  color: var(--gold);
+  text-decoration: underline;
+  transition: opacity 0.22s;
+}
+
+#blog-content a:hover {
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════
@@ -500,10 +536,6 @@ footer {
     pointer-events: none;
   }
 
-  #meissa-trigger,
-  #phi1-trigger,
-  #phi2-trigger { pointer-events: auto; }
-
   @media (max-width: 380px) {
     .hero-title { font-size: 2rem; }
   }
@@ -520,39 +552,20 @@ footer {
 
 <canvas id="sky"></canvas>
 
-<!-- Star click targets — follow canvas via JS -->
-<a id="meissa-trigger" href="/vanik/"  aria-label="λ Orionis — Meissa — Vanik"></a>
-<a id="phi1-trigger"   href="/phi1/"   aria-label="φ¹ Orionis — Read"></a>
-<a id="phi2-trigger"   href="/phi2/"   aria-label="φ² Orionis — Read"></a>
-
 <!-- ── Main UI ─────────────────────────────────── -->
 <div id="ui">
 
   <header>
     <div class="wordmark">
-      akeru
-      <div class="wm-sep"></div>
       <span class="wm-kanji">明ける</span>
     </div>
   </header>
 
   <div class="middle" id="middle-panel">
 
-    <!-- ── Rolodex title ── -->
-    <div class="rolodex" id="rolodex" aria-live="polite">
-      <div class="rolodex-track" id="rolodex-track">
-
-        <!-- Slide 0 — Boundary Problem -->
-        <div class="rolodex-slide" id="rslide-0">
-          <h1 class="hero-title" id="hero-0">Explore the<br>Boundary Problem.</h1>
-        </div>
-
-        <!-- Slide 1 — Reasoning Layer -->
-        <div class="rolodex-slide" id="rslide-1">
-          <h1 class="hero-title" id="hero-1">The Reasoning<br>Layer.</h1>
-        </div>
-
-      </div>
+    <!-- ── Hero title ── -->
+    <div class="hero-container">
+      <h1 class="hero-title" id="hero-0">Will ERP Systems<br>Become the Trust<br>Layer?</h1>
     </div>
 
     <!-- ── Slide meta — desc + CTAs per slide ── -->
@@ -560,62 +573,44 @@ footer {
 
       <div class="slide-content" id="scontent-0" aria-hidden="false">
         <p class="platform-desc">
-          AI agents for global trade compliance.<br>
-          Built in the open. Grounded in verifiable rates.
+          Consumer agent commerce has a winner taking shape.<br>
+          B2B hasn't started. The reason lives in the ERP.
         </p>
         <div class="cta-group">
-          <a class="cta-primary"   href="/phi2/">Read</a>
-          <a class="cta-secondary" href="/vidhi/">Explore Architecture</a>
-        </div>
-        <!-- Blinking arrows sit directly below Explore Architecture -->
-        <div class="slide-arrows" id="slide-arrows" aria-hidden="true">
-          <span class="slide-arrow"></span>
-          <span class="slide-arrow"></span>
-        </div>
-      </div>
-
-      <div class="slide-content" id="scontent-1" aria-hidden="true">
-        <p class="platform-desc">
-          How retrieval failures begin before the search call —<br>
-          and the three-module fix.
-        </p>
-        <div class="cta-group">
-          <a class="cta-primary"   href="/phi1/">Read</a>
-          <a class="cta-secondary" href="/vidhi/">Explore Architecture</a>
-        </div>
-        <!-- Up arrow — back to slide 1, same position as down arrow on slide 0 -->
-        <div class="slide-arrows slide-arrows--up" id="slide-arrows-up" aria-hidden="true">
-          <span class="slide-arrow slide-arrow--up"></span>
-          <span class="slide-arrow slide-arrow--up"></span>
+          <button class="cta-primary" id="read-btn">Read</button>
         </div>
       </div>
 
     </div>
 
-    <!-- ── Slide indicator ── -->
-    <div class="rolodex-indicator" id="rolodex-indicator" aria-label="Navigate slides">
-      <span class="ri-dot active" data-idx="0" role="button" tabindex="0" aria-label="Slide 1: Boundary Problem"></span>
-      <span class="ri-dot"        data-idx="1" role="button" tabindex="0" aria-label="Slide 2: Reasoning Layer"></span>
-    </div>
+
 
 
   </div>
 
   <footer>
-    <div class="fn-name">Mrigashira · 5th Nakshatra</div>
-    <div class="fn-stars">λ Meissa &thinsp;·&thinsp; मृगशिरा &thinsp;·&thinsp; φ¹ Orionis &thinsp;·&thinsp; φ² Orionis</div>
-    <div class="fn-copy">© 2025 akeru</div>
+    <div class="fn-name">Rohini · 4th Nakshatra</div>
+    <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
+    <div class="fn-copy">© 2026 akeru</div>
   </footer>
 
+</div>
+
+<!-- Modal overlay for blog content -->
+<div id="modal-overlay" class="modal-hidden">
+  <div class="modal-close" id="modal-close">✕</div>
+  <div class="modal-content">
+    <div id="blog-content"></div>
+  </div>
 </div>
 
 <!-- Mobile: transparent spacer — constellation appears on scroll -->
 <div id="canvas-section">
   <!-- Footer appears here on mobile, alongside the constellation -->
   <div id="mobile-footer">
-    <div class="fn-name">Mrigashira · 5th Nakshatra</div>
-    <div class="fn-stars">λ Meissa &thinsp;·&thinsp; मृगशिरा &thinsp;·&thinsp; φ¹ Orionis &thinsp;·&thinsp; φ² Orionis</div>
-    <div class="fn-copy">© 2025 akeru</div>
+    <div class="fn-name">Rohini · 4th Nakshatra</div>
+    <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
+    <div class="fn-copy">© 2026 akeru</div>
   </div>
 </div>
 
@@ -626,9 +621,9 @@ window.VANIK_API_URL = "https://api.akeru.dev";
 
 /* ═══════════════════════════════════════════════════════════════
    CANVAS & RESIZE
-   Fixed #sky; mobile gradient #ui + scroll-aware constellation.
-   Rolodex lives in separate script below.
-═══════════════════════════════════════════════════════════════ */
+   Canvas stays position:fixed on all viewports.
+   On mobile #ui is transparent so the fixed sky shows through.
+═════════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
 var CW, CH, VW, VH, IS_MOBILE;
@@ -653,7 +648,7 @@ window.addEventListener('resize', resize);
 
 /* ═══════════════════════════════════════════════════════════════
    BACKGROUND STARS
-═══════════════════════════════════════════════════════════════ */
+═════════════════════════════════════════════════════════════════ */
 var field = [];
 for (var i = 0; i < 420; i++) {
   var isBright  = Math.random() < 0.08;
@@ -699,22 +694,60 @@ var shoot     = null;
 var nextShoot = 5000 + Math.random() * 12000;
 
 /* ═══════════════════════════════════════════════════════════════
-   3-D PHYSICS CONSTELLATION
+   3-D PHYSICS CONSTELLATION — ROHINI / SHAKATA
+   5 stars of the Hyades cluster corresponding to Rohini nakshatra.
+   α Tau (Aldebaran) is the Yogatara — the red junction star at
+   the tip of the V-arrowhead. Four lines radiate from it.
+   γ, δ (left arm), ε, θ² (right arm) form the V above.
+
+   Shape (V opens upward, Aldebaran at bottom tip):
+
+        γ           ε
+        │╲         ╱│
+        │  δ──── θ² │
+        │   ╲  ╱   │
+        └────α──────┘
+             (Aldebaran — red, warm, all arms converge)
+
+   Connections: α→γ, α→δ, α→ε, α→θ²  (4 ribs from Aldebaran)
+                γ→δ, ε→θ²              (2 cross-bars on each arm)
 ═══════════════════════════════════════════════════════════════ */
 var S = [
-  { label: 'λ',  sub: 'मृगशिरस्', rest: [  0, -130,  22], pos: [  0, -130,  22], vel: [0,0,0], mass: 2.6, r: 2.9, col: '215,230,255' },
-  { label: 'φ¹', sub: null,        rest: [-115,  95, -18], pos: [-115,  95, -18], vel: [0,0,0], mass: 1.7, r: 1.9, col: '225,225,245' },
-  { label: 'φ²', sub: null,        rest: [ 110,  90,  14], pos: [ 110,  90,  14], vel: [0,0,0], mass: 1.9, r: 1.7, col: '220,230,250' }
+  /* 0 — α Tauri — Aldebaran — bottom tip, warm orange-red, junction star */
+  { label: 'α',  sub: 'रोहिणी', rest: [   0,  95,  25], pos: [   0,  95,  25], vel: [0,0,0], mass: 2.8, r: 3.0, col: '222,152,84'  },
+  /* 1 — γ Tauri — Prima Hyadum — upper-left outer */
+  { label: 'γ',  sub: null,      rest: [-108, -88,   8], pos: [-108, -88,   8], vel: [0,0,0], mass: 1.5, r: 1.7, col: '228,218,200' },
+  /* 2 — δ¹ Tauri — Secunda Hyadum — upper-left inner */
+  { label: 'δ',  sub: null,      rest: [ -50, -30,  12], pos: [ -50, -30,  12], vel: [0,0,0], mass: 1.4, r: 1.5, col: '226,216,198' },
+  /* 3 — ε Tauri — Ain — upper-right outer */
+  { label: 'ε',  sub: null,      rest: [ 105, -82,  -8], pos: [ 105, -82,  -8], vel: [0,0,0], mass: 1.5, r: 1.6, col: '224,214,195' },
+  /* 4 — θ² Tauri — upper-right inner */
+  { label: 'θ²', sub: null,      rest: [  52, -22, -12], pos: [  52, -22, -12], vel: [0,0,0], mass: 1.3, r: 1.4, col: '222,212,193' },
 ];
+
+/*
+  V-arrowhead connections — Aldebaran as hub:
+    α → γ   left outer arm (long)
+    α → δ   left inner arm (short)
+    α → ε   right outer arm (long)
+    α → θ²  right inner arm (short)
+    γ → δ   left arm cross-bar
+    ε → θ²  right arm cross-bar
+*/
+var SHAKATA = [[0,1],[0,2],[0,3],[0,4],[1,2],[3,4]];
 
 var SP = [];
 for (var si = 0; si < S.length; si++) {
   for (var sj = si + 1; sj < S.length; sj++) {
     var ra = S[si].rest, rb = S[sj].rest;
+    var draw = SHAKATA.some(function (p) {
+      return (p[0]===si && p[1]===sj) || (p[0]===sj && p[1]===si);
+    });
     SP.push({
       a: si, b: sj,
       len0: Math.hypot(rb[0]-ra[0], rb[1]-ra[1], rb[2]-ra[2]),
-      tension: 0
+      tension: 0,
+      draw: draw
     });
   }
 }
@@ -751,27 +784,11 @@ function project (local, M) {
   var w   = mv3(M, local);
   var p   = FL / (FL + w[2] * sc);
 
-  /* ── Origin position ──────────────────────────────────────────
-     Desktop: fixed right column
-       originX = VW * 0.70,  originY = VH * 0.48
-
-     Mobile: scroll-aware — constellation starts off the bottom of
-     the fixed canvas viewport when scrollY=0 (hidden behind #ui),
-     then rises into centre as user scrolls to #canvas-section.
-
-     scrollFrac = scrollY / VH
-       0  (top of page) → originY = VH * 1.35  (off canvas, invisible)
-       1  (canvas section) → originY = VH * 0.48 (centred)
-
-     This means the fixed canvas always renders the constellation —
-     it is simply outside the viewport on screen 1. No clipping,
-     no re-parenting, no stacking tricks required. Works on iOS Safari.
-  ──────────────────────────────────────────────────────────────── */
   var originX, originY;
   if (IS_MOBILE) {
     var scrollFrac = Math.min(Math.max((window.scrollY || window.pageYOffset) / VH, 0), 1);
     originX = VW * 0.50;
-    originY = VH * (1.35 - scrollFrac * 0.87); /* 1.35 → 0.48 */
+    originY = VH * (1.35 - scrollFrac * 0.87);
   } else {
     originX = VW * 0.70;
     originY = VH * 0.48;
@@ -829,25 +846,24 @@ function drawConstellation (M) {
     return p;
   });
 
-  /* Lines */
   for (var k = 0; k < SP.length; k++) {
     var sp = SP[k];
+    if (!sp.draw) continue;
     var pa = proj[sp.a], pb = proj[sp.b];
     var ten = Math.abs(sp.tension);
     ctx.save();
     ctx.strokeStyle = 'rgba(184,154,90,' + Math.min(0.06+ten*1.2,0.3).toFixed(3) + ')';
     ctx.lineWidth = (5.0+ten*18)*dpr;
     ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
-    ctx.strokeStyle = 'rgba(160,200,255,' + Math.min(0.07+ten*2.0,0.55).toFixed(3) + ')';
+    ctx.strokeStyle = 'rgba(210,175,120,' + Math.min(0.07+ten*2.0,0.55).toFixed(3) + ')';
     ctx.lineWidth = (2.2+ten*9)*dpr;
     ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
-    ctx.strokeStyle = 'rgba(210,225,255,' + Math.min(0.20+ten*3.5,0.80).toFixed(3) + ')';
+    ctx.strokeStyle = 'rgba(235,215,185,' + Math.min(0.20+ten*3.5,0.80).toFixed(3) + ')';
     ctx.lineWidth = 0.8*dpr;
     ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
     ctx.restore();
   }
 
-  /* Stars */
   S.forEach(function (star, i) {
     var p   = proj[i];
     var spd = p.speed;
@@ -855,14 +871,14 @@ function drawConstellation (M) {
     if (i===0) proj[0].brt = brt;
     var r   = star.r * dpr * Math.max(p.p, 0.4);
     var isL = (i === 0);
-    var outerCol = isL ? '184,154,90' : '130,180,250';
+    var outerCol = isL ? '210,95,35' : '180,160,130';
     var g0 = ctx.createRadialGradient(p.x,p.y,0, p.x,p.y, r*(isL?14:9));
-    g0.addColorStop(0, 'rgba('+outerCol+','+(( isL?0.12:0.10)*brt).toFixed(3)+')');
+    g0.addColorStop(0, 'rgba('+outerCol+','+(( isL?0.14:0.10)*brt).toFixed(3)+')');
     g0.addColorStop(1, 'rgba('+outerCol+',0)');
     ctx.beginPath(); ctx.arc(p.x,p.y, r*(isL?14:9), 0, Math.PI*2);
     ctx.fillStyle = g0; ctx.fill();
     var g1 = ctx.createRadialGradient(p.x,p.y,0, p.x,p.y, r*4);
-    g1.addColorStop(0,    'rgba(235,242,255,'+(0.65*brt).toFixed(3)+')');
+    g1.addColorStop(0,    'rgba('+(isL?'255,220,160':'235,228,215')+','+(0.65*brt).toFixed(3)+')');
     g1.addColorStop(0.45, 'rgba('+star.col+','+(0.22*brt).toFixed(3)+')');
     g1.addColorStop(1,    'rgba('+star.col+',0)');
     ctx.beginPath(); ctx.arc(p.x,p.y, r*4, 0, Math.PI*2);
@@ -876,7 +892,7 @@ function drawConstellation (M) {
     if (isL) {
       var sl = r*6.5, soa = (0.11+0.06*brt)*brt;
       ctx.save();
-      ctx.strokeStyle = 'rgba(215,230,255,'+soa.toFixed(3)+')';
+      ctx.strokeStyle = 'rgba(230,185,120,'+soa.toFixed(3)+')';
       ctx.lineWidth = 0.7*dpr;
       ctx.beginPath(); ctx.moveTo(p.x-sl,p.y); ctx.lineTo(p.x+sl,p.y); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(p.x,p.y-sl); ctx.lineTo(p.x,p.y+sl); ctx.stroke();
@@ -884,47 +900,35 @@ function drawConstellation (M) {
     }
     var fsize = Math.round(13*dpr);
     ctx.font = '300 '+fsize+"px 'DM Mono', monospace";
-    ctx.fillStyle = isL ? 'rgba(180,200,255,0.78)' : 'rgba(180,200,255,0.60)';
+    ctx.fillStyle = isL ? 'rgba(220,180,120,0.78)' : 'rgba(210,200,180,0.60)';
     if (isL) {
       ctx.fillText(star.label, p.x+26*dpr, p.y+fsize*0.4);
       var hfsize = Math.round(11*dpr);
       ctx.font = '300 '+hfsize+"px 'Noto Sans Devanagari', sans-serif";
-      ctx.fillStyle = 'rgba(184,154,90,0.60)';
+      ctx.fillStyle = 'rgba(210,140,70,0.60)';
       ctx.textAlign = 'center';
-      ctx.fillText('मृगशिरा', p.x, p.y - r*2.8 - 8*dpr);
+      ctx.fillText('रोहिणी', p.x, p.y + r*3.2 + hfsize + 4*dpr);
       ctx.textAlign = 'left';
     } else {
-      var off = (i===1) ? [-28*dpr,-8*dpr] : [14*dpr,-8*dpr];
+      var offsets = [
+        null,
+        [-32*dpr, -8*dpr],
+        [-30*dpr,  4*dpr],
+        [ 14*dpr, -8*dpr],
+        [ 14*dpr,  4*dpr],
+      ];
+      var off = offsets[i] || [14*dpr, -8*dpr];
       ctx.fillText(star.label, p.x+off[0], p.y+off[1]);
     }
   });
   ctx.textAlign = 'left';
   return {
-    lambda: { cx: proj[0].cx, cy: proj[0].cy },
-    phi1:   { cx: proj[1].cx, cy: proj[1].cy },
-    phi2:   { cx: proj[2].cx, cy: proj[2].cy }
+    alpha: { cx: proj[0].cx, cy: proj[0].cy },
+    eps:   { cx: proj[1].cx, cy: proj[1].cy },
+    theta: { cx: proj[2].cx, cy: proj[2].cy }
   };
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DOM OVERLAY — star triggers track canvas positions
-═══════════════════════════════════════════════════════════════ */
-var meissaTrigger = document.getElementById('meissa-trigger');
-var phi1Trigger   = document.getElementById('phi1-trigger');
-var phi2Trigger   = document.getElementById('phi2-trigger');
-
-function updateOverlays (pos) {
-  meissaTrigger.style.left = pos.lambda.cx + 'px';
-  meissaTrigger.style.top  = pos.lambda.cy + 'px';
-  phi1Trigger.style.left   = pos.phi1.cx   + 'px';
-  phi1Trigger.style.top    = pos.phi1.cy   + 'px';
-  phi2Trigger.style.left   = pos.phi2.cx   + 'px';
-  phi2Trigger.style.top    = pos.phi2.cy   + 'px';
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   INPUT — rotation + star drag
-═══════════════════════════════════════════════════════════════ */
 function nearStar (mx, my) {
   var M = rotMat(rotX, rotY);
   for (var i = 0; i < S.length; i++) {
@@ -965,27 +969,22 @@ function onUp () {
   PTR.down=false; document.body.style.cursor='default';
 }
 
-/* Listen on window for mousedown so fixed z-index anchors
-   over the canvas don't swallow the event before canvas sees it.
-   preventDefault on star drag stops the anchor navigation firing. */
 window.addEventListener('mousedown', function(e){
   var idx = nearStar(e.clientX, e.clientY);
-  if (idx >= 0) e.preventDefault();   // stop anchor navigation when dragging a star
+  if (idx >= 0) e.preventDefault();
   onDown(e.clientX, e.clientY);
 });
 window.addEventListener('mousemove', function(e){ onMove(e.clientX,e.clientY); });
 window.addEventListener('mouseup',   onUp);
 
-/* Touch — only preventDefault when touching a star.
-   Unconditional preventDefault blocks native page scroll on mobile. */
 canvas.addEventListener('touchstart', function(e){
   var t = e.touches[0];
   var idx = nearStar(t.clientX, t.clientY);
-  if (idx >= 0) e.preventDefault();   /* star drag — block scroll */
+  if (idx >= 0) e.preventDefault();
   onDown(t.clientX, t.clientY);
 }, { passive: false });
 canvas.addEventListener('touchmove', function(e){
-  if (PTR.star >= 0) e.preventDefault(); /* only block scroll while dragging star */
+  if (PTR.star >= 0) e.preventDefault();
   var t = e.touches[0]; onMove(t.clientX, t.clientY);
 }, { passive: false });
 canvas.addEventListener('touchend', function(e){
@@ -993,13 +992,10 @@ canvas.addEventListener('touchend', function(e){
   onUp();
 }, { passive: false });
 
-/* ═══════════════════════════════════════════════════════════════
-   MAIN LOOP
-═══════════════════════════════════════════════════════════════ */
 var frameT=0, lastFrameTs=0;
 function tick (now) {
   var dt = now - lastFrameTs; lastFrameTs = now;
-  frameT += dt * 0.001;  /* real seconds — breathing oscillation runs at natural speed */
+  frameT += dt * 0.001;
   var dpr = window.devicePixelRatio || 1;
 
   if (!PTR.down || PTR.star >= 0) {
@@ -1012,7 +1008,6 @@ function tick (now) {
 
   ctx.clearRect(0, 0, CW, CH);
 
-  /* Sky gradient */
   var bg = ctx.createLinearGradient(0,0,0,CH);
   bg.addColorStop(0.00,'rgba(2,4,10,1)');
   bg.addColorStop(0.55,'rgba(4,6,14,1)');
@@ -1021,7 +1016,6 @@ function tick (now) {
   bg.addColorStop(1.00,'rgba(14,18,42,1)');
   ctx.fillStyle=bg; ctx.fillRect(0,0,CW,CH);
 
-  /* Milky Way */
   for (var mi=0; mi<milky.length; mi++) {
     var b=milky[mi];
     var bx=b.xf*CW,by=b.yf*CH,brx=b.rx*CW,bry=b.ry*CH;
@@ -1033,7 +1027,6 @@ function tick (now) {
     ctx.fillStyle=g; ctx.fill(); ctx.restore();
   }
 
-  /* Shimmer */
   nextShimmer -= dt;
   if (nextShimmer<0 && shimmerIdx===null) {
     var cands=[];
@@ -1048,7 +1041,6 @@ function tick (now) {
     if (field[shimmerIdx].shimmerLife<=0) { field[shimmerIdx].shimmerLife=0; shimmerIdx=null; }
   }
 
-  /* Field stars */
   for (var fi=0; fi<field.length; fi++) {
     var s=field[fi];
     s.tw += s.ts;
@@ -1065,18 +1057,14 @@ function tick (now) {
     ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fillStyle=hue+sa+')'; ctx.fill();
   }
 
-  /* Orion context stars */
   for (var oi=0; oi<orion.length; oi++) {
     var o=orion[oi];
     ctx.beginPath(); ctx.arc(o.xf*CW,o.yf*CH,o.r*dpr,0,Math.PI*2);
     ctx.fillStyle='rgba(210,215,240,'+o.a+')'; ctx.fill();
   }
 
-  /* Constellation */
-  var pos = drawConstellation(M);
-  updateOverlays(pos);
+  drawConstellation(M);
 
-  /* Shooting star */
   nextShoot -= dt;
   if (nextShoot<0 && !shoot) {
     shoot={
@@ -1108,162 +1096,69 @@ function tick (now) {
 
   requestAnimationFrame(tick);
 }
-/* Loop is started from the deferred resize above */
 })();
 </script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   ROLODEX — vertical hero title carousel
-   Primary: wheel/touchpad scroll (laptop) + touch swipe (mobile)
-   Backup:  click the blinking chevron arrows
-   Gear snap: overshoot bezier gives the click-into-place feel.
-═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  var track    = document.getElementById('rolodex-track');
-  var rolodex  = document.getElementById('rolodex');
-  var panel    = document.getElementById('middle-panel');
-  var dots     = document.querySelectorAll('.ri-dot');
-  var arrowEl  = document.getElementById('slide-arrows');
-  var contents = [
-    document.getElementById('scontent-0'),
-    document.getElementById('scontent-1')
-  ];
+  var modalOverlay = document.getElementById('modal-overlay');
+  var blogContent = document.getElementById('blog-content');
+  var modalClose = document.getElementById('modal-close');
+  var readBtn = document.getElementById('read-btn');
+  var heroTitle = document.getElementById('hero-0');
 
-  var current   = 0;
-  var TOTAL     = 2;
-  var animating = false;
-  var slideH    = 0;
-
-  /* ── measure & lock rolodex viewport height ── */
-  function measureSlide () {
-    var h0 = document.getElementById('rslide-0').getBoundingClientRect().height;
-    var h1 = document.getElementById('rslide-1').getBoundingClientRect().height;
-    slideH = Math.max(h0, h1);
-    rolodex.style.height = (slideH + 4) + 'px';
-  }
-
-  /* ── go to slide idx ── */
-  function goTo (idx) {
-    if (idx === current || animating) return;
-    animating = true;
-
-    track.style.transform = 'translateY(-' + (idx * slideH) + 'px)';
-
-    contents[current].setAttribute('aria-hidden', 'true');
-    contents[idx].setAttribute('aria-hidden', 'false');
-
-    dots.forEach(function (d) {
-      d.classList.toggle('active', parseInt(d.dataset.idx, 10) === idx);
-    });
-
-    /* arrows: only visible on slide 0 */
-    if (arrowEl) arrowEl.classList.toggle('hidden', idx !== 0);
-
-    current = idx;
-
-    /* unlock after the 1.4s overshoot + settle + buffer */
-    setTimeout(function () { animating = false; }, 1600);
-  }
-
-  function next () { goTo((current + 1) % TOTAL); }
-  function prev () { goTo((current - 1 + TOTAL) % TOTAL); }
-
-  /* ── wheel / touchpad (primary — laptop) ── */
-  var wheelAcc = 0;
-  var WHEEL_THRESHOLD = 60;
-  panel.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    wheelAcc += e.deltaY;
-    if (wheelAcc >  WHEEL_THRESHOLD) { next(); wheelAcc = 0; }
-    if (wheelAcc < -WHEEL_THRESHOLD) { prev(); wheelAcc = 0; }
-  }, { passive: false });
-
-  /* ── touch swipe (primary — mobile) ── */
-  var touchStartY  = null;
-  var touchStartX  = null;
-  var touchOnPanel = false;
-  var SWIPE_THRESH = 42;
-
-  panel.addEventListener('touchstart', function (e) {
-    touchStartY  = e.touches[0].clientY;
-    touchStartX  = e.touches[0].clientX;
-    touchOnPanel = true;
-  }, { passive: true });
-
-  window.addEventListener('touchend', function (e) {
-    if (!touchOnPanel || touchStartY === null) return;
-    var dy = touchStartY - e.changedTouches[0].clientY;
-    var dx = Math.abs(touchStartX - e.changedTouches[0].clientX);
-    if (Math.abs(dy) > SWIPE_THRESH && Math.abs(dy) > dx * 1.4) {
-      dy > 0 ? next() : prev();
+  function openModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.remove('modal-hidden');
     }
-    touchStartY  = null;
-    touchOnPanel = false;
-  }, { passive: true });
+  }
 
-  /* ── blinking arrow click (backup) ── */
-  if (arrowEl) {
-    arrowEl.addEventListener('click', function (e) {
-      e.stopPropagation();
-      next();
+  function closeModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.add('modal-hidden');
+    }
+  }
+
+  // Click handlers for opening modal
+  if (readBtn) {
+    readBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal();
     });
   }
 
-  var arrowUpEl = document.getElementById('slide-arrows-up');
-  if (arrowUpEl) {
-    arrowUpEl.addEventListener('click', function (e) {
-      e.stopPropagation();
-      prev();
+  if (heroTitle) {
+    heroTitle.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal();
+    });
+    heroTitle.style.cursor = 'pointer';
+  }
+
+  // Close button handler
+  if (modalClose) {
+    modalClose.addEventListener('click', function(e) {
+      e.preventDefault();
+      closeModal();
     });
   }
 
-  /* ── keyboard ── */
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
-    if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  { e.preventDefault(); prev(); }
-  });
-
-  /* ── indicator dot clicks ── */
-  dots.forEach(function (d) {
-    d.addEventListener('click', function () {
-      goTo(parseInt(d.dataset.idx, 10));
-    });
-    d.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        goTo(parseInt(d.dataset.idx, 10));
+  // Close on backdrop click
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', function(e) {
+      if (e.target === modalOverlay) {
+        closeModal();
       }
     });
-  });
-
-  /* ── init ── */
-  function init () {
-    measureSlide();
-    track.style.transform = 'translateY(0)';
-    contents[0].setAttribute('aria-hidden', 'false');
-    contents[1].setAttribute('aria-hidden', 'true');
-    if (arrowEl) arrowEl.classList.remove('hidden');
   }
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(init);
-  } else {
-    window.addEventListener('load', init);
-  }
-
-  /* re-measure on resize */
-  var resizeRolodexTimer;
-  window.addEventListener('resize', function () {
-    clearTimeout(resizeRolodexTimer);
-    resizeRolodexTimer = setTimeout(function () {
-      measureSlide();
-      track.style.transition = 'none';
-      track.style.transform  = 'translateY(-' + (current * slideH) + 'px)';
-      requestAnimationFrame(function () { track.style.transition = ''; });
-    }, 120);
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modalOverlay && !modalOverlay.classList.contains('modal-hidden')) {
+      closeModal();
+    }
   });
 
 })();
