@@ -1,47 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>akeru · Essays on Commerce and Trust</title>
-  <meta name="description" content="Essays on enterprise architecture, autonomous commerce, and digital trust.">
-  <link rel="canonical" href="https://akeru.dev/">
-  
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="akeru · Essays on Commerce and Trust">
-  <meta property="og:description" content="Essays on enterprise architecture, autonomous commerce, and digital trust.">
-  <meta property="og:url" content="https://akeru.dev/">
-  <meta property="og:site_name" content="akeru">
-  
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="akeru · Essays on Commerce and Trust">
-  <meta name="twitter:description" content="Essays on enterprise architecture, autonomous commerce, and digital trust.">
-  
-  <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/index.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>akeru · 明ける</title>
+<meta name="description" content="Essays on commerce and trust.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Noto+Sans+Devanagari:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink:       #E2DDD6;
+  --ink-mid:   rgba(226,221,214,0.52);
+  --ink-dim:   rgba(226,221,214,0.28);
+  --gold:      #B89A5A;
+  --bg:        #04060C;
+}
+
+html { background: var(--bg); }
+
+body {
+  width: 100%;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+@media (min-width: 681px) {
+  body { overflow: hidden; height: 100vh; }
+}
+
+#sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ── DESKTOP LAYOUT — two column ── */
+#ui {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 48% 1fr;
+  grid-template-rows: auto 1fr auto;
+  padding: 36px 48px 40px;
+  pointer-events: none;
+}
+
+/* ── HEADER ── */
+header {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+}
+
+.wordmark { display: flex; align-items: center; }
+
+.wm-kanji {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+/* ── MIDDLE — essay list ── */
+.middle {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: 8%;
+}
+
+/* ── ESSAY LIST ── */
+.essay-list {
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.essay-item {
+  padding-bottom: 1.6rem;
+  margin-bottom: 1.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.essay-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.essay-item-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.78;
+  margin-bottom: 0.7rem;
+}
+
+.essay-item-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.35rem, 2.6vw, 2.8rem);
+  font-weight: 400;
+  line-height: 1.10;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.essay-item-title a {
+  color: var(--ink);
+  text-decoration: none;
+  transition: opacity 0.22s;
+}
+
+.essay-item-title a:hover { opacity: 0.70; }
+
+.essay-item-dek {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(14px, 1.25vw, 17px);
+  font-weight: 300;
+  font-style: italic;
+  color: var(--ink-mid);
+  line-height: 1.62;
+  margin: 0;
+}
+
+/* ── FOOTER — bottom-right ── */
+footer {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  text-align: right;
+}
+
+.fn-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(226,221,214,0.65);
+  margin-bottom: 5px;
+}
+.fn-stars {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  margin-bottom: 3px;
+}
+.fn-copy {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.10em;
+  color: rgba(226,221,214,0.18);
+}
+
+/* ── MOBILE — scroll reveal ── */
+@media (max-width: 680px) {
+  html { height: auto; }
+  body { height: auto; }
+
+  #ui {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 32px 26px 36px;
+    min-height: 100svh;
+    min-height: 100vh;
+    background: transparent;
+    z-index: 10;
+    pointer-events: auto;
+  }
+
+  #ui::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(4,6,12,0.92) 0%,
+      rgba(4,6,12,0.80) 35%,
+      rgba(4,6,12,0.50) 65%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header, .middle, footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  header { grid-column: auto; grid-row: auto; }
+
+  .middle {
+    grid-column: auto;
+    grid-row: auto;
+    padding-right: 0;
+    padding-top: 2rem;
+    flex: none;
+    justify-content: flex-start;
+  }
+
+  .essay-item-title { font-size: 1.6rem; }
+
+  .fn-name  { font-size: 12px; }
+  .wm-kanji { font-size: 15px; }
+
+  footer {
+    grid-column: auto;
+    grid-row: auto;
+    text-align: right;
+    align-self: flex-end;
+  }
+
+  #canvas-section {
+    display: block;
+    position: relative;
+    height: 100svh;
+    height: 100vh;
+    width: 100%;
+    background: transparent;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  #mobile-footer {
+    display: block;
+    position: absolute;
+    bottom: 32px;
+    right: 26px;
+    text-align: right;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 681px) {
+  #canvas-section { display: none; }
+  #mobile-footer  { display: none; }
+}
+</style>
 </head>
 <body>
-  <div class="content-wrapper">
-    <header class="index-header">
-      <h1 class="index-title">akeru</h1>
-      <p class="index-subtitle">Essays on commerce and trust</p>
-    </header>
 
-    <div class="essays-list">
-      <article class="essay-card">
-        <div class="essay-card-meta">Essay · May 2026</div>
-        <h2 class="essay-card-title">
+<canvas id="sky"></canvas>
+
+<div id="ui">
+
+  <header>
+    <div class="wordmark">
+      <span class="wm-kanji">明ける</span>
+    </div>
+  </header>
+
+  <div class="middle" id="middle-panel">
+    <div class="essay-list">
+
+      <article class="essay-item">
+        <div class="essay-item-meta">Essay · May 2026 · 9 min read</div>
+        <h2 class="essay-item-title">
           <a href="/essays/erp-trust-layer.html">Will ERP Become the Trust Layer for Autonomous Commerce?</a>
         </h2>
-        <p class="essay-card-dek">Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.</p>
+        <p class="essay-item-dek">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
       </article>
+
     </div>
   </div>
 
-  <footer class="index-footer">
-    <p>© 2026 akeru</p>
+  <footer>
+    <div class="fn-name">Rohini · 4th Nakshatra</div>
+    <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
+    <div class="fn-copy">© 2026 akeru</div>
   </footer>
+
+</div>
+
+<div id="canvas-section">
+  <div id="mobile-footer">
+    <div class="fn-name">Rohini · 4th Nakshatra</div>
+    <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
+    <div class="fn-copy">© 2026 akeru</div>
+  </div>
+</div>
+
+<script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
+<script src="/js/starfield.js"></script>
 </body>
 </html>
