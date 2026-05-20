@@ -7,7 +7,7 @@
 <meta name="description" content="Essays on commerce and trust.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Noto+Sans+Devanagari:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Inter:wght@400;600;700&family=Noto+Sans+Devanagari:wght@300;400&family=Source+Serif+Pro:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -19,18 +19,17 @@
   --bg:        #04060C;
 }
 
-html { background: var(--bg); }
+html {
+  background: var(--bg);
+  scroll-behavior: smooth;
+}
 
 body {
-  width: 100%;
   background: var(--bg);
   color: var(--ink);
 }
 
-@media (min-width: 681px) {
-  body { overflow: hidden; height: 100vh; }
-}
-
+/* ── Canvas — fixed behind everything ── */
 #sky {
   position: fixed;
   inset: 0;
@@ -39,11 +38,43 @@ body {
   z-index: 0;
 }
 
-/* ── DESKTOP LAYOUT — two column ── */
-#ui {
+/* ── Essay header — fixed, fades in after hero ── */
+.essay-header {
   position: fixed;
-  inset: 0;
-  z-index: 10;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(10,10,15,0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 18px 32px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.essay-header.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.essay-header a {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(226,221,214,0.90);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.essay-header a:hover { opacity: 0.65; }
+
+/* ── Hero — 100vh, desktop two-column grid ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
   display: grid;
   grid-template-columns: 48% 1fr;
   grid-template-rows: auto 1fr auto;
@@ -51,8 +82,7 @@ body {
   pointer-events: none;
 }
 
-/* ── HEADER ── */
-header {
+.hero-header {
   grid-column: 1;
   grid-row: 1;
   display: flex;
@@ -69,8 +99,7 @@ header {
   letter-spacing: 0.05em;
 }
 
-/* ── MIDDLE — essay list ── */
-.middle {
+.hero-middle {
   grid-column: 1;
   grid-row: 2;
   display: flex;
@@ -79,7 +108,7 @@ header {
   padding-right: 8%;
 }
 
-/* ── ESSAY LIST ── */
+/* ── Essay list in hero ── */
 .essay-list {
   display: flex;
   flex-direction: column;
@@ -119,14 +148,6 @@ header {
   letter-spacing: -0.01em;
 }
 
-.essay-item-title a {
-  color: var(--ink);
-  text-decoration: none;
-  transition: opacity 0.22s;
-}
-
-.essay-item-title a:hover { opacity: 0.70; }
-
 .essay-item-dek {
   font-family: 'Cormorant Garamond', serif;
   font-size: clamp(14px, 1.25vw, 17px);
@@ -134,11 +155,29 @@ header {
   font-style: italic;
   color: var(--ink-mid);
   line-height: 1.62;
-  margin: 0;
+  margin: 0 0 1.4rem;
 }
 
-/* ── FOOTER — bottom-right ── */
-footer {
+.read-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.60;
+  transition: opacity 0.2s;
+  display: inline-block;
+}
+
+.read-btn:hover { opacity: 1; }
+
+/* ── Hero footer — bottom right ── */
+.hero-footer {
   grid-column: 2;
   grid-row: 3;
   align-self: end;
@@ -170,25 +209,237 @@ footer {
   color: rgba(226,221,214,0.18);
 }
 
-/* ── MOBILE — scroll reveal ── */
-@media (max-width: 680px) {
-  html { height: auto; }
-  body { height: auto; }
+/* ── Share sidebar — desktop fixed, fades in after hero ── */
+.share-sidebar {
+  position: fixed;
+  left: calc(50% - 400px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
 
-  #ui {
-    position: relative;
+.share-sidebar.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.share-sidebar a, .share-sidebar button,
+.share-inline  a, .share-inline  button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.share-sidebar a:hover, .share-sidebar button:hover,
+.share-inline  a:hover, .share-inline  button:hover { color: #1a1a1a; }
+
+.share-sidebar svg, .share-inline svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* ── Essay — normal document flow, white panel ── */
+.essay {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 80px 48px 64px;
+}
+
+.essay-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.essay-title {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.essay-subtitle {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #555;
+  margin-bottom: 32px;
+}
+
+.essay-hr {
+  border: none;
+  border-top: 2px solid #000;
+  width: 60px;
+  margin: 0 0 40px;
+}
+
+/* Mobile share inline (below HR) */
+.share-inline {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* ── Key Takeaways ── */
+.key-takeaways {
+  background: #f2f2f2;
+  padding: 32px;
+  margin-bottom: 48px;
+}
+
+.key-takeaways-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.key-takeaways ul {
+  padding-left: 20px;
+  list-style: disc;
+  margin: 0;
+}
+
+.key-takeaways li {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.key-takeaways li:last-child { margin-bottom: 0; }
+
+/* ── Essay body ── */
+.essay-body {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #1a1a1a;
+}
+
+.essay-body p { margin-bottom: 24px; }
+
+.essay-body h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin-top: 48px;
+  margin-bottom: 20px;
+}
+
+.essay-body a {
+  color: #1a1a1a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.essay-body a:hover { opacity: 0.7; }
+
+/* ── References ── */
+.essay-references {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 32px;
+  margin-top: 64px;
+}
+
+.essay-references-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.essay-references ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: ref;
+}
+
+.essay-references li {
+  counter-increment: ref;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #666;
+  margin-bottom: 8px;
+  padding-left: 24px;
+  position: relative;
+}
+
+.essay-references li::before {
+  content: counter(ref) ".";
+  position: absolute;
+  left: 0;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.essay-references a {
+  color: #666;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Essay footer ── */
+.essay-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #999;
+}
+
+/* ── Mobile ── */
+@media (max-width: 680px) {
+  .hero {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 32px 26px 36px;
-    min-height: 100svh;
-    min-height: 100vh;
-    background: transparent;
-    z-index: 10;
-    pointer-events: auto;
+    height: 100svh;
+    height: 100vh;
   }
 
-  #ui::before {
+  .hero::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -203,58 +454,34 @@ footer {
     z-index: 0;
   }
 
-  header, .middle, footer {
+  .hero-header, .hero-middle, .hero-footer {
     position: relative;
     z-index: 1;
   }
 
-  header { grid-column: auto; grid-row: auto; }
-
-  .middle {
-    grid-column: auto;
-    grid-row: auto;
+  .hero-middle {
     padding-right: 0;
     padding-top: 2rem;
-    flex: none;
+    flex: 1;
     justify-content: flex-start;
   }
 
   .essay-item-title { font-size: 1.6rem; }
+  .wm-kanji         { font-size: 15px; }
+  .fn-name          { font-size: 12px; }
 
-  .fn-name  { font-size: 12px; }
-  .wm-kanji { font-size: 15px; }
-
-  footer {
-    grid-column: auto;
-    grid-row: auto;
-    text-align: right;
+  .hero-footer {
     align-self: flex-end;
-  }
-
-  #canvas-section {
-    display: block;
-    position: relative;
-    height: 100svh;
-    height: 100vh;
-    width: 100%;
-    background: transparent;
-    z-index: 5;
-    pointer-events: none;
-  }
-
-  #mobile-footer {
-    display: block;
-    position: absolute;
-    bottom: 32px;
-    right: 26px;
     text-align: right;
-    pointer-events: none;
   }
+
+  .essay { padding: 72px 24px 48px; }
+  .essay-title { font-size: 28px; }
 }
 
-@media (min-width: 681px) {
-  #canvas-section { display: none; }
-  #mobile-footer  { display: none; }
+@media (max-width: 820px) {
+  .share-sidebar { display: none !important; }
+  .share-inline  { display: flex; }
 }
 </style>
 </head>
@@ -262,45 +489,196 @@ footer {
 
 <canvas id="sky"></canvas>
 
-<div id="ui">
+<!-- Fixed header — hidden until user scrolls past hero -->
+<header class="essay-header" id="essay-header">
+  <a href="/">akeru</a>
+</header>
 
-  <header>
+<!-- Share sidebar — desktop only, hidden until in essay -->
+<aside class="share-sidebar" id="share-sidebar" aria-label="Share">
+  <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/erp-trust-layer" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+  </a>
+  <a href="https://x.com/intent/tweet?url=https://akeru.dev/erp-trust-layer&text=Will%20ERP%20Become%20the%20Trust%20Layer%20for%20Autonomous%20Commerce%3F" target="_blank" rel="noopener" aria-label="Share on X">
+    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+  </a>
+  <button class="copy-btn" aria-label="Copy link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  </button>
+</aside>
+
+<!-- Hero — 100vh, the landing view -->
+<section class="hero">
+
+  <header class="hero-header">
     <div class="wordmark">
       <span class="wm-kanji">明ける</span>
     </div>
   </header>
 
-  <div class="middle" id="middle-panel">
+  <div class="hero-middle">
     <div class="essay-list">
-
       <article class="essay-item">
         <div class="essay-item-meta">Essay · May 2026 · 9 min read</div>
-        <h2 class="essay-item-title">
-          <a href="/erp-trust-layer">Will ERP Become the Trust Layer for Autonomous Commerce?</a>
-        </h2>
+        <h2 class="essay-item-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h2>
         <p class="essay-item-dek">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
+        <button class="read-btn">Read →</button>
       </article>
-
     </div>
   </div>
 
-  <footer>
+  <footer class="hero-footer">
     <div class="fn-name">Rohini · 4th Nakshatra</div>
     <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
     <div class="fn-copy">© 2026 akeru</div>
   </footer>
 
-</div>
+</section>
 
-<div id="canvas-section">
-  <div id="mobile-footer">
-    <div class="fn-name">Rohini · 4th Nakshatra</div>
-    <div class="fn-stars">α Tauri &thinsp;·&thinsp; रोहिणी &thinsp;·&thinsp; Aldebaran &thinsp;·&thinsp; Hyades</div>
-    <div class="fn-copy">© 2026 akeru</div>
+<!-- Essay — normal document flow, white panel over fixed starfield -->
+<article class="essay" id="essay">
+
+  <div class="essay-meta">Essay · May 2026 · 9 min read</div>
+  <h1 class="essay-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+  <p class="essay-subtitle">Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.</p>
+  <hr class="essay-hr">
+
+  <!-- Share icons — mobile only, inline below HR -->
+  <div class="share-inline" aria-label="Share">
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/erp-trust-layer" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+    <a href="https://x.com/intent/tweet?url=https://akeru.dev/erp-trust-layer&text=Will%20ERP%20Become%20the%20Trust%20Layer%20for%20Autonomous%20Commerce%3F" target="_blank" rel="noopener" aria-label="Share on X">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <button class="copy-btn" aria-label="Copy link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </button>
   </div>
-</div>
+
+  <!-- Key Takeaways -->
+  <div class="key-takeaways">
+    <div class="key-takeaways-label">Key Takeaways</div>
+    <ul>
+      <li>Consumer agent commerce has moved from demo to deployment, with signed mandates solving for a single human principal delegating bounded authority to agents.</li>
+      <li>Google, Mastercard and Visa are standardizing portable intent — proving what a consumer authorized — not corporate authority. B2B is a structurally harder problem.</li>
+      <li>B2B commerce requires delegation chains, approval matrices, segregation of duties, entity binding, budget control and tax treatment. These constraints live in ERP, not card networks.</li>
+      <li>ERP's rigidity — role-based access, approval limits, audit trails — is a feature in the agent era, not a flaw. It was built for constrained actors taking consequential actions.</li>
+      <li>Orchestration and S2P platforms can coordinate workflows, but the financially binding mandate must originate from, or be attested by, the system that holds financial truth.</li>
+      <li>ERP starts with strong cards. Whether it becomes the B2B trust layer depends on whether vendors make the control model legible to agents and payment networks fast enough.</li>
+    </ul>
+  </div>
+
+  <!-- Essay body -->
+  <div class="essay-body">
+
+    <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard's move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In B2B commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
+
+    <p>These protocols work because consumer commerce is the simpler topology: one human principal delegating bounded authority to one or more agents through signed mandates checked against user intent⁷. There are still fraud, dispute and bot-detection problems, but no corporate delegation chain upstream.</p>
+
+    <p>The IMF's April 2026 note names the tension: payment infrastructure is deterministic; agentic systems are probabilistic⁸. Consumer protocols handle that separation for the simpler case. B2B commerce is harder — and structurally closer to what agentic commerce is becoming than to card-not-present commerce.</p>
+
+    <h2>The commercial guardrails already exist — and they bind back to ERP</h2>
+
+    <p>In a governed enterprise, a two-million-dollar purchase order is not one person's decision. It is a delegation-of-authority framework instantiated as an approval matrix, constrained by segregation of duties, bound to legal entity, business unit, tax position and budget, and auditable against financial reporting, tax and internal-control requirements.</p>
+
+    <p>The accountable principal is the legal entity, but it cannot authenticate. It acts only through codified, traceable delegation. That chain does not live in a card network or agent runtime. In many enterprises, it binds back to ERP: the books, controls, tax posture, budget structure and audit trail.</p>
+
+    <p>A consumer mandate can prove a human authorized an agent. It cannot prove that a corporate user had authority to commit an enterprise, budget and supplier relationship. That is ERP's claim to the trust layer.</p>
+
+    <h2>ERP's commercial-control model becomes an advantage</h2>
+
+    <p>ERP's standard critique is that it is rigid, permission-heavy and hard to use. In the agent era, that starts looking less like a flaw and more like a feature.</p>
+
+    <p>ERP controls were built around constrained action inside systems of financial consequence: role-based access, data privileges, approval limits, segregation of duties, audit trails and exception controls⁹. McKinsey frames AI agents as "digital insiders" operating inside systems with varying levels of privilege and authority¹⁰. An agent should not merely know what a user asked it to do; it should know what the user is allowed to do, for which entity, under which budget, against which supplier, within what approval threshold and with what audit trail.</p>
+
+    <p>That is the entitlement question ERP has answered for decades. In autonomous commerce, ERP can convert business intent into an approved commercial mandate. Payment networks should not need to recreate corporate authority; they should recognize the ERP-originated mandate, verify integrity, apply tokenization and payment-risk controls, and help the payment succeed.</p>
+
+    <p>The trust layer is where ERP makes corporate authority executable — and legible downstream.</p>
+
+    <h2>Maverick spend becomes an autonomous-systems risk</h2>
+
+    <p>Maverick spend happens outside approved channels: off-contract buying, unapproved suppliers, skipped approval workflows, wrong legal entity, missed budget checks or payments that bypass governed controls. ERP already has mechanisms to legitimize ad hoc spend underpinned by enterprise rules. The agentic challenge is not to eliminate exceptions; it is to make sure exceptions remain governed at machine speed.</p>
+
+    <p>Autonomous agents change the risk profile. McKinsey reports that 80% of organizations have encountered risky behaviors from AI agents, including improper data exposure and access to systems without authorization¹⁰. When an autonomous system double-bills suppliers, violates budget constraints, selects an unapproved vendor or bypasses approval rules, the damage can compound quickly.</p>
+
+    <p>The required architecture is a deterministic gate around a probabilistic actor: check amount, supplier, budget, entity and tax treatment, and execute only if every control passes. Maverick spend was tolerable leakage when a human was the backstop. In autonomous commerce, it becomes an autonomous-systems hazard.</p>
+
+    <h2>How ERP is placed against the alternatives</h2>
+
+    <p>Orchestration-layer players — Zip, Tonkean, Omnea, ORO Labs, Spendflo and others — are contesting the request-to-approval layer. S2P platforms — Ariba, Coupa, Ivalua, Zycus and others — already hold workflow authority and are making it more agentic. Their case is that the business needs a faster layer above ERP: one that spans systems, coordinates approvals and moves quickly.</p>
+
+    <p>That is a real counter. But the payment mandate is not just a workflow artifact. It has to prove that the transaction is valid for the enterprise: entity, supplier, budget, tax treatment, approval chain, segregation of duties, accounting controls and audit trail.</p>
+
+    <p>This sharpens ERP's role. Orchestration can coordinate the process, but coordination is not the same as financial authority. Even when these platforms extend deeper into procurement, they still have to reconcile back to the system that holds financial truth.</p>
+
+    <p>So the question is not whether ERP owns every interaction. It is whether ERP validates commercial intent before money moves. Orchestration and S2P platforms can still coordinate requests, approvals and exceptions — but the financially binding mandate should originate from, or be attested by, ERP.</p>
+
+    <h2>The balance point</h2>
+
+    <p>Gartner predicts that by 2030, 50% of AI-agent deployment failures will be due to insufficient runtime governance enforcement and multisystem interoperability¹¹. That strengthens ERP because financial truth, access control and governance already live near the regulated core. It also strengthens the neutral-standard case because interoperability gaps are what ERP-agnostic orchestration layers aim to solve.</p>
+
+    <p>ERP holds strong cards: codified commercial rules, financial truth, mature access controls, segregation of duties, auditability and the regulated core already built. Whether ERP becomes the trust layer depends on whether ERP vendors make agents native to governed execution quickly enough.</p>
+
+    <p>If they do, ERP becomes where business intent turns into authorized commercial execution. That does not displace Mastercard, Visa or the broader payment ecosystem. It reuses their acceptance infrastructure: tokenization, issuer and acquirer controls, network authorization, merchant acceptance, fraud controls and dispute handling. The difference is that the corporate mandate originates from, or is attested by, ERP before it moves downstream.</p>
+
+    <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else's agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
+
+  </div><!-- /.essay-body -->
+
+  <!-- References -->
+  <div class="essay-references">
+    <div class="essay-references-label">References</div>
+    <ol>
+      <li><a href="https://newsroom.mastercard.com/news/press/2025/april/mastercard-unveils-agent-pay-pioneering-agentic-payments-technology-to-power-commerce-in-the-age-of-ai/" target="_blank" rel="noopener">Mastercard — Agent Pay launch</a></li>
+      <li><a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol" target="_blank" rel="noopener">Google Cloud — Announcing the Agent Payments Protocol</a></li>
+      <li><a href="https://investor.visa.com/news/news-details/2025/Visa-Introduces-Trusted-Agent-Protocol-An-Ecosystem-Led-Framework-for-AI-Commerce/default.aspx" target="_blank" rel="noopener">Visa — Trusted Agent Protocol</a></li>
+      <li><a href="https://blog.google/products-and-platforms/platforms/google-pay/agent-payments-protocol-fido-alliance/" target="_blank" rel="noopener">Google — AP2 donation to the FIDO Alliance</a></li>
+      <li><a href="https://www.sec.gov/Archives/edgar/data/1141391/000114139125000011/ma-20241231.htm" target="_blank" rel="noopener">Mastercard — 2024 Annual Report, franchise model and interoperability</a></li>
+      <li><a href="https://www.mastercard.com/us/en/news-and-trends/stories/2026/verifiable-intent.html" target="_blank" rel="noopener">Mastercard — Verifiable Intent</a></li>
+      <li><a href="https://ap2-protocol.org/" target="_blank" rel="noopener">AP2 Protocol — Specification and core concepts</a></li>
+      <li><a href="https://www.imf.org/en/publications/imf-notes/issues/2026/04/22/how-agentic-ai-will-reshape-payments-575560" target="_blank" rel="noopener">IMF — How Agentic AI Will Reshape Payments</a></li>
+      <li><a href="https://www.sap.com/products/financial-management/access-control.html" target="_blank" rel="noopener">SAP — Access control and governance for financial management</a></li>
+      <li><a href="https://www.mckinsey.com/capabilities/risk-and-resilience/our-insights/deploying-agentic-ai-with-safety-and-security-a-playbook-for-technology-leaders" target="_blank" rel="noopener">McKinsey — Deploying agentic AI with safety and security</a></li>
+      <li><a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-11-gartner-announces-top-predictions-for-data-and-analytics-in-2026" target="_blank" rel="noopener">Gartner — Top Predictions for Data and Analytics in 2026</a></li>
+    </ol>
+  </div>
+
+  <!-- Essay footer -->
+  <footer class="essay-footer">
+    <span>Rohini · रोहिणी</span>
+    <span>© 2026 akeru</span>
+  </footer>
+
+</article>
 
 <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
 <script src="/js/starfield.js"></script>
+<script>
+(function () {
+  var hero        = document.querySelector('.hero');
+  var essayHeader = document.getElementById('essay-header');
+  var shareSidebar = document.getElementById('share-sidebar');
+
+  window.addEventListener('scroll', function () {
+    var pastHero = hero.getBoundingClientRect().bottom <= 0;
+    essayHeader.classList.toggle('visible', pastHero);
+    shareSidebar.classList.toggle('visible', pastHero);
+  }, { passive: true });
+
+  document.querySelector('.read-btn').addEventListener('click', function () {
+    document.getElementById('essay').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText('https://akeru.dev/erp-trust-layer').then(function () {
+        btn.style.color = '#1a1a1a';
+        setTimeout(function () { btn.style.color = ''; }, 1500);
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>
