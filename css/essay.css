@@ -1,0 +1,220 @@
+/* Essay page-specific styles */
+
+/* Fixed header */
+.essay-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
+  padding: 20px 24px;
+}
+
+.essay-header-logo {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--color-text);
+}
+
+/* Essay container — add top padding to clear header */
+.essay-container {
+  padding-top: 120px;
+  padding-bottom: 120px;
+}
+
+/* Meta label */
+.essay-meta {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+/* Essay title */
+.essay-title {
+  font-family: var(--font-body);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: 16px;
+}
+
+/* Subtitle/dek */
+.essay-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* Section headers */
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid var(--color-border);
+  line-height: 1.3;
+}
+
+h2:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* At-a-glance summary box */
+.essay-at-glance {
+  background: var(--color-bg-subtle);
+  border-left: 3px solid var(--color-accent);
+  padding: 24px 32px;
+  margin: 32px 0;
+}
+
+.essay-at-glance ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.essay-at-glance li {
+  margin-bottom: 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.essay-at-glance li:last-child {
+  margin-bottom: 0;
+}
+
+/* References section */
+.essay-references {
+  border-top: 1px solid var(--color-border);
+  padding-top: 32px;
+  margin-top: 64px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.essay-references h2 {
+  font-size: 22px;
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+.essay-references p {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.essay-references a {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+}
+
+/* Essay footer / navigation */
+.essay-footer {
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.essay-footer-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.essay-footer-nav a {
+  color: var(--color-text);
+  text-decoration: none;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.essay-footer-nav a:hover {
+  opacity: 0.6;
+}
+
+/* Rohini text — footer only */
+.rohini {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Share actions */
+.share-actions {
+  display: flex;
+  gap: 16px;
+  margin: 32px 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.share-actions a,
+.share-copy-btn {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.share-actions a:hover,
+.share-copy-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+.share-actions a:active,
+.share-copy-btn:active {
+  opacity: 0.7;
+}
+
+/* Mobile */
+@media (max-width: 680px) {
+  .share-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 24px 0;
+  }
+
+  .share-actions a,
+  .share-copy-btn {
+    flex: 1;
+    text-align: center;
+    min-width: 120px;
+  }
+}

@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  --color-border: #e0e0e0;
+  --color-bg-subtle: #f7f7f7;
+  --color-accent: #000000;
+  
+  --font-body: 'Source Serif Pro', Georgia, serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-body: 18px;
+  --line-height-body: 1.75;
+  
+  --max-content-width: 680px;
+  --spacing-unit: 8px;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* Content wrapper — constrain to max-width with side padding */
+.content-wrapper {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Typography baseline */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+p {
+  margin-bottom: 24px;
+}
+
+a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s ease;
+}
+
+a:hover {
+  opacity: 0.7;
+}
+
+hr {
+  border: none;
+  border-top: 2px solid var(--color-accent);
+  width: 60px;
+  margin: 32px 0 48px;
+}
+
+ul, ol {
+  margin: 0 0 24px 0;
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 12px;
+}
+
+/* Remove list styling from certain elements */
+ul.no-style, ol.no-style {
+  list-style: none;
+  padding: 0;
+}
+
+ul.no-style li, ol.no-style li {
+  margin: 0;
+}
