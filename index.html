@@ -330,95 +330,255 @@ footer {
 }
 
 /* ═══════════════════════════════════════════
-   MODAL OVERLAY
+   FULL-PAGE BLOG READER
 ═══════════════════════════════════════════ */
-#modal-overlay {
+#blog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  backdrop-filter: blur(8px);
-  background: rgba(4, 6, 12, 0.75);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: opacity 0.38s ease, visibility 0.38s ease;
+  background: #fff;
 }
 
-#modal-overlay.modal-hidden {
+#blog-overlay.blog-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
 
-#modal-overlay:not(.modal-hidden) {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
 
-.modal-content {
-  background: rgba(30, 35, 60, 0.95);
-  border: 1px solid rgba(184, 154, 90, 0.3);
-  border-radius: 8px;
-  padding: 48px 48px 48px 48px;
-  max-width: 700px;
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-.modal-close {
-  position: absolute;
-  top: 24px;
+/* Controls — fixed top-right, always visible while reader is open */
+.blog-controls {
+  position: fixed;
+  top: 20px;
   right: 24px;
-  font-size: 28px;
-  color: var(--ink);
+  z-index: 110;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.blog-ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(226,221,214,0.30);
+  border-radius: 50%;
+  background: rgba(4,6,12,0.58);
+  color: rgba(226,221,214,0.80);
+  font-size: 13px;
   cursor: pointer;
-  transition: color 0.22s, opacity 0.22s;
-  opacity: 0.7;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.22s, color 0.22s, border-color 0.22s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  line-height: 1;
 }
 
-.modal-close:hover {
-  opacity: 1;
+.blog-ctrl-btn:hover {
+  background: rgba(184,154,90,0.18);
+  border-color: rgba(184,154,90,0.55);
   color: var(--gold);
 }
 
-#blog-content {
-  color: var(--ink);
+/* Hero — dark, same palette as landing */
+.blog-hero {
+  background: var(--bg);
+  min-height: 52vh;
+  display: flex;
+  align-items: center;
+  padding: 88px 10% 64px;
+  gap: 5%;
+  position: relative;
+  overflow: hidden;
+}
+
+.blog-hero-text {
+  flex: 1 1 auto;
+  max-width: 580px;
+  position: relative;
+  z-index: 2;
+}
+
+.blog-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.78;
+  margin-bottom: 1.1rem;
+}
+
+.blog-hero-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 16px;
-  line-height: 1.8;
-  letter-spacing: 0.01em;
-}
-
-#blog-content h1,
-#blog-content h2,
-#blog-content h3 {
-  color: var(--ink);
-  margin-top: 1.6rem;
-  margin-bottom: 0.8rem;
+  font-size: clamp(2rem, 3.6vw, 3.6rem);
   font-weight: 400;
+  line-height: 1.10;
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
 }
 
-#blog-content p {
-  margin-bottom: 1.2rem;
+.blog-hero-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(15px, 1.35vw, 18px);
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(226,221,214,0.52);
+  line-height: 1.68;
 }
 
-#blog-content a {
-  color: var(--gold);
+.blog-hero-constellation {
+  flex: 0 0 auto;
+  width: clamp(190px, 26vw, 340px);
+  position: relative;
+  z-index: 2;
+  opacity: 0.90;
+}
+
+/* Article body — white */
+.blog-body {
+  background: #fff;
+}
+
+.blog-article {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 64px 28px 110px;
+  color: #1c1c1c;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(17px, 1.3vw, 19px);
+  line-height: 1.78;
+}
+
+/* At a glance */
+.blog-at-glance {
+  border-left: 3px solid var(--gold);
+  background: #f9f8f6;
+  padding: 26px 30px 26px 28px;
+  margin-bottom: 3.2rem;
+  border-radius: 0 5px 5px 0;
+}
+
+.blog-glance-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #B89A5A;
+  margin-bottom: 16px;
+}
+
+.blog-at-glance ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.blog-at-glance li {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(15px, 1.1vw, 17px);
+  line-height: 1.60;
+  color: #2a2a2a;
+  padding-left: 22px;
+  position: relative;
+}
+
+.blog-at-glance li::before {
+  content: '·';
+  position: absolute;
+  left: 5px;
+  top: -1px;
+  color: #B89A5A;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+/* Section headers — bold, dark */
+.blog-article h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.25rem, 1.6vw, 1.55rem);
+  font-weight: 700;
+  color: #111;
+  margin-top: 3.2rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+/* Further reading sub-labels */
+.blog-article h3 {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #B89A5A;
+  margin-top: 2rem;
+  margin-bottom: 0.9rem;
+}
+
+.blog-article p {
+  margin-bottom: 1.25rem;
+  color: #2c2c2c;
+}
+
+.blog-article a {
+  color: #B89A5A;
   text-decoration: underline;
-  transition: opacity 0.22s;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s;
 }
 
-#blog-content a:hover {
-  opacity: 0.8;
+.blog-article a:hover { opacity: 0.68; }
+
+.blog-further-reading {
+  border-top: 1px solid #e5e1db;
+  margin-top: 3.5rem;
+  padding-top: 2.4rem;
+}
+
+.blog-further-reading h2 {
+  margin-top: 0 !important;
+}
+
+/* Mobile */
+@media (max-width: 680px) {
+  .blog-hero {
+    flex-direction: column-reverse;
+    padding: 72px 24px 44px;
+    min-height: auto;
+    gap: 28px;
+  }
+
+  .blog-hero-constellation {
+    width: 70%;
+    max-width: 240px;
+    margin: 0 auto;
+  }
+
+  .blog-article {
+    padding: 44px 20px 80px;
+  }
+
+  .blog-controls {
+    top: 14px;
+    right: 16px;
+  }
+
 }
 
 /* ═══════════════════════════════════════════
@@ -565,7 +725,9 @@ footer {
 
     <!-- ── Hero title ── -->
     <div class="hero-container">
-      <h1 class="hero-title" id="hero-0">Will ERP Systems<br>Become the Trust<br>Layer?</h1>
+
+      <h1 class="hero-title" id="hero-0">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+
     </div>
 
     <!-- ── Slide meta — desc + CTAs per slide ── -->
@@ -596,78 +758,154 @@ footer {
 
 </div>
 
-<!-- Modal overlay for blog content -->
-<div id="modal-overlay" class="modal-hidden">
-  <div class="modal-close" id="modal-close">✕</div>
-  <div class="modal-content">
-    <div id="blog-content">
-      <h1>Will ERP Systems Become the Trust Layer for Autonomous Commerce?</h1>
 
-      <h2>At a glance</h2>
-      <p>Consumer agent commerce is beginning to move from experimentation into early deployment. Google's Agent Payments Protocol (AP2), Mastercard's Agent Pay, Visa's Intelligent Commerce initiatives, and Cloudflare's Web Bot Auth collectively point toward an emerging ecosystem for agent-mediated transactions. These efforts extend the evolution of card-not-present commerce into a model where the cardholder may delegate bounded authority to an AI agent operating on their behalf. Early agent-authorized payment flows and pilot transactions have already been demonstrated on major card networks.</p>
-      <p>These protocols solve a specific shape of transaction — a single human delegating bounded authority to a single agent against a single payment instrument. They map cleanly onto the card-not-present ecosystem because they extend it; the cardholder simply moves one step further away from the transaction.</p>
-      <p>B2B commerce does not have this shape. A corporate purchase is not a single principal's decision. It is a chain of delegated authority traceable through enterprise governance and ERP-configured workflows, validated by segregation-of-duties controls, posted to a specific legal entity, and audited against SOX and equivalent governance regimes.</p>
-      <p>None of that primarily lives in a card network or an agent runtime. It is instantiated across enterprise systems — most critically the ERP — where workflow legitimacy, financial controls, accounting treatment, and auditability converge. Every other layer in the agent commerce stack will eventually have to integrate with that authorization model.</p>
-      <p>The window is roughly 12 to 18 months. Consumer agent commerce will accelerate quickly over the next few retail cycles. Enterprises will then try to apply similar models to B2B transactions, and the gap in authorization architecture will become visible as expensive failures attributed broadly to "agent risk."</p>
+<!-- Full-page blog reader -->
+<div id="blog-overlay" class="blog-hidden">
 
-      <p>A few months ago, early agent-mediated payment flows were demonstrated on major card networks. Not a demo environment. Not a sandbox. Actual purchases initiated by AI agents on behalf of consumers, authorized through cryptographic mandates and processed through traditional payment rails.</p>
-      <p>Google's Agent Payments Protocol (AP2), announced in 2025 with a broad ecosystem of partners — Adyen, American Express, Coinbase, Etsy, Intuit, JCB, Mastercard, PayPal, Salesforce, ServiceNow, UnionPay, Worldpay, and others — is emerging as one of the earliest serious coordination frameworks for AI-agent-mediated commerce. Cloudflare's Web Bot Auth provides a mechanism for verifying agent provenance. Mastercard's Agent Pay focuses on agent registration, identity, and delegated payment authorization. Visa introduced parallel initiatives within weeks.</p>
-      <p>What these efforts collectively represent is not a replacement of existing payment systems, but the next evolutionary step in digital commerce.</p>
-      <p>E-commerce separated the transaction from the physical card. Mobile wallets and tokenization separated merchants from the underlying payment credential. Agent-mediated commerce introduces another abstraction layer: the cardholder may no longer directly participate in the transaction flow at all.</p>
-      <p>Instead, the cardholder delegates bounded authority to an autonomous system operating on their behalf.</p>
-      <p>From the perspective of payment networks, this is still an extension of the existing card-not-present ecosystem. The transaction remains fundamentally centered around a single accountable principal delegating authority within constrained limits.</p>
-      <p>That is why the current generation of agent payment protocols maps cleanly onto consumer commerce.</p>
-      <p>Enterprise commerce doesn't, because it is fundamentally a trust ecosystem before it is a payment ecosystem.</p>
+  <!-- Fixed controls -->
+  <div class="blog-controls" id="blog-controls">
+    <button class="blog-ctrl-btn" id="blog-fullscreen-btn" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+      <svg id="fs-expand-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M1 5V1H5M9 1H13V5M13 9V13H9M5 13H1V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg id="fs-compress-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:none">
+        <path d="M5 1V5H1M9 5V1H13M9 9H13V13M1 9H5V13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="blog-ctrl-btn" id="blog-close-btn" title="Close" aria-label="Close">✕</button>
+  </div>
 
-      <h2>Where enterprise commitments actually originate</h2>
-      <p>A purchase order for two million dollars of components is not a single human's decision.</p>
-      <p>It is the outcome of formally delegated enterprise governance, operationalized through finance and procurement workflows, implemented across enterprise systems, validated against contractual obligations, constrained by treasury and spending controls, and audited against SOX, internal governance, external audit, and jurisdictional compliance requirements.</p>
-      <p>There is no single principal in that transaction. There is a chain of delegated authority that exists only in the configuration of enterprise systems. The moment any link in that chain is unclear, the transaction fails compliance review.</p>
-      <p>That chain of delegated authority does not live in a card network. It does not live in an agent runtime. It does not live in a contract management tool.</p>
-      <p>It lives in the ERP — because the ERP is where policies become operational, where workflows execute, where financial entitlements are enforced, and where the audit trail is reconstructed when something goes wrong.</p>
-      <p>This is the part of the agent commerce conversation that the consumer-facing protocols structurally cannot reach. Not because their builders are incapable, but because the layer where enterprise authorization is actually defined is not the payment layer.</p>
+  <!-- Hero — dark, constellation + title -->
+  <div class="blog-hero">
+    <div class="blog-hero-text">
+      <div class="blog-eyebrow">Essay · May 2026</div>
+      <h1 class="blog-hero-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+      <p class="blog-hero-sub">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
+    </div>
+    <div class="blog-hero-constellation">
+      <svg viewBox="0 0 380 278" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:100%;height:auto;">
+        <defs>
+          <radialGradient id="rg-ald" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,220,160,0.82)"/>
+            <stop offset="38%" stop-color="rgba(222,152,84,0.28)"/>
+            <stop offset="100%" stop-color="rgba(210,95,35,0)"/>
+          </radialGradient>
+          <radialGradient id="rg-st" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(235,228,215,0.62)"/>
+            <stop offset="100%" stop-color="rgba(226,216,198,0)"/>
+          </radialGradient>
+        </defs>
+        <!-- Background micro-stars -->
+        <circle cx="42" cy="28" r="0.8" fill="rgba(220,220,235,0.42)"/>
+        <circle cx="318" cy="22" r="0.6" fill="rgba(220,220,235,0.36)"/>
+        <circle cx="362" cy="98" r="0.7" fill="rgba(220,220,235,0.40)"/>
+        <circle cx="22" cy="142" r="0.9" fill="rgba(220,220,235,0.33)"/>
+        <circle cx="352" cy="198" r="0.6" fill="rgba(220,220,235,0.38)"/>
+        <circle cx="62" cy="218" r="0.8" fill="rgba(220,220,235,0.36)"/>
+        <circle cx="308" cy="242" r="0.7" fill="rgba(220,220,235,0.28)"/>
+        <circle cx="162" cy="18" r="0.6" fill="rgba(220,220,235,0.40)"/>
+        <circle cx="252" cy="232" r="0.9" fill="rgba(220,220,235,0.33)"/>
+        <circle cx="102" cy="252" r="0.7" fill="rgba(255,230,200,0.33)"/>
+        <circle cx="338" cy="148" r="0.5" fill="rgba(220,220,235,0.30)"/>
+        <circle cx="28" cy="82" r="0.6" fill="rgba(220,220,235,0.28)"/>
+        <!-- Connection lines -->
+        <g stroke="rgba(184,154,90,0.30)" stroke-width="0.9" fill="none">
+          <line x1="185" y1="200" x2="66" y2="62"/>
+          <line x1="185" y1="200" x2="124" y2="130"/>
+          <line x1="185" y1="200" x2="304" y2="62"/>
+          <line x1="185" y1="200" x2="246" y2="130"/>
+          <line x1="66" y1="62" x2="124" y2="130"/>
+          <line x1="304" y1="62" x2="246" y2="130"/>
+        </g>
+        <!-- Star glows -->
+        <circle cx="185" cy="200" r="44" fill="url(#rg-ald)"/>
+        <circle cx="66" cy="62" r="19" fill="url(#rg-st)"/>
+        <circle cx="124" cy="130" r="16" fill="url(#rg-st)"/>
+        <circle cx="304" cy="62" r="19" fill="url(#rg-st)"/>
+        <circle cx="246" cy="130" r="15" fill="url(#rg-st)"/>
+        <!-- Aldebaran cross spikes -->
+        <line x1="163" y1="200" x2="207" y2="200" stroke="rgba(230,185,120,0.20)" stroke-width="0.8"/>
+        <line x1="185" y1="178" x2="185" y2="222" stroke="rgba(230,185,120,0.20)" stroke-width="0.8"/>
+        <!-- Star dots -->
+        <circle cx="185" cy="200" r="3.2" fill="rgb(255,220,160)"/>
+        <circle cx="66" cy="62" r="2.0" fill="rgb(232,224,210)"/>
+        <circle cx="124" cy="130" r="1.7" fill="rgb(230,221,207)"/>
+        <circle cx="304" cy="62" r="2.0" fill="rgb(228,218,200)"/>
+        <circle cx="246" cy="130" r="1.6" fill="rgb(226,216,198)"/>
+        <!-- Labels -->
+        <text x="200" y="204" font-family="DM Mono, monospace" font-size="12" fill="rgba(220,180,120,0.78)" font-weight="300">α</text>
+        <text x="44" y="58" font-family="DM Mono, monospace" font-size="11" fill="rgba(210,200,180,0.58)" font-weight="300">γ</text>
+        <text x="102" y="126" font-family="DM Mono, monospace" font-size="11" fill="rgba(210,200,180,0.58)" font-weight="300">δ</text>
+        <text x="310" y="58" font-family="DM Mono, monospace" font-size="11" fill="rgba(210,200,180,0.58)" font-weight="300">ε</text>
+        <text x="252" y="126" font-family="DM Mono, monospace" font-size="11" fill="rgba(210,200,180,0.58)" font-weight="300">θ²</text>
+        <text x="185" y="224" font-family="Noto Sans Devanagari, sans-serif" font-size="11" fill="rgba(210,140,70,0.58)" text-anchor="middle">रोहिणी</text>
+      </svg>
+    </div>
+  </div>
 
-      <h2>Why the ERP is the decisive factor</h2>
-      <p>When an agent commits a corporation to a $2M purchase, three things have to be true simultaneously, and each of them is fundamentally an ERP question rather than a payment question.</p>
-      <p>The agent must be operating within authority that is traceable through formally delegated enterprise governance and approval structures. No card mandate can express this; the mandate proves the human authorized the agent, not that the human had the authority to authorize the agent for that commitment.</p>
-      <p>The agent must respect segregation of duties — the same agent cannot negotiate, approve, and pay. Segregation-of-duties controls are enforced through ERP-centered workflow and governance systems. An agent that doesn't integrate with those controls is, by definition, operating outside enterprise governance.</p>
-      <p>The agent must commit on behalf of a specific legal entity, in a specific jurisdiction, with specific tax treatment, against a specific budget owned by a specific cost center. All of that is master data that lives in the ERP. The card network sees a transaction. The ERP sees an obligation, recognized correctly, posted to the right ledger, against the right entity, with the right tax treatment.</p>
-      <p>Strip these three things out and you don't have B2B agent commerce.</p>
-      <p>You have a high-velocity audit failure waiting to be discovered.</p>
-      <p>This is why the ERP isn't simply one of several participants that could shape enterprise authorization. It is the convergence layer where enterprise legitimacy, workflow authority, accounting treatment, and auditability come together. Everything else — agent runtimes, payment protocols, identity providers, contract systems — ultimately has to integrate with that model rather than replace it.</p>
-      <p>The ERP is not an incumbent that needs to keep up.</p>
-      <p>It may become the trust layer the rest of the autonomous commerce ecosystem depends on.</p>
+  <!-- Article body — white -->
+  <div class="blog-body">
+    <div class="blog-article">
 
-      <h2>Why this isn't being built fast enough</h2>
-      <p>ERP vendors are responding the way most incumbents respond to a paradigm shift — by adding agents into existing modules rather than rethinking authorization architecture itself.</p>
-      <p>Procurement gets an agent. Treasury gets an agent. AP gets an agent.</p>
-      <p>Each one is useful in isolation. None is the trust layer being described here.</p>
-      <p>The harder problem is horizontal.</p>
-      <p>It requires treating agent identity, delegation, segregation of duties, and auditability as capabilities that cut across every module — and exposing those controls safely to external agent runtimes, payment protocols, and counterparty systems through standards that do not yet meaningfully exist.</p>
-      <p>That is a significantly larger undertaking than feature-level agent integration, and the prerequisite for making autonomous commerce safely usable inside enterprises.</p>
+      <!-- At a glance -->
+      <div class="blog-at-glance">
+        <div class="blog-glance-label">At a glance</div>
+        <ul>
+          <li>Consumer agent commerce has moved from demo to live commerce, with protocols solving for a single human principal delegating bounded authority to one or more agents.</li>
+          <li>Google and Mastercard’s consumer-commerce moves align with their broader strategies: Google seeds open standards through ecosystem bodies like FIDO, while Mastercard extends its network-rule and interoperability role into agentic payments. But they standardize portable intent, not corporate authority.</li>
+          <li>B2B commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control. Autonomous agents make deterministic guardrails more complex, not less.</li>
+          <li>ERP has underappreciated advantages: commercial rules are already codified there, and its security model was built for constrained actors taking consequential actions inside financial systems.</li>
+          <li>ERP is not the only contender. Orchestration-layer players and S2P suites can coordinate requests, approvals and workflows, but not always the financial truth needed to create a payment mandate.</li>
+          <li>ERP starts with strong cards. But the industry is at a balance point, and it can still tip the other way.</li>
+        </ul>
+      </div>
 
-      <h2>What I'd watch</h2>
-      <p>The consumer agent commerce story already has visible momentum.</p>
-      <p>The enterprise autonomous commerce story has barely started.</p>
-      <p>If you're building in this space, the most valuable thing you can do right now is probably not another agent. It is integration with the authorization and governance models enterprises already enforce — because every other layer in the stack will eventually have to plug into them.</p>
-      <p>Autonomous commerce will not scale safely through payment networks and agent runtimes alone.</p>
-      <p>It will depend on whichever systems can operationalize enterprise trust, delegated authority, and auditability at machine speed.</p>
-      <p>Inside most enterprises, that convergence layer already exists.</p>
-      <p>It is the ERP.</p>
+      <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard’s move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In B2B commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
+      <p>These protocols work because consumer commerce is the simpler topology: one human principal delegating bounded authority to one or more agents through signed mandates checked against user intent⁷. There are still fraud, dispute and bot-detection problems, but no corporate delegation chain upstream.</p>
+      <p>The IMF’s April 2026 note names the tension: payment infrastructure is deterministic; agentic systems are probabilistic⁸. Consumer protocols handle that separation for the simpler case. B2B commerce is harder — and structurally closer to what agentic commerce is becoming than to card-not-present commerce.</p>
 
-      <h2>Further Reading</h2>
-      <h3>Agent payment protocols and infrastructure</h3>
-      <p><a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol" target="_blank" rel="noopener">Google Cloud — Announcing the Agent Payments Protocol (AP2)</a></p>
-      <p><a href="https://www.mastercard.com/global/en/business/artificial-intelligence/mastercard-agent-pay.html" target="_blank" rel="noopener">Mastercard — Agent Pay</a></p>
-      <p><a href="https://blog.cloudflare.com/web-bot-auth/" target="_blank" rel="noopener">Cloudflare — Forget IPs: using cryptography to verify bot and agent traffic (Web Bot Auth)</a></p>
-      <p><a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener">Anthropic — Model Context Protocol (MCP)</a></p>
-      <h3>Agentic commerce — strategy and market view</h3>
-      <p><a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-agentic-commerce-opportunity-how-ai-agents-are-ushering-in-a-new-era-for-consumers-and-merchants" target="_blank" rel="noopener">McKinsey QuantumBlack — The agentic commerce opportunity</a></p>
-      <p><a href="https://www.bain.com/insights/agentic-ai-commerce-the-next-retail-revolution-is-here/" target="_blank" rel="noopener">Bain &amp; Company — Agentic AI Commerce: The Next Retail Revolution</a></p>
-      <p><a href="https://www.jaggaer.com/blog/what-is-autonomous-commerce/" target="_blank" rel="noopener">JAGGAER — What Is Autonomous Commerce?</a></p>
-      <p><a href="https://diconium.com/en/blog/ai/autonomous-commerce-the-smart-ai-future-of-b2b-online-commerce/" target="_blank" rel="noopener">Diconium — Autonomous Commerce: The Smart AI Future of B2B Online Commerce</a></p>
-      <h3>Governance and trust</h3>
-      <p><a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener">NIST — AI Risk Management Framework</a></p>
+      <h2>The commercial guardrails already exist — and they bind back to ERP</h2>
+      <p>In a governed enterprise, a two-million-dollar purchase order is not one person’s decision. It is a delegation-of-authority framework instantiated as an approval matrix, constrained by segregation of duties, bound to legal entity, business unit, tax position and budget, and auditable against financial reporting, tax and internal-control requirements.</p>
+      <p>The accountable principal is the legal entity, but it cannot authenticate. It acts only through codified, traceable delegation. That chain does not live in a card network or agent runtime. In many enterprises, it binds back to ERP: the books, controls, tax posture, budget structure and audit trail.</p>
+      <p>A consumer mandate can prove a human authorized an agent. It cannot prove that a corporate user had authority to commit an enterprise, budget and supplier relationship. That is ERP’s claim to the trust layer.</p>
+
+      <h2>ERP’s commercial-control model becomes an advantage</h2>
+      <p>ERP’s standard critique is that it is rigid, permission-heavy and hard to use. In the agent era, that starts looking less like a flaw and more like a feature.</p>
+      <p>ERP controls were built around constrained action inside systems of financial consequence: role-based access, data privileges, approval limits, segregation of duties, audit trails and exception controls⁹. McKinsey frames AI agents as “digital insiders” operating inside systems with varying levels of privilege and authority¹⁰. An agent should not merely know what a user asked it to do; it should know what the user is allowed to do, for which entity, under which budget, against which supplier, within what approval threshold and with what audit trail.</p>
+      <p>That is the entitlement question ERP has answered for decades. In autonomous commerce, ERP can convert business intent into an approved commercial mandate. Payment networks should not need to recreate corporate authority; they should recognize the ERP-originated mandate, verify integrity, apply tokenization and payment-risk controls, and help the payment succeed.</p>
+      <p>The trust layer is where ERP makes corporate authority executable — and legible downstream.</p>
+
+      <h2>Maverick spend becomes an autonomous-systems risk</h2>
+      <p>Maverick spend happens outside approved channels: off-contract buying, unapproved suppliers, skipped approval workflows, wrong legal entity, missed budget checks or payments that bypass governed controls. ERP already has mechanisms to legitimize ad hoc spend underpinned by enterprise rules. The agentic challenge is not to eliminate exceptions; it is to make sure exceptions remain governed at machine speed.</p>
+      <p>Autonomous agents change the risk profile. McKinsey reports that 80% of organizations have encountered risky behaviors from AI agents, including improper data exposure and access to systems without authorization¹⁰. When an autonomous system double-bills suppliers, violates budget constraints, selects an unapproved vendor or bypasses approval rules, the damage can compound quickly.</p>
+      <p>The required architecture is a deterministic gate around a probabilistic actor: check amount, supplier, budget, entity and tax treatment, and execute only if every control passes. Maverick spend was tolerable leakage when a human was the backstop. In autonomous commerce, it becomes an autonomous-systems hazard.</p>
+
+      <h2>How ERP is placed against the alternatives</h2>
+      <p>Orchestration-layer players — Zip, Tonkean, Omnea, ORO Labs, Spendflo and others — are contesting the request-to-approval layer. S2P platforms — Ariba, Coupa, Ivalua, Zycus and others — already hold workflow authority and are making it more agentic. Their case is that the business needs a faster layer above ERP: one that spans systems, coordinates approvals and moves quickly.</p>
+      <p>That is a real counter. But the payment mandate is not just a workflow artifact. It has to prove that the transaction is valid for the enterprise: entity, supplier, budget, tax treatment, approval chain, segregation of duties, accounting controls and audit trail.</p>
+      <p>This sharpens ERP’s role. Orchestration can coordinate the process, but coordination is not the same as financial authority. Even when these platforms extend deeper into procurement, they still have to reconcile back to the system that holds financial truth.</p>
+      <p>So the question is not whether ERP owns every interaction. It is whether ERP validates commercial intent before money moves. Orchestration and S2P platforms can still coordinate requests, approvals and exceptions — but the financially binding mandate should originate from, or be attested by, ERP.</p>
+
+      <h2>The balance point</h2>
+      <p>Gartner predicts that by 2030, 50% of AI-agent deployment failures will be due to insufficient runtime governance enforcement and multisystem interoperability¹¹. That strengthens ERP because financial truth, access control and governance already live near the regulated core. It also strengthens the neutral-standard case because interoperability gaps are what ERP-agnostic orchestration layers aim to solve.</p>
+      <p>ERP holds strong cards: codified commercial rules, financial truth, mature access controls, segregation of duties, auditability and the regulated core already built. Whether ERP becomes the trust layer depends on whether ERP vendors make agents native to governed execution quickly enough.</p>
+      <p>If they do, ERP becomes where business intent turns into authorized commercial execution. That does not displace Mastercard, Visa or the broader payment ecosystem. It reuses their acceptance infrastructure: tokenization, issuer and acquirer controls, network authorization, merchant acceptance, fraud controls and dispute handling. The difference is that the corporate mandate originates from, or is attested by, ERP before it moves downstream.</p>
+      <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else’s agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
+
+      <h2>References</h2>
+      <p>1. <a href="https://newsroom.mastercard.com/news/press/2025/april/mastercard-unveils-agent-pay-pioneering-agentic-payments-technology-to-power-commerce-in-the-age-of-ai/" target="_blank" rel="noopener">Mastercard — Agent Pay launch</a></p>
+      <p>2. <a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol" target="_blank" rel="noopener">Google Cloud — Announcing the Agent Payments Protocol</a></p>
+      <p>3. <a href="https://investor.visa.com/news/news-details/2025/Visa-Introduces-Trusted-Agent-Protocol-An-Ecosystem-Led-Framework-for-AI-Commerce/default.aspx" target="_blank" rel="noopener">Visa — Trusted Agent Protocol</a></p>
+      <p>4. <a href="https://blog.google/products-and-platforms/platforms/google-pay/agent-payments-protocol-fido-alliance/" target="_blank" rel="noopener">Google — AP2 donation to the FIDO Alliance</a></p>
+      <p>5. <a href="https://www.sec.gov/Archives/edgar/data/1141391/000114139125000011/ma-20241231.htm" target="_blank" rel="noopener">Mastercard — 2024 Annual Report, franchise model and interoperability</a></p>
+      <p>6. <a href="https://www.mastercard.com/us/en/news-and-trends/stories/2026/verifiable-intent.html" target="_blank" rel="noopener">Mastercard — Verifiable Intent</a></p>
+      <p>7. <a href="https://ap2-protocol.org/" target="_blank" rel="noopener">AP2 Protocol — Specification and core concepts</a></p>
+      <p>8. <a href="https://www.imf.org/en/publications/imf-notes/issues/2026/04/22/how-agentic-ai-will-reshape-payments-575560" target="_blank" rel="noopener">IMF — How Agentic AI Will Reshape Payments</a></p>
+      <p>9. <a href="https://www.sap.com/products/financial-management/access-control.html" target="_blank" rel="noopener">SAP — Access control and governance for financial management</a></p>
+      <p>10. <a href="https://www.mckinsey.com/capabilities/risk-and-resilience/our-insights/deploying-agentic-ai-with-safety-and-security-a-playbook-for-technology-leaders" target="_blank" rel="noopener">McKinsey — Deploying agentic AI with safety and security</a></p>
+      <p>11. <a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-11-gartner-announces-top-predictions-for-data-and-analytics-in-2026" target="_blank" rel="noopener">Gartner — Top Predictions for Data and Analytics in 2026</a></p>
+
+
     </div>
   </div>
 </div>
@@ -1171,62 +1409,51 @@ function tick (now) {
 (function () {
   'use strict';
 
-  var modalOverlay = document.getElementById('modal-overlay');
-  var blogContent = document.getElementById('blog-content');
-  var modalClose = document.getElementById('modal-close');
-  var readBtn = document.getElementById('read-btn');
-  var heroTitle = document.getElementById('hero-0');
 
-  function openModal() {
-    if (modalOverlay) {
-      modalOverlay.classList.remove('modal-hidden');
+  var overlay      = document.getElementById('blog-overlay');
+  var closeBtn     = document.getElementById('blog-close-btn');
+  var fsBtn        = document.getElementById('blog-fullscreen-btn');
+  var fsExpandIcon = document.getElementById('fs-expand-icon');
+  var fsCompressIcon = document.getElementById('fs-compress-icon');
+  var readBtn      = document.getElementById('read-btn');
+  var heroTitle    = document.getElementById('hero-0');
+
+  function openBlog() {
+    overlay.classList.remove('blog-hidden');
+    overlay.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeBlog() {
+    overlay.classList.add('blog-hidden');
+    document.body.style.overflow = '';
+    if (document.fullscreenElement) document.exitFullscreen();
+  }
+
+  function updateFsIcons() {
+    var isFs = !!document.fullscreenElement;
+    fsExpandIcon.style.display   = isFs ? 'none'  : '';
+    fsCompressIcon.style.display = isFs ? ''      : 'none';
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      overlay.requestFullscreen && overlay.requestFullscreen();
+    } else {
+      document.exitFullscreen && document.exitFullscreen();
     }
   }
 
-  function closeModal() {
-    if (modalOverlay) {
-      modalOverlay.classList.add('modal-hidden');
-    }
-  }
+  document.addEventListener('fullscreenchange', updateFsIcons);
 
-  // Click handlers for opening modal
-  if (readBtn) {
-    readBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      openModal();
-    });
-  }
+  if (readBtn)    readBtn.addEventListener('click', function(e) { e.preventDefault(); openBlog(); });
+  if (heroTitle)  { heroTitle.addEventListener('click', function(e) { e.preventDefault(); openBlog(); }); heroTitle.style.cursor = 'pointer'; }
+  if (closeBtn)   closeBtn.addEventListener('click', closeBlog);
+  if (fsBtn)      fsBtn.addEventListener('click', toggleFullscreen);
 
-  if (heroTitle) {
-    heroTitle.addEventListener('click', function(e) {
-      e.preventDefault();
-      openModal();
-    });
-    heroTitle.style.cursor = 'pointer';
-  }
-
-  // Close button handler
-  if (modalClose) {
-    modalClose.addEventListener('click', function(e) {
-      e.preventDefault();
-      closeModal();
-    });
-  }
-
-  // Close on backdrop click
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', function(e) {
-      if (e.target === modalOverlay) {
-        closeModal();
-      }
-    });
-  }
-
-  // Close on Escape key
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modalOverlay && !modalOverlay.classList.contains('modal-hidden')) {
-      closeModal();
-    }
+    if (e.key === 'Escape' && overlay && !overlay.classList.contains('blog-hidden')) closeBlog();
+
   });
 
 })();
