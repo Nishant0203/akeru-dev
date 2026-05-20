@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Will ERP Become the Trust Layer for Autonomous Commerce? · akeru</title>
+  <meta name="description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+  <link rel="canonical" href="https://akeru.dev/essays/erp-trust-layer">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
+  <meta property="og:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+  <meta property="og:url" content="https://akeru.dev/essays/erp-trust-layer">
+  <meta property="og:site_name" content="akeru">
+  <meta property="og:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-01">
+  <meta property="article:author" content="Nishant">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
+  <meta name="twitter:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+  <meta name="twitter:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
+  
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/essay.css">
+</head>
+<body>
+  <header class="essay-header">
+    <div class="essay-header-logo"><a href="/" style="text-decoration: none;">akeru</a></div>
+  </header>
+
+  <div class="essay-container content-wrapper">
+    <div class="essay-meta">Essay · May 2026</div>
+    <h1 class="essay-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+    <p class="essay-subtitle">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
+    <hr>
+
+    <!-- Share actions -->
+    <div class="share-actions">
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/essays/erp-trust-layer" target="_blank" rel="noopener">Share on LinkedIn</a>
+      <button class="share-copy-btn" onclick="navigator.clipboard.writeText(window.location.href).then(() => { this.textContent = 'Copied'; setTimeout(() => { this.textContent = 'Copy link'; }, 2000); })">Copy link</button>
+    </div>
+
+    <!-- At a glance -->
+    <div class="essay-at-glance">
+      <strong>At a glance</strong>
+      <ul>
+        <li>Consumer agent commerce has moved from demo to live commerce, with protocols solving for a single human principal delegating bounded authority to one or more agents.</li>
+        <li>Google and Mastercard's consumer-commerce moves align with their broader strategies: Google seeds open standards through ecosystem bodies like FIDO, while Mastercard extends its network-rule and interoperability role into agentic payments. But they standardize portable intent, not corporate authority.</li>
+        <li>B2B commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control. Autonomous agents make deterministic guardrails more complex, not less.</li>
+        <li>ERP has underappreciated advantages: commercial rules are already codified there, and its security model was built for constrained actors taking consequential actions inside financial systems.</li>
+        <li>ERP is not the only contender. Orchestration-layer players and S2P suites can coordinate requests, approvals and workflows, but not always the financial truth needed to create a payment mandate.</li>
+        <li>ERP starts with strong cards. But the industry is at a balance point, and it can still tip the other way.</li>
+      </ul>
+    </div>
+
+    <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard's move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In B2B commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
+
+    <p>These protocols work because consumer commerce is the simpler topology: one human principal delegating bounded authority to one or more agents through signed mandates checked against user intent⁷. There are still fraud, dispute and bot-detection problems, but no corporate delegation chain upstream.</p>
+
+    <p>The IMF's April 2026 note names the tension: payment infrastructure is deterministic; agentic systems are probabilistic⁸. Consumer protocols handle that separation for the simpler case. B2B commerce is harder — and structurally closer to what agentic commerce is becoming than to card-not-present commerce.</p>
+
+    <h2>The commercial guardrails already exist — and they bind back to ERP</h2>
+
+    <p>In a governed enterprise, a two-million-dollar purchase order is not one person's decision. It is a delegation-of-authority framework instantiated as an approval matrix, constrained by segregation of duties, bound to legal entity, business unit, tax position and budget, and auditable against financial reporting, tax and internal-control requirements.</p>
+
+    <p>The accountable principal is the legal entity, but it cannot authenticate. It acts only through codified, traceable delegation. That chain does not live in a card network or agent runtime. In many enterprises, it binds back to ERP: the books, controls, tax posture, budget structure and audit trail.</p>
+
+    <p>A consumer mandate can prove a human authorized an agent. It cannot prove that a corporate user had authority to commit an enterprise, budget and supplier relationship. That is ERP's claim to the trust layer.</p>
+
+    <h2>ERP's commercial-control model becomes an advantage</h2>
+
+    <p>ERP's standard critique is that it is rigid, permission-heavy and hard to use. In the agent era, that starts looking less like a flaw and more like a feature.</p>
+
+    <p>ERP controls were built around constrained action inside systems of financial consequence: role-based access, data privileges, approval limits, segregation of duties, audit trails and exception controls⁹. McKinsey frames AI agents as "digital insiders" operating inside systems with varying levels of privilege and authority¹⁰. An agent should not merely know what a user asked it to do; it should know what the user is allowed to do, for which entity, under which budget, against which supplier, within what approval threshold and with what audit trail.</p>
+
+    <p>That is the entitlement question ERP has answered for decades. In autonomous commerce, ERP can convert business intent into an approved commercial mandate. Payment networks should not need to recreate corporate authority; they should recognize the ERP-originated mandate, verify integrity, apply tokenization and payment-risk controls, and help the payment succeed.</p>
+
+    <p>The trust layer is where ERP makes corporate authority executable — and legible downstream.</p>
+
+    <h2>Maverick spend becomes an autonomous-systems risk</h2>
+
+    <p>Maverick spend happens outside approved channels: off-contract buying, unapproved suppliers, skipped approval workflows, wrong legal entity, missed budget checks or payments that bypass governed controls. ERP already has mechanisms to legitimize ad hoc spend underpinned by enterprise rules. The agentic challenge is not to eliminate exceptions; it is to make sure exceptions remain governed at machine speed.</p>
+
+    <p>Autonomous agents change the risk profile. McKinsey reports that 80% of organizations have encountered risky behaviors from AI agents, including improper data exposure and access to systems without authorization¹⁰. When an autonomous system double-bills suppliers, violates budget constraints, selects an unapproved vendor or bypasses approval rules, the damage can compound quickly.</p>
+
+    <p>The required architecture is a deterministic gate around a probabilistic actor: check amount, supplier, budget, entity and tax treatment, and execute only if every control passes. Maverick spend was tolerable leakage when a human was the backstop. In autonomous commerce, it becomes an autonomous-systems hazard.</p>
+
+    <h2>How ERP is placed against the alternatives</h2>
+
+    <p>Orchestration-layer players — Zip, Tonkean, Omnea, ORO Labs, Spendflo and others — are contesting the request-to-approval layer. S2P platforms — Ariba, Coupa, Ivalua, Zycus and others — already hold workflow authority and are making it more agentic. Their case is that the business needs a faster layer above ERP: one that spans systems, coordinates approvals and moves quickly.</p>
+
+    <p>That is a real counter. But the payment mandate is not just a workflow artifact. It has to prove that the transaction is valid for the enterprise: entity, supplier, budget, tax treatment, approval chain, segregation of duties, accounting controls and audit trail.</p>
+
+    <p>This sharpens ERP's role. Orchestration can coordinate the process, but coordination is not the same as financial authority. Even when these platforms extend deeper into procurement, they still have to reconcile back to the system that holds financial truth.</p>
+
+    <p>So the question is not whether ERP owns every interaction. It is whether ERP validates commercial intent before money moves. Orchestration and S2P platforms can still coordinate requests, approvals and exceptions — but the financially binding mandate should originate from, or be attested by, ERP.</p>
+
+    <h2>The balance point</h2>
+
+    <p>Gartner predicts that by 2030, 50% of AI-agent deployment failures will be due to insufficient runtime governance enforcement and multisystem interoperability¹¹. That strengthens ERP because financial truth, access control and governance already live near the regulated core. It also strengthens the neutral-standard case because interoperability gaps are what ERP-agnostic orchestration layers aim to solve.</p>
+
+    <p>ERP holds strong cards: codified commercial rules, financial truth, mature access controls, segregation of duties, auditability and the regulated core already built. Whether ERP becomes the trust layer depends on whether ERP vendors make agents native to governed execution quickly enough.</p>
+
+    <p>If they do, ERP becomes where business intent turns into authorized commercial execution. That does not displace Mastercard, Visa or the broader payment ecosystem. It reuses their acceptance infrastructure: tokenization, issuer and acquirer controls, network authorization, merchant acceptance, fraud controls and dispute handling. The difference is that the corporate mandate originates from, or is attested by, ERP before it moves downstream.</p>
+
+    <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else's agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
+
+    <div class="essay-references">
+      <h2>References</h2>
+      <p>1. <a href="https://newsroom.mastercard.com/news/press/2025/april/mastercard-unveils-agent-pay-pioneering-agentic-payments-technology-to-power-commerce-in-the-age-of-ai/" target="_blank" rel="noopener">Mastercard — Agent Pay launch</a></p>
+      <p>2. <a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol" target="_blank" rel="noopener">Google Cloud — Announcing the Agent Payments Protocol</a></p>
+      <p>3. <a href="https://investor.visa.com/news/news-details/2025/Visa-Introduces-Trusted-Agent-Protocol-An-Ecosystem-Led-Framework-for-AI-Commerce/default.aspx" target="_blank" rel="noopener">Visa — Trusted Agent Protocol</a></p>
+      <p>4. <a href="https://blog.google/products-and-platforms/platforms/google-pay/agent-payments-protocol-fido-alliance/" target="_blank" rel="noopener">Google — AP2 donation to the FIDO Alliance</a></p>
+      <p>5. <a href="https://www.sec.gov/Archives/edgar/data/1141391/000114139125000011/ma-20241231.htm" target="_blank" rel="noopener">Mastercard — 2024 Annual Report, franchise model and interoperability</a></p>
+      <p>6. <a href="https://www.mastercard.com/us/en/news-and-trends/stories/2026/verifiable-intent.html" target="_blank" rel="noopener">Mastercard — Verifiable Intent</a></p>
+      <p>7. <a href="https://ap2-protocol.org/" target="_blank" rel="noopener">AP2 Protocol — Specification and core concepts</a></p>
+      <p>8. <a href="https://www.imf.org/en/publications/imf-notes/issues/2026/04/22/how-agentic-ai-will-reshape-payments-575560" target="_blank" rel="noopener">IMF — How Agentic AI Will Reshape Payments</a></p>
+      <p>9. <a href="https://www.sap.com/products/financial-management/access-control.html" target="_blank" rel="noopener">SAP — Access control and governance for financial management</a></p>
+      <p>10. <a href="https://www.mckinsey.com/capabilities/risk-and-resilience/our-insights/deploying-agentic-ai-with-safety-and-security-a-playbook-for-technology-leaders" target="_blank" rel="noopener">McKinsey — Deploying agentic AI with safety and security</a></p>
+      <p>11. <a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-11-gartner-announces-top-predictions-for-data-and-analytics-in-2026" target="_blank" rel="noopener">Gartner — Top Predictions for Data and Analytics in 2026</a></p>
+    </div>
+
+    <div class="essay-footer">
+      <div class="essay-footer-nav">
+        <span>← Previous</span>
+        <a href="/">All Essays</a>
+        <span>Next →</span>
+      </div>
+      <div class="rohini">रोहिणी</div>
+    </div>
+  </div>
+</body>
+</html>
