@@ -6,7 +6,7 @@
   <title>Will ERP Become the Trust Layer for Autonomous Commerce? · akeru</title>
   <meta name="description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
   <link rel="canonical" href="https://akeru.dev/essays/erp-trust-layer">
-  
+
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
@@ -24,30 +24,317 @@
   <meta name="twitter:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
   <meta name="twitter:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
   <meta name="twitter:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
-  
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/essay.css">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Sans+Devanagari:wght@300;400&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #04060C;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    /* ── Canvas — fixed starfield behind everything ── */
+    #sky {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* ── Fixed dark header ── */
+    .essay-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.80);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    .essay-header-logo {
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+      color: rgba(226,221,214,0.90);
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .essay-header-logo:hover { opacity: 0.65; }
+
+    /* ── White essay panel over the starfield ── */
+    .essay-panel {
+      position: relative;
+      z-index: 10;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 100px 48px 80px;
+      background: #fff;
+      min-height: 100vh;
+    }
+
+    /* ── Meta label ── */
+    .essay-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    /* ── Title ── */
+    .essay-title {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #1a1a1a;
+      margin-bottom: 16px;
+    }
+
+    /* ── Subtitle ── */
+    .essay-subtitle {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 20px;
+      font-weight: 400;
+      font-style: italic;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 0;
+    }
+
+    /* ── Divider ── */
+    .essay-hr {
+      border: none;
+      border-top: 2px solid #000;
+      width: 60px;
+      margin: 32px 0 48px;
+    }
+
+    /* ── Body typography ── */
+    .essay-body {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.75;
+      color: #1a1a1a;
+    }
+
+    .essay-body p { margin-bottom: 24px; }
+
+    .essay-body h2 {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-top: 48px;
+      padding-top: 40px;
+      border-top: 1px solid #e0e0e0;
+      line-height: 1.3;
+      margin-bottom: 24px;
+    }
+
+    .essay-body a {
+      color: #1a1a1a;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .essay-body a:hover { opacity: 0.70; }
+
+    /* ── At a glance summary box ── */
+    .at-glance {
+      background: #f7f7f7;
+      border-left: 3px solid #000;
+      padding: 24px 32px;
+      margin-bottom: 40px;
+    }
+
+    .at-glance-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .at-glance ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .at-glance li {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #1a1a1a;
+      padding-left: 18px;
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .at-glance li:last-child { margin-bottom: 0; }
+
+    .at-glance li::before {
+      content: '–';
+      position: absolute;
+      left: 0;
+      color: #aaa;
+    }
+
+    /* ── References ── */
+    .essay-references {
+      border-top: 1px solid #ddd;
+      padding-top: 32px;
+      margin-top: 64px;
+    }
+
+    .essay-references h2 {
+      font-family: 'Source Serif Pro', Georgia, serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 16px;
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .essay-references p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+      font-family: 'Source Serif Pro', Georgia, serif;
+      line-height: 1.55;
+    }
+
+    .essay-references a {
+      color: #666;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Share bar — icon-only ── */
+    .share-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 24px;
+      margin-top: 48px;
+    }
+
+    .share-bar a,
+    .share-bar button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s ease;
+      line-height: 1;
+    }
+
+    .share-bar a:hover,
+    .share-bar button:hover { color: #1a1a1a; }
+
+    .share-bar svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    /* ── Essay bottom nav ── */
+    .essay-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 48px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .essay-nav span { color: #bbb; }
+
+    .essay-nav a {
+      color: #555;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .essay-nav a:hover { color: #1a1a1a; }
+
+    /* ── Footer — Rohini left, copyright right ── */
+    .essay-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 720px) {
+      .essay-panel {
+        padding: 80px 24px 60px;
+      }
+      .essay-title { font-size: 28px; }
+      .share-bar { flex-wrap: wrap; gap: 24px; }
+    }
+  </style>
 </head>
 <body>
-  <header class="essay-header">
-    <div class="essay-header-logo"><a href="/" style="text-decoration: none;">akeru</a></div>
-  </header>
 
-  <div class="essay-container content-wrapper">
-    <div class="essay-meta">Essay · May 2026</div>
-    <h1 class="essay-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
-    <p class="essay-subtitle">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
-    <hr>
+<canvas id="sky"></canvas>
 
-    <!-- Share actions -->
-    <div class="share-actions">
-      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/essays/erp-trust-layer" target="_blank" rel="noopener">Share on LinkedIn</a>
-      <button class="share-copy-btn" onclick="navigator.clipboard.writeText(window.location.href).then(() => { this.textContent = 'Copied'; setTimeout(() => { this.textContent = 'Copy link'; }, 2000); })">Copy link</button>
-    </div>
+<header class="essay-header">
+  <a href="/" class="essay-header-logo">akeru</a>
+</header>
+
+<main class="essay-panel">
+
+  <div class="essay-meta">Essay · May 2026 · 9 min read</div>
+  <h1 class="essay-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+  <p class="essay-subtitle">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
+  <hr class="essay-hr">
+
+  <div class="essay-body">
 
     <!-- At a glance -->
-    <div class="essay-at-glance">
-      <strong>At a glance</strong>
+    <div class="at-glance">
+      <div class="at-glance-label">At a glance</div>
       <ul>
         <li>Consumer agent commerce has moved from demo to live commerce, with protocols solving for a single human principal delegating bounded authority to one or more agents.</li>
         <li>Google and Mastercard's consumer-commerce moves align with their broader strategies: Google seeds open standards through ecosystem bodies like FIDO, while Mastercard extends its network-rule and interoperability role into agentic payments. But they standardize portable intent, not corporate authority.</li>
@@ -110,6 +397,7 @@
 
     <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else's agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
 
+    <!-- References -->
     <div class="essay-references">
       <h2>References</h2>
       <p>1. <a href="https://newsroom.mastercard.com/news/press/2025/april/mastercard-unveils-agent-pay-pioneering-agentic-payments-technology-to-power-commerce-in-the-age-of-ai/" target="_blank" rel="noopener">Mastercard — Agent Pay launch</a></p>
@@ -125,14 +413,55 @@
       <p>11. <a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-11-gartner-announces-top-predictions-for-data-and-analytics-in-2026" target="_blank" rel="noopener">Gartner — Top Predictions for Data and Analytics in 2026</a></p>
     </div>
 
-    <div class="essay-footer">
-      <div class="essay-footer-nav">
-        <span>← Previous</span>
-        <a href="/">All Essays</a>
-        <span>Next →</span>
-      </div>
-      <div class="rohini">रोहिणी</div>
-    </div>
+  </div><!-- /.essay-body -->
+
+  <!-- Share bar — icon only -->
+  <div class="share-bar">
+    <!-- LinkedIn -->
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/essays/erp-trust-layer" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    </a>
+    <!-- X / Twitter -->
+    <a href="https://x.com/intent/tweet?url=https://akeru.dev/essays/erp-trust-layer&text=Will%20ERP%20Become%20the%20Trust%20Layer%20for%20Autonomous%20Commerce%3F" target="_blank" rel="noopener" aria-label="Share on X">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    </a>
+    <!-- Copy link -->
+    <button id="copy-btn" aria-label="Copy link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+    </button>
   </div>
+
+  <!-- Bottom nav -->
+  <nav class="essay-nav">
+    <span>← Previous</span>
+    <a href="/">All Essays</a>
+    <span>Next →</span>
+  </nav>
+
+  <!-- Footer -->
+  <footer class="essay-footer">
+    <span>Rohini · रोहिणी</span>
+    <span>© 2026 akeru</span>
+  </footer>
+
+</main>
+
+<script src="/js/starfield.js"></script>
+<script>
+  document.getElementById('copy-btn').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(window.location.href).then(function () {
+      btn.style.color = '#1a1a1a';
+      setTimeout(function () { btn.style.color = ''; }, 1500);
+    });
+  });
+</script>
 </body>
 </html>
