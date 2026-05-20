@@ -347,6 +347,11 @@ footer {
   visibility: hidden;
   pointer-events: none;
 }
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 
 /* Controls — fixed top-right, always visible while reader is open */
 .blog-controls {
@@ -573,6 +578,7 @@ footer {
     top: 14px;
     right: 16px;
   }
+
 }
 
 /* ═══════════════════════════════════════════
@@ -719,7 +725,9 @@ footer {
 
     <!-- ── Hero title ── -->
     <div class="hero-container">
+
       <h1 class="hero-title" id="hero-0">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+
     </div>
 
     <!-- ── Slide meta — desc + CTAs per slide ── -->
@@ -749,6 +757,7 @@ footer {
   </footer>
 
 </div>
+
 
 <!-- Full-page blog reader -->
 <div id="blog-overlay" class="blog-hidden">
@@ -895,6 +904,7 @@ footer {
       <p>9. <a href="https://www.sap.com/products/financial-management/access-control.html" target="_blank" rel="noopener">SAP — Access control and governance for financial management</a></p>
       <p>10. <a href="https://www.mckinsey.com/capabilities/risk-and-resilience/our-insights/deploying-agentic-ai-with-safety-and-security-a-playbook-for-technology-leaders" target="_blank" rel="noopener">McKinsey — Deploying agentic AI with safety and security</a></p>
       <p>11. <a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-11-gartner-announces-top-predictions-for-data-and-analytics-in-2026" target="_blank" rel="noopener">Gartner — Top Predictions for Data and Analytics in 2026</a></p>
+
 
     </div>
   </div>
@@ -1399,6 +1409,7 @@ function tick (now) {
 (function () {
   'use strict';
 
+
   var overlay      = document.getElementById('blog-overlay');
   var closeBtn     = document.getElementById('blog-close-btn');
   var fsBtn        = document.getElementById('blog-fullscreen-btn');
@@ -1442,6 +1453,7 @@ function tick (now) {
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && overlay && !overlay.classList.contains('blog-hidden')) closeBlog();
+
   });
 
 })();
