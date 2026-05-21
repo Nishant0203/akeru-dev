@@ -117,6 +117,7 @@ body {
 .starfield-layer {
   position: absolute;
   inset: 0;
+  background: #04060C;
   transform-origin: center;
   will-change: transform;
 }
@@ -484,7 +485,7 @@ body {
 <script src="/js/starfield.js"></script>
 <script>
 (function () {
-  // Set --header-h so hero-panel top aligns with header bottom
+  // Pixel-perfect sticky offset regardless of font rendering
   var headerH = document.querySelector('.site-header').offsetHeight;
   document.documentElement.style.setProperty('--header-h', headerH + 'px');
 
