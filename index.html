@@ -65,32 +65,58 @@ body {
 
 .article-title {
   font-family: 'Source Serif Pro', Georgia, serif;
-  font-size: clamp(32px, 4.5vw, 56px);
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 300;
   color: #1a1a1a;
-  line-height: 1.12;
+  line-height: 1.1;
   max-width: 800px;
 }
+@media (min-width: 768px)  { .article-title { font-size: 46px; } }
+@media (min-width: 1024px) { .article-title { font-size: 56px; } }
+@media (min-width: 1440px) { .article-title { font-size: 68px; } }
 
-/* ── Hero scroll zone — tall container that powers all scroll animations ── */
+/* ── Hero scroll zone — tall spacer that creates scroll depth ── */
 .hero-scroll-zone {
   position: relative;
   height: 220vh;
 }
 
-/* Sticky viewport that pins below the header while zone scrolls through */
-.hero-sticky {
-  position: sticky;
-  top: var(--header-h, 61px);
+/* Fixed hero panel — anchored to viewport bottom, fills space below header */
+.hero-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
   height: calc(100vh - var(--header-h, 61px));
-  overflow: hidden;
+  height: calc(100svh - var(--header-h, 61px));
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  z-index: 1;
 }
 
-/* Starfield fills the entire sticky viewport; JS scales it on scroll */
+/* Header: meta + title — collapses as you scroll */
+.hero-header {
+  flex-shrink: 0;
+  padding: 36px 48px 28px;
+  overflow: hidden;
+  will-change: height, opacity;
+}
+
+/* Media: starfield with rounded corners — expands to fill as header collapses */
+.hero-media {
+  position: relative;
+  flex: 1;
+  margin: 0 48px 50px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: #04060C;
+}
+
+/* Starfield fills the entire media section */
 .starfield-layer {
   position: absolute;
   inset: 0;
-  background: #04060C;
   transform-origin: center;
   will-change: transform;
 }
@@ -101,33 +127,17 @@ body {
   left: 0;
 }
 
-/* White title block overlaid at top of sticky viewport — JS shrinks + fades it */
-.hero-title-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  padding: 44px 40px 64px;
-  transform-origin: top left;
-  will-change: transform, opacity;
-  z-index: 2;
-}
-
-/* ── Key Takeaways — bottom-left of sticky viewport, JS fades in on scroll ── */
+/* Key takeaways — bottom-left of starfield; white glass; fades in on scroll */
 .key-takeaways {
   position: absolute;
-  bottom: 36px;
-  left: 36px;
-  width: 38%;
+  bottom: 20px;
+  left: 20px;
+  width: calc(100% - 40px);
   max-width: 480px;
   z-index: 3;
-  background: rgba(5,5,20,0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 3px;
-  padding: 28px 32px;
+  background: hsla(0, 0%, 100%, 0.7);
+  border-radius: 20px;
+  padding: 32px;
   opacity: 0;
   will-change: opacity;
 }
@@ -138,7 +148,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
-  color: rgba(255,255,255,0.40);
+  color: #999;
   margin-bottom: 16px;
 }
 
@@ -152,7 +162,7 @@ body {
   font-family: 'Source Serif Pro', Georgia, serif;
   font-size: 14px;
   line-height: 1.65;
-  color: rgba(255,255,255,0.80);
+  color: #1a1a1a;
   margin-bottom: 12px;
 }
 
@@ -308,18 +318,27 @@ body {
 
 .share-sidebar svg { width: 20px; height: 20px; display: block; }
 
+/* ── Responsive KT width (larger screens) ── */
+@media (min-width: 768px) {
+  .key-takeaways { width: 60%; max-width: none; }
+}
+@media (min-width: 1440px) {
+  .key-takeaways { width: 40%; }
+}
+
 /* ── Mobile ── */
 @media (max-width: 680px) {
   .site-header { padding: 16px 24px; }
 
-  .hero-title-layer { padding: 32px 24px 48px; }
+  .hero-header { padding: 24px 24px 20px; }
+
+  .hero-media { margin: 0 16px 28px; }
 
   .key-takeaways {
-    width: calc(100% - 48px);
+    width: calc(100% - 32px);
     max-width: none;
-    bottom: 24px;
-    left: 24px;
-    right: 24px;
+    bottom: 16px;
+    left: 16px;
   }
 
   .essay-body { padding: 56px 24px 80px; }
@@ -335,32 +354,33 @@ body {
   <a href="/" class="wordmark">明ける</a>
 </header>
 
-<!-- 2. Hero scroll zone — title and starfield visible together on load,
-        scroll drives: title shrinks+fades, starfield zooms, KT fades in,
-        then essay slides up naturally -->
+<!-- 2. Hero scroll zone — tall spacer powering all scroll animations.
+        Fixed panel stays at viewport bottom; essay body slides over it. -->
 <div class="hero-scroll-zone" id="hero-scroll-zone">
-  <div class="hero-sticky">
+  <div class="hero-panel" id="hero-panel">
 
-    <!-- Starfield — fills entire sticky viewport; zooms in as you scroll -->
-    <div class="starfield-layer" id="starfield-layer">
-      <canvas id="sky"></canvas>
-    </div>
-
-    <!-- Title overlay — white block at top; shrinks and fades as you scroll -->
-    <div class="hero-title-layer" id="hero-title-layer">
+    <!-- Header: meta + title — collapses as you scroll, revealing more starfield -->
+    <div class="hero-header" id="hero-header">
       <p class="meta">Essay · May 2026 · 9 min read</p>
       <h1 class="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
     </div>
 
-    <!-- Key takeaways — bottom-left; fades in as title fades out -->
-    <div class="key-takeaways" id="key-takeaways">
-      <p class="kt-label">Key Takeaways</p>
-      <ul>
-        <li>Consumer agent commerce has moved from demo to live, protocols solving for a single human principal delegating bounded authority.</li>
-        <li>Google and Mastercard standardize portable intent — not corporate authority. B2B is structurally harder.</li>
-        <li>ERP's control model — built for constrained actors in financial systems — is an underappreciated advantage.</li>
-        <li>ERP starts with strong cards, but the industry is at a balance point. It can still tip.</li>
-      </ul>
+    <!-- Media: starfield canvas with rounded corners — expands as header collapses -->
+    <div class="hero-media" id="hero-media">
+      <div class="starfield-layer" id="starfield-layer">
+        <canvas id="sky"></canvas>
+      </div>
+
+      <!-- Key takeaways — bottom-left of starfield; fades in on scroll -->
+      <div class="key-takeaways" id="key-takeaways">
+        <p class="kt-label">Key Takeaways</p>
+        <ul>
+          <li>Consumer agent commerce has moved from demo to live, protocols solving for a single human principal delegating bounded authority.</li>
+          <li>Google and Mastercard standardize portable intent — not corporate authority. B2B is structurally harder.</li>
+          <li>ERP's control model — built for constrained actors in financial systems — is an underappreciated advantage.</li>
+          <li>ERP starts with strong cards, but the industry is at a balance point. It can still tip.</li>
+        </ul>
+      </div>
     </div>
 
   </div>
@@ -464,29 +484,32 @@ body {
 <script src="/js/starfield.js"></script>
 <script>
 (function () {
-  // Pixel-perfect sticky offset regardless of font rendering
+  // Set --header-h so hero-panel top aligns with header bottom
   var headerH = document.querySelector('.site-header').offsetHeight;
   document.documentElement.style.setProperty('--header-h', headerH + 'px');
 
   var zone       = document.getElementById('hero-scroll-zone');
-  var titleLayer = document.getElementById('hero-title-layer');
+  var heroHeader = document.getElementById('hero-header');
   var sfLayer    = document.getElementById('starfield-layer');
   var ktBox      = document.getElementById('key-takeaways');
+
+  // Measure hero-header natural height before any animation
+  var headerNaturalH = heroHeader.offsetHeight;
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
 
   function onScroll() {
-    var scrollY     = window.scrollY;
-    var scrollable  = zone.offsetHeight - window.innerHeight;
-    var p           = Math.max(0, Math.min(scrollY / scrollable, 1));
+    var scrollY    = window.scrollY;
+    var scrollable = zone.offsetHeight - window.innerHeight;
+    var p          = Math.max(0, Math.min(scrollY / scrollable, 1));
 
-    // Title: shrinks to 72% and fades out over the first 65% of the scroll range
+    // Hero header: collapses and fades over the first 65% of scroll range
     var tp = Math.min(p / 0.65, 1);
-    titleLayer.style.transform = 'scale(' + lerp(1, 0.72, tp) + ')';
-    titleLayer.style.opacity   = lerp(1, 0, tp);
+    heroHeader.style.height  = (headerNaturalH * (1 - tp)) + 'px';
+    heroHeader.style.opacity = (1 - tp);
 
-    // Starfield: zooms in from 0.92× to 1.06× across the full scroll range
-    sfLayer.style.transform = 'scale(' + lerp(0.92, 1.06, p) + ')';
+    // Starfield: gentle zoom across the full scroll range
+    sfLayer.style.transform = 'scale(' + lerp(0.95, 1.05, p) + ')';
 
     // Key takeaways: fades in starting at 30% progress, fully in by 65%
     var kp = Math.min(Math.max((p - 0.30) / 0.35, 0), 1);
