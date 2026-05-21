@@ -75,38 +75,42 @@ body {
 @media (min-width: 1024px) { .article-title { font-size: 56px; } }
 @media (min-width: 1440px) { .article-title { font-size: 68px; } }
 
-/* ── Hero scroll zone — tall spacer that creates scroll depth ── */
-.hero-scroll-zone {
+/* ── Panel 1: Title — fixed, full viewport below header, sits behind hero ── */
+.title-panel {
+  position: fixed;
+  top: var(--header-h, 61px);
+  left: 0;
+  width: 100%;
+  height: calc(100vh - var(--header-h, 61px));
+  z-index: 1;
+  background: #fff;
+  padding: 24px 48px 0;
+}
+
+/* ── Scroll zone — 220vh spacer powering all three-panel animations ── */
+.scroll-zone {
   position: relative;
   height: 220vh;
 }
 
-/* Fixed hero panel — anchored to viewport bottom, fills space below header */
+/* ── Panel 2: Hero — fixed, bottom-anchored, slides up from below on scroll ── */
 .hero-panel {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: calc(100vh - var(--header-h, 61px));
-  height: calc(100svh - var(--header-h, 61px));
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  z-index: 1;
+  height: calc(100vh - var(--header-h, 61px) - 100px);
+  height: calc(100svh - var(--header-h, 61px) - 100px);
+  z-index: 2;
+  transform: translateY(100%);
+  will-change: transform;
 }
 
-/* Header: meta + title — stays visible until essay body slides over */
-.hero-header {
-  flex-shrink: 0;
-  padding: 36px 48px 28px;
-}
-
-/* Media: starfield — no side margins so it fills full viewport width, matching BCG */
+/* ── Hero media — full-bleed inside hero panel ── */
 .hero-media {
   position: relative;
-  flex: 1;
-  margin-bottom: 50px;
-  border-radius: 30px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: #04060C;
 }
@@ -167,10 +171,10 @@ body {
 
 .key-takeaways li:last-child { margin-bottom: 0; }
 
-/* ── White essay body — normal flow, slides up over the sticky hero ── */
+/* ── White essay body — normal flow, slides up over both fixed panels ── */
 .essay-body {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   background: #fff;
   padding: 72px 40px 100px;
   width: 100%;
@@ -329,9 +333,7 @@ body {
 @media (max-width: 680px) {
   .site-header { padding: 16px 24px; }
 
-  .hero-header { padding: 24px 24px 20px; }
-
-  .hero-media { margin-bottom: 28px; }
+  .title-panel { padding: 20px 24px 0; }
 
   .key-takeaways {
     width: calc(100% - 32px);
@@ -353,18 +355,16 @@ body {
   <a href="/" class="wordmark">明ける</a>
 </header>
 
-<!-- 2. Hero scroll zone — tall spacer powering all scroll animations.
-        Fixed panel stays at viewport bottom; essay body slides over it. -->
-<div class="hero-scroll-zone" id="hero-scroll-zone">
+<!-- 2a. Panel 1: Title — fixed, behind hero; title shrinks as hero panel rises -->
+<div class="title-panel" id="title-panel">
+  <h1 class="article-title" id="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+  <p class="meta">Essay · May 2026 · 9 min read</p>
+</div>
+
+<!-- 2b. Scroll zone — 220vh spacer for panel 2 slide-up and panel 3 slide-over -->
+<div class="scroll-zone" id="scroll-zone">
+  <!-- Panel 2: Hero — full-bleed starfield, slides up from bottom -->
   <div class="hero-panel" id="hero-panel">
-
-    <!-- Header: meta + title — collapses as you scroll, revealing more starfield -->
-    <div class="hero-header" id="hero-header">
-      <p class="meta">Essay · May 2026 · 9 min read</p>
-      <h1 class="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
-    </div>
-
-    <!-- Media: starfield canvas with rounded corners — expands as header collapses -->
     <div class="hero-media" id="hero-media">
       <div class="starfield-layer" id="starfield-layer">
         <canvas id="sky"></canvas>
@@ -381,7 +381,6 @@ body {
         </ul>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -487,9 +486,14 @@ body {
   var headerH = document.querySelector('.site-header').offsetHeight;
   document.documentElement.style.setProperty('--header-h', headerH + 'px');
 
-  var zone    = document.getElementById('hero-scroll-zone');
-  var sfLayer = document.getElementById('starfield-layer');
-  var ktBox   = document.getElementById('key-takeaways');
+  var zone      = document.getElementById('scroll-zone');
+  var heroPanel = document.getElementById('hero-panel');
+  var titleEl   = document.getElementById('article-title');
+  var sfLayer   = document.getElementById('starfield-layer');
+  var ktBox     = document.getElementById('key-takeaways');
+
+  var titleMaxFS = parseFloat(window.getComputedStyle(titleEl).fontSize);
+  var titleMinFS = 24;
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
 
@@ -498,12 +502,15 @@ body {
     var scrollable = zone.offsetHeight - window.innerHeight;
     var p          = Math.max(0, Math.min(scrollY / scrollable, 1));
 
-    // Starfield: gentle zoom across the full scroll range
-    sfLayer.style.transform = 'scale(' + lerp(0.95, 1.05, p) + ')';
+    // Phase A (p 0→0.85): hero panel rises, title shrinks, key takeaways fade in
+    var a = Math.min(p / 0.85, 1);
 
-    // Key takeaways: fades in starting at 30% progress, fully in by 65%
-    var kp = Math.min(Math.max((p - 0.30) / 0.35, 0), 1);
-    ktBox.style.opacity = kp;
+    heroPanel.style.transform = 'translateY(' + (100 * (1 - a)) + '%)';
+    titleEl.style.fontSize    = lerp(titleMaxFS, titleMinFS, a) + 'px';
+    sfLayer.style.transform   = 'scale(' + lerp(0.95, 1.05, p) + ')';
+
+    // Key takeaways: fade in between 30%–80% of phase A
+    ktBox.style.opacity = Math.min(Math.max((a - 0.30) / 0.50, 0), 1);
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
