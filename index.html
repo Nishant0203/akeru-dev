@@ -95,19 +95,17 @@ body {
   z-index: 1;
 }
 
-/* Header: meta + title — collapses as you scroll */
+/* Header: meta + title — stays visible until essay body slides over */
 .hero-header {
   flex-shrink: 0;
   padding: 36px 48px 28px;
-  overflow: hidden;
-  will-change: height, opacity;
 }
 
-/* Media: starfield with rounded corners — expands to fill as header collapses */
+/* Media: starfield — no side margins so it fills full viewport width, matching BCG */
 .hero-media {
   position: relative;
   flex: 1;
-  margin: 0 48px 50px;
+  margin-bottom: 50px;
   border-radius: 30px;
   overflow: hidden;
   background: #04060C;
@@ -333,7 +331,7 @@ body {
 
   .hero-header { padding: 24px 24px 20px; }
 
-  .hero-media { margin: 0 16px 28px; }
+  .hero-media { margin-bottom: 28px; }
 
   .key-takeaways {
     width: calc(100% - 32px);
@@ -489,13 +487,9 @@ body {
   var headerH = document.querySelector('.site-header').offsetHeight;
   document.documentElement.style.setProperty('--header-h', headerH + 'px');
 
-  var zone       = document.getElementById('hero-scroll-zone');
-  var heroHeader = document.getElementById('hero-header');
-  var sfLayer    = document.getElementById('starfield-layer');
-  var ktBox      = document.getElementById('key-takeaways');
-
-  // Measure hero-header natural height before any animation
-  var headerNaturalH = heroHeader.offsetHeight;
+  var zone    = document.getElementById('hero-scroll-zone');
+  var sfLayer = document.getElementById('starfield-layer');
+  var ktBox   = document.getElementById('key-takeaways');
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
 
@@ -503,11 +497,6 @@ body {
     var scrollY    = window.scrollY;
     var scrollable = zone.offsetHeight - window.innerHeight;
     var p          = Math.max(0, Math.min(scrollY / scrollable, 1));
-
-    // Hero header: collapses and fades over the first 65% of scroll range
-    var tp = Math.min(p / 0.65, 1);
-    heroHeader.style.height  = (headerNaturalH * (1 - tp)) + 'px';
-    heroHeader.style.opacity = (1 - tp);
 
     // Starfield: gentle zoom across the full scroll range
     sfLayer.style.transform = 'scale(' + lerp(0.95, 1.05, p) + ')';
