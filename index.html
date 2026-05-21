@@ -55,6 +55,8 @@ body {
 
 /* ── White title block — left aligned, normal flow, scrolls away ── */
 .title-block {
+  position: relative;
+  z-index: 2;
   background: #fff;
   padding: 40px 40px 48px;
   max-width: 880px;
@@ -78,13 +80,15 @@ body {
   max-width: 800px;
 }
 
-/* ── Starfield zone — full width, acts as the article image ── */
+/* ── Starfield zone — sticky parallax, acts as the article image ── */
 .starfield-zone {
-  position: relative;
+  position: sticky;
+  top: var(--header-h, 61px);  /* pins below header as title scrolls away */
   width: 100%;
-  height: 75vh;
+  height: calc(100vh - var(--header-h, 61px)); /* fills viewport below header when stuck */
   overflow: hidden;
   background: #04060C;
+  z-index: 1;
 }
 
 /* Canvas fills the zone; JS sets element size to full viewport — overflow clips it */
@@ -136,8 +140,10 @@ body {
 
 .key-takeaways li:last-child { margin-bottom: 0; }
 
-/* ── White essay body — normal flow after starfield zone ── */
+/* ── White essay body — slides up over sticky starfield ── */
 .essay-body {
+  position: relative;
+  z-index: 2;
   background: #fff;
   padding: 72px 40px 100px;
   width: 100%;
@@ -433,6 +439,10 @@ body {
 <script src="/js/starfield.js"></script>
 <script>
 (function () {
+  // Set --header-h so sticky top is pixel-perfect regardless of font rendering
+  var headerH = document.querySelector('.site-header').offsetHeight;
+  document.documentElement.style.setProperty('--header-h', headerH + 'px');
+
   // Share sidebar appears once the starfield zone is fully scrolled past
   var zone    = document.getElementById('starfield-zone');
   var sidebar = document.getElementById('share-sidebar');
