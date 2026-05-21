@@ -3,147 +3,110 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>akeru · 明ける</title>
-<meta name="description" content="Essays on commerce and trust.">
+<title>Will ERP Become the Trust Layer for Autonomous Commerce? · akeru</title>
+<meta name="description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
+<meta property="og:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+<meta property="og:url" content="https://akeru.dev/">
+<meta property="og:site_name" content="akeru">
+<meta property="og:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="article:published_time" content="2026-05-01">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
+<meta name="twitter:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+<meta name="twitter:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Inter:wght@400;600;700&family=Noto+Sans+Devanagari:wght@300;400&family=Source+Serif+Pro:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Inter:wght@400;600;700&family=Noto+Sans+Devanagari:wght@300;400&family=Source+Serif+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root {
-  --ink-dim: rgba(226,221,214,0.28);
-  --bg:      #04060C;
+body {
+  background: #fff;
+  font-family: 'Source Serif Pro', Georgia, serif;
 }
 
-html { background: var(--bg); }
-body { background: var(--bg); }
-
-/* ── Canvas — fixed behind everything ── */
-#sky {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* ── Fixed essay header — hidden until phase 3 ── */
-.essay-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  background: rgba(10,10,15,0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 18px 32px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-
-.essay-header.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.essay-header a {
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  color: rgba(226,221,214,0.90);
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.essay-header a:hover { opacity: 0.65; }
-
-/* ── Hero scroll zone — 280vh scroll budget for all 3 phases ── */
-.hero-scroll-zone {
-  position: relative;
-  height: 280vh;
-  z-index: 1;
-}
-
-/* ── Hero content — sticks at top inside the zone ── */
-.hero-content {
+/* ── White sticky header ── */
+.site-header {
   position: sticky;
   top: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  pointer-events: none;
-  z-index: 2;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 18px 40px;
 }
 
 .wordmark {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.38);
-  margin-bottom: 32px;
-  text-transform: lowercase;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: #1a1a1a;
+  text-decoration: none;
+  letter-spacing: 0.04em;
 }
 
-.hero-title {
-  font-family: 'Source Serif Pro', Georgia, serif;
-  font-size: clamp(24px, 4vw, 52px);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.2;
-  max-width: 760px;
-  padding: 0 32px;
-  transform-origin: center top;
-  will-change: transform, opacity;
-  transition: none;
+/* ── White title block — left aligned, normal flow, scrolls away ── */
+.title-block {
+  background: #fff;
+  padding: 40px 40px 48px;
+  max-width: 880px;
 }
 
-.hero-dek {
-  font-family: 'Source Serif Pro', Georgia, serif;
-  font-size: 18px;
-  color: rgba(255,255,255,0.58);
-  margin-top: 20px;
-  line-height: 1.6;
-  will-change: opacity;
-  transition: none;
-}
-
-.hero-footer-line {
-  position: absolute;
-  bottom: 32px;
+.meta {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: rgba(255,255,255,0.28);
-  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #999;
+  margin-bottom: 20px;
 }
 
-/* ── Key Takeaways — overlaps hero-content, fades in during phase 2 ── */
-.key-takeaways {
-  position: sticky;
+.article-title {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: clamp(32px, 4.5vw, 56px);
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.12;
+  max-width: 800px;
+}
+
+/* ── Starfield zone — full width, acts as the article image ── */
+.starfield-zone {
+  position: relative;
+  width: 100%;
+  height: 75vh;
+  overflow: hidden;
+  background: #04060C;
+}
+
+/* Canvas fills the zone; JS sets element size to full viewport — overflow clips it */
+#sky {
+  position: absolute;
   top: 0;
-  height: 100vh;
-  display: flex;
-  align-items: flex-end;
-  padding: 0 0 48px 48px;
-  opacity: 0;
-  pointer-events: none;
-  will-change: opacity;
-  z-index: 3;
-  margin-top: -100vh; /* overlaps same viewport as hero-content */
+  left: 0;
 }
 
-.kt-card {
-  width: 380px;
-  background: rgba(10,10,20,0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 4px;
+/* ── Key Takeaways — bottom-left overlay, BCG position ── */
+.key-takeaways {
+  position: absolute;
+  bottom: 36px;
+  left: 36px;
+  width: 38%;
+  max-width: 480px;
+  z-index: 2;
+  background: rgba(5,5,20,0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px;
   padding: 28px 32px;
 }
 
@@ -153,7 +116,7 @@ body { background: var(--bg); }
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
-  color: rgba(255,255,255,0.42);
+  color: rgba(255,255,255,0.40);
   margin-bottom: 16px;
 }
 
@@ -167,29 +130,17 @@ body { background: var(--bg); }
   font-family: 'Source Serif Pro', Georgia, serif;
   font-size: 14px;
   line-height: 1.65;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.80);
   margin-bottom: 12px;
 }
 
 .key-takeaways li:last-child { margin-bottom: 0; }
 
-/* ── Essay body — normal flow after hero zone, slides over starfield ── */
+/* ── White essay body — normal flow after starfield zone ── */
 .essay-body {
-  position: relative;
-  z-index: 4;
   background: #fff;
+  padding: 72px 40px 100px;
   width: 100%;
-  padding: 72px 40px 80px;
-}
-
-.essay-body .meta {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: #999;
-  margin-bottom: 48px;
-  max-width: 660px;
 }
 
 .essay-body p {
@@ -269,116 +220,123 @@ body { background: var(--bg); }
   text-underline-offset: 3px;
 }
 
-/* ── Share bar ── */
-.share-bar {
-  padding: 40px 0;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  border-top: 1px solid #ebebeb;
-  margin-top: 64px;
-  max-width: 660px;
-}
-
-.share-bar-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  font-weight: 300;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #ccc;
-  margin-right: 4px;
-}
-
-.share-bar a, .share-bar button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #bbb;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: none;
-  transition: color 0.2s;
-  line-height: 1;
-}
-
-.share-bar a:hover, .share-bar button:hover { color: #1a1a1a; }
-
-.share-bar svg { width: 20px; height: 20px; display: block; }
-
 /* ── Essay footer ── */
 .essay-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28px 0 0;
-  border-top: 1px solid #ebebeb;
+  padding-top: 24px;
   margin-top: 48px;
+  border-top: 1px solid #ebebeb;
   max-width: 660px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: #bbb;
 }
 
+/* ── Share sidebar — fixed right, appears past starfield zone ── */
+.share-sidebar {
+  position: fixed;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.share-sidebar.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.share-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #ccc;
+  margin-bottom: 4px;
+}
+
+.share-sidebar a,
+.share-sidebar button {
+  color: #bbb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+.share-sidebar a:hover,
+.share-sidebar button:hover { color: #1a1a1a; }
+
+.share-sidebar svg { width: 20px; height: 20px; display: block; }
+
 /* ── Mobile ── */
 @media (max-width: 680px) {
-  .hero-title { font-size: clamp(22px, 6vw, 32px); padding: 0 20px; }
-  .hero-dek   { font-size: 16px; padding: 0 20px; }
+  .site-header { padding: 16px 24px; }
+
+  .title-block { padding: 32px 24px 40px; }
 
   .key-takeaways {
-    padding: 0 0 32px 20px;
+    width: calc(100% - 48px);
+    max-width: none;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
   }
 
-  .kt-card { width: calc(100vw - 40px); }
+  .essay-body { padding: 56px 24px 80px; }
 
-  .essay-body { padding: 56px 24px 64px; }
-
-  .share-bar  { padding: 32px 0; }
-  .essay-footer { padding: 24px 0 0; }
+  .share-sidebar { display: none; }
 }
 </style>
 </head>
 <body>
 
-<canvas id="sky"></canvas>
-
-<!-- Fixed header — appears during phase 3 -->
-<header class="essay-header" id="essay-header">
-  <a href="/">akeru</a>
+<!-- 1. White sticky header -->
+<header class="site-header">
+  <a href="/" class="wordmark">明ける</a>
 </header>
 
-<!-- Hero scroll zone — 280vh gives scroll budget for all 3 phases -->
-<div class="hero-scroll-zone" id="hero-scroll-zone">
+<!-- 2. White title block — scrolls away naturally -->
+<div class="title-block">
+  <p class="meta">Essay · May 2026 · 9 min read</p>
+  <h1 class="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+</div>
 
-  <!-- Phase 1 & 2: title sticks, shrinks, dek fades -->
-  <div class="hero-content">
-    <p class="wordmark">明ける</p>
-    <h1 class="hero-title">Will ERP Become the Trust Layer<br>for Autonomous Commerce?</h1>
-    <p class="hero-dek">Consumer agent commerce has a winner taking shape.<br>B2B hasn't started. The reason lives in the ERP.</p>
-    <p class="hero-footer-line">Rohini · 4th Nakshatra &nbsp;·&nbsp; α Tauri · रोहिणी · Aldebaran · Hyades</p>
-  </div>
+<!-- 3. Starfield zone — acts as the full-width article image -->
+<div class="starfield-zone" id="starfield-zone">
 
-  <!-- Phase 2: key takeaways fades in bottom-left over starfield -->
-  <div class="key-takeaways" id="key-takeaways">
-    <div class="kt-card">
-      <p class="kt-label">Key Takeaways</p>
-      <ul>
-        <li>Consumer agent commerce has moved from demo to live, protocols solving for a single human principal delegating bounded authority.</li>
-        <li>Google and Mastercard standardize portable intent — not corporate authority. B2B is structurally harder.</li>
-        <li>ERP's control model — built for constrained actors in financial systems — is an underappreciated advantage.</li>
-        <li>ERP starts with strong cards, but the industry is at a balance point. It can still tip.</li>
-      </ul>
-    </div>
+  <canvas id="sky"></canvas>
+
+  <!-- Key Takeaways overlaid bottom-left, BCG position -->
+  <div class="key-takeaways">
+    <p class="kt-label">Key Takeaways</p>
+    <ul>
+      <li>Consumer agent commerce has moved from demo to live, protocols solving for a single human principal delegating bounded authority.</li>
+      <li>Google and Mastercard standardize portable intent — not corporate authority. B2B is structurally harder.</li>
+      <li>ERP's control model — built for constrained actors in financial systems — is an underappreciated advantage.</li>
+      <li>ERP starts with strong cards, but the industry is at a balance point. It can still tip.</li>
+    </ul>
   </div>
 
 </div>
 
-<!-- Phase 3: white essay slides up naturally after hero zone ends -->
+<!-- 4. White essay body — normal flow after starfield zone -->
 <main class="essay-body">
-
-  <p class="meta">Essay · May 2026 · 9 min read</p>
 
   <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard's move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In B2B commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
 
@@ -450,20 +408,6 @@ body { background: var(--bg); }
     </ol>
   </div>
 
-  <!-- Share -->
-  <div class="share-bar">
-    <span class="share-bar-label">Share</span>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/erp-trust-layer" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-    </a>
-    <a href="https://x.com/intent/tweet?url=https://akeru.dev/erp-trust-layer&text=Will%20ERP%20Become%20the%20Trust%20Layer%20for%20Autonomous%20Commerce%3F" target="_blank" rel="noopener" aria-label="Share on X">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    </a>
-    <button class="copy-btn" aria-label="Copy link">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </button>
-  </div>
-
   <footer class="essay-footer">
     <span>Rohini · रोहिणी</span>
     <span>© 2026 akeru</span>
@@ -471,46 +415,35 @@ body { background: var(--bg); }
 
 </main>
 
+<!-- 5. Share sidebar — fixed right, appears once past starfield zone -->
+<div class="share-sidebar" id="share-sidebar">
+  <p class="share-label">Share</p>
+  <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://akeru.dev/erp-trust-layer" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+  </a>
+  <a href="https://x.com/intent/tweet?url=https://akeru.dev/erp-trust-layer&text=Will%20ERP%20Become%20the%20Trust%20Layer%20for%20Autonomous%20Commerce%3F" target="_blank" rel="noopener" aria-label="Share on X">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+  </a>
+  <button class="copy-btn" aria-label="Copy link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  </button>
+</div>
+
 <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
 <script src="/js/starfield.js"></script>
 <script>
 (function () {
-  var heroZone    = document.getElementById('hero-scroll-zone');
-  var title       = document.querySelector('.hero-title');
-  var dek         = document.querySelector('.hero-dek');
-  var takeaways   = document.getElementById('key-takeaways');
-  var essayHeader = document.getElementById('essay-header');
+  // Share sidebar appears once the starfield zone is fully scrolled past
+  var zone    = document.getElementById('starfield-zone');
+  var sidebar = document.getElementById('share-sidebar');
 
-  function lerp(a, b, t) {
-    t = Math.max(0, Math.min(1, t));
-    return a + (b - a) * t;
-  }
+  var observer = new IntersectionObserver(function (entries) {
+    sidebar.classList.toggle('visible', !entries[0].isIntersecting);
+  }, { threshold: 0 });
 
-  window.addEventListener('scroll', function () {
-    var scrollY    = window.scrollY;
-    var zoneHeight = heroZone.offsetHeight - window.innerHeight;
-    var progress   = Math.min(scrollY / zoneHeight, 1);
+  observer.observe(zone);
 
-    // Phase 1: 0 → 0.4 — title shrinks, dek fades
-    var p1 = progress / 0.4;
-    title.style.transform = 'scale(' + lerp(1, 0.55, p1) + ')';
-    title.style.opacity   = lerp(1, 0.4, p1);
-    dek.style.opacity     = lerp(1, 0, p1);
-
-    // Phase 2: 0.4 → 0.8 — key takeaways fades in
-    var p2 = (progress - 0.4) / 0.4;
-    takeaways.style.opacity = lerp(0, 1, p2);
-
-    // Phase 3: 0.8 → 1.0 — takeaways fades out as essay slides over
-    var p3 = (progress - 0.8) / 0.2;
-    if (p3 > 0) {
-      takeaways.style.opacity = lerp(1, 0, p3);
-    }
-
-    // Essay header appears at phase 3 and stays for the essay
-    essayHeader.classList.toggle('visible', progress >= 0.8 || scrollY >= zoneHeight);
-  }, { passive: true });
-
+  // Copy button
   document.querySelectorAll('.copy-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       navigator.clipboard.writeText('https://akeru.dev/erp-trust-layer').then(function () {
