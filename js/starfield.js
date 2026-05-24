@@ -8,6 +8,7 @@
 ═════════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
 var ctx     = canvas.getContext('2d');
+var heroMedia = document.getElementById('hero-media');
 var CW, CH, VW, VH, IS_MOBILE;
 
 function resize () {
@@ -172,8 +173,9 @@ function project (local, M) {
     originX = VW * 0.50;
     originY = VH * (1.35 - scrollFrac * 0.87);
   } else {
-    originX = VW * 0.70;
-    originY = VH * 0.48;
+    var heroRect = heroMedia ? heroMedia.getBoundingClientRect() : { width: VW, height: VH };
+    originX = heroRect.width * 0.70;
+    originY = heroRect.height * 0.42;
   }
 
   return {
