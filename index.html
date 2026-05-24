@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Will ERP Become the Trust Layer for Autonomous Commerce? · akeru</title>
-<meta name="description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+<meta name="description" content="Commercial Commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control.">
 
 <!-- Open Graph -->
 <meta property="og:type" content="article">
 <meta property="og:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
-<meta property="og:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+<meta property="og:description" content="Commercial Commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control.">
 <meta property="og:url" content="https://akeru.dev/">
 <meta property="og:site_name" content="akeru">
 <meta property="og:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
@@ -20,7 +20,7 @@
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Will ERP Become the Trust Layer for Autonomous Commerce?">
-<meta name="twitter:description" content="Consumer agent commerce has a winner taking shape. B2B hasn't started. The reason lives in the ERP.">
+<meta name="twitter:description" content="Commercial Commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control.">
 <meta name="twitter:image" content="https://akeru.dev/img/erp-trust-layer-og.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -90,20 +90,23 @@ body {
 /* ── Scroll zone — 220vh spacer powering all three-panel animations ── */
 .scroll-zone {
   position: relative;
-  height: 220vh;
+  height: 260vh;
 }
 
-/* ── Panel 2: Hero — fixed, bottom-anchored, slides up from below on scroll ── */
+/* ── Panel 2: Hero — visible as a framed block, expands on scroll ── */
 .hero-panel {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: calc(100vh - var(--header-h, 61px) - 100px);
-  height: calc(100svh - var(--header-h, 61px) - 100px);
+  top: var(--hero-top, calc(var(--header-h, 61px) + 230px));
+  left: var(--hero-left, 48px);
+  width: var(--hero-width, calc(100% - 96px));
+  height: var(--hero-height, calc(100vh - var(--header-h, 61px) - 330px));
+  height: var(--hero-height, calc(100svh - var(--header-h, 61px) - 330px));
   z-index: 2;
-  transform: translateY(100%);
-  will-change: transform;
+  min-height: 260px;
+  border-radius: var(--hero-radius, 18px);
+  box-shadow: 0 22px 60px rgba(4, 6, 12, 0.18);
+  overflow: hidden;
+  will-change: top, left, width, height, border-radius;
 }
 
 /* ── Hero media — full-bleed inside hero panel ── */
@@ -130,43 +133,68 @@ body {
   left: 0;
 }
 
-/* Key takeaways — bottom-left of starfield; white glass; fades in on scroll */
+/* Key takeaways — top-left of starfield; white glass; fades in on scroll */
 .key-takeaways {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  width: calc(100% - 40px);
-  max-width: 480px;
+  top: clamp(28px, 5.5vw, 76px);
+  left: clamp(24px, 5vw, 104px);
+  width: min(1120px, calc(100% - clamp(48px, 10vw, 208px)));
   z-index: 3;
-  background: hsla(0, 0%, 100%, 0.7);
-  border-radius: 20px;
-  padding: 32px;
+  background: linear-gradient(135deg, hsla(200, 24%, 92%, 0.64), hsla(200, 18%, 82%, 0.46));
+  border: 1px solid hsla(0, 0%, 100%, 0.48);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.20);
+  padding: clamp(28px, 3vw, 44px) clamp(30px, 3.7vw, 58px);
   opacity: 0;
-  will-change: opacity;
+  transform: translateY(18px);
+  color: #20272d;
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  will-change: opacity, transform;
 }
 
 .kt-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 17px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
   font-weight: 700;
-  color: #999;
-  margin-bottom: 16px;
+  letter-spacing: 0;
+  color: #083817;
+  margin-bottom: 22px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.kt-intro {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(17px, 1.03vw, 20px);
+  font-weight: 650;
+  line-height: 1.46;
+  color: #0f1a21;
+  max-width: 860px;
+  margin-bottom: 28px;
+  text-wrap: pretty;
 }
 
 .key-takeaways ul {
   list-style: disc;
-  padding-left: 16px;
+  padding-left: 22px;
   margin: 0;
 }
 
 .key-takeaways li {
-  font-family: 'Source Serif Pro', Georgia, serif;
-  font-size: 14px;
-  line-height: 1.65;
-  color: #1a1a1a;
-  margin-bottom: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(13px, 0.82vw, 15.5px);
+  font-weight: 650;
+  line-height: 1.42;
+  color: #111c23;
+  margin-bottom: 14px;
+  padding-left: 4px;
+  text-wrap: pretty;
+}
+
+.key-takeaways li::marker {
+  color: #0c1720;
+  font-size: 0.85em;
 }
 
 .key-takeaways li:last-child { margin-bottom: 0; }
@@ -323,10 +351,13 @@ body {
 
 /* ── Responsive KT width (larger screens) ── */
 @media (min-width: 768px) {
-  .key-takeaways { width: 60%; max-width: none; }
+  .key-takeaways { width: min(980px, 64vw); }
 }
 @media (min-width: 1440px) {
-  .key-takeaways { width: 40%; }
+  .key-takeaways { width: min(1080px, 64vw); }
+}
+@media (min-width: 1800px) {
+  .key-takeaways { width: min(1160px, 56vw); }
 }
 
 /* ── Mobile ── */
@@ -335,11 +366,37 @@ body {
 
   .title-panel { padding: 20px 24px 0; }
 
+  .hero-panel {
+    top: var(--hero-top, calc(var(--header-h, 57px) + 260px));
+    left: var(--hero-left, 24px);
+    width: var(--hero-width, calc(100% - 48px));
+    height: var(--hero-height, calc(100svh - var(--header-h, 57px) - 360px));
+    min-height: 220px;
+  }
+
   .key-takeaways {
     width: calc(100% - 32px);
-    max-width: none;
-    bottom: 16px;
+    top: 16px;
     left: 16px;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+
+  .kt-label {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .kt-intro {
+    font-size: 14px;
+    line-height: 1.35;
+    margin-bottom: 14px;
+  }
+
+  .key-takeaways li {
+    font-size: 11px;
+    line-height: 1.32;
+    margin-bottom: 9px;
   }
 
   .essay-body { padding: 56px 24px 80px; }
@@ -355,29 +412,30 @@ body {
   <a href="/" class="wordmark">明ける</a>
 </header>
 
-<!-- 2a. Panel 1: Title — fixed, behind hero; title shrinks as hero panel rises -->
+<!-- 2a. Panel 1: Title — fixed, behind hero; title shrinks as hero panel expands -->
 <div class="title-panel" id="title-panel">
   <h1 class="article-title" id="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
-  <p class="meta">Essay · May 2026 · 9 min read</p>
+  <p class="meta">Essay · May 2026 · 5 min read</p>
 </div>
 
-<!-- 2b. Scroll zone — 220vh spacer for panel 2 slide-up and panel 3 slide-over -->
+<!-- 2b. Scroll zone — 220vh spacer for panel 2 expansion and panel 3 slide-over -->
 <div class="scroll-zone" id="scroll-zone">
-  <!-- Panel 2: Hero — full-bleed starfield, slides up from bottom -->
+  <!-- Panel 2: Hero — framed starfield expands to full width on scroll -->
   <div class="hero-panel" id="hero-panel">
     <div class="hero-media" id="hero-media">
       <div class="starfield-layer" id="starfield-layer">
         <canvas id="sky"></canvas>
       </div>
 
-      <!-- Key takeaways — bottom-left of starfield; fades in on scroll -->
+      <!-- Key takeaways — top-left of starfield; fades in on scroll -->
       <div class="key-takeaways" id="key-takeaways">
-        <p class="kt-label">Key Takeaways</p>
+        <p class="kt-label">At a glance</p>
+        <p class="kt-intro">Commercial Commerce brings the harder problem: proving that an autonomous action is valid for the enterprise before invoices are paid.</p>
         <ul>
-          <li>Consumer agent commerce has moved from demo to live, protocols solving for a single human principal delegating bounded authority.</li>
-          <li>Google and Mastercard standardize portable intent — not corporate authority. B2B is structurally harder.</li>
-          <li>ERP's control model — built for constrained actors in financial systems — is an underappreciated advantage.</li>
-          <li>ERP starts with strong cards, but the industry is at a balance point. It can still tip.</li>
+          <li>Consumer agent commerce has moved from demo to live commerce, with protocols solving for a single human principal delegating bounded authority to one or more agents. Google and Mastercard’s consumer-commerce moves align with their broader strategies: Google seeds open standards through ecosystem bodies like FIDO, while Mastercard extends its network-rule and interoperability role into agentic payments. But they standardize portable intent, not corporate authority.</li>
+          <li>Commercial Commerce brings a harder problem: delegation of authority, approval matrices, segregation of duties, entity binding, tax treatment and budget control. Autonomous agents make deterministic guardrails more complex, not less.</li>
+          <li>ERP has underappreciated advantages: commercial rules are already codified there, and its security model was built for constrained actors taking consequential actions inside financial systems.</li>
+          <li>ERP is not the only contender. Orchestration-layer players can coordinate requests, approvals and workflows, but not always the financial truth needed to create a payment mandate.</li>
         </ul>
       </div>
     </div>
@@ -387,25 +445,25 @@ body {
 <!-- 3. White essay body — normal flow after hero zone, slides up over it -->
 <main class="essay-body">
 
-  <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard's move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In B2B commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
+  <p>In 2025, Mastercard launched Agent Pay¹, Google followed with AP2 — an open agent-payments protocol developed with payments and technology companies² — and Visa introduced its Trusted Agent Protocol within weeks³. The strategic move is bigger than payments. Google has since moved AP2 into the FIDO Alliance so it can remain platform-agnostic and community-led⁴. Mastercard’s move is equally aligned with its franchise model: its network sets rules, standards and interoperability requirements for payment participants⁵. In agentic commerce, that extends to Verifiable Intent — a standards-based trust layer, co-developed with Google, that creates a tamper-resistant record of what a user authorized when an AI agent acts on their behalf⁶. This does not conflict with the ERP thesis. In consumer commerce, the problem is portable intent: proving what a human asked an agent to do and making that mandate legible across wallets, merchants, issuers and networks. In Commercial Commerce, the harder problem is corporate authority: whether an agent can bind a legal entity, budget, supplier relationship, tax treatment and approval chain.</p>
 
   <p>These protocols work because consumer commerce is the simpler topology: one human principal delegating bounded authority to one or more agents through signed mandates checked against user intent⁷. There are still fraud, dispute and bot-detection problems, but no corporate delegation chain upstream.</p>
 
-  <p>The IMF's April 2026 note names the tension: payment infrastructure is deterministic; agentic systems are probabilistic⁸. Consumer protocols handle that separation for the simpler case. B2B commerce is harder — and structurally closer to what agentic commerce is becoming than to card-not-present commerce.</p>
+  <p>The IMF’s April 2026 note names the tension: payment infrastructure is deterministic; agentic systems are probabilistic⁸. Consumer protocols handle that separation for the simpler case. Commercial Commerce is harder — and structurally closer to what agentic commerce is becoming than to card-not-present commerce.</p>
 
   <h2>The commercial guardrails already exist — and they bind back to ERP</h2>
 
-  <p>In a governed enterprise, a two-million-dollar purchase order is not one person's decision. It is a delegation-of-authority framework instantiated as an approval matrix, constrained by segregation of duties, bound to legal entity, business unit, tax position and budget, and auditable against financial reporting, tax and internal-control requirements.</p>
+  <p>In a governed enterprise, a two-million-dollar purchase order is not one person’s decision. It is a delegation-of-authority framework instantiated as an approval matrix, constrained by segregation of duties, bound to legal entity, business unit, tax position and budget, and auditable against financial reporting, tax and internal-control requirements.</p>
 
   <p>The accountable principal is the legal entity, but it cannot authenticate. It acts only through codified, traceable delegation. That chain does not live in a card network or agent runtime. In many enterprises, it binds back to ERP: the books, controls, tax posture, budget structure and audit trail.</p>
 
-  <p>A consumer mandate can prove a human authorized an agent. It cannot prove that a corporate user had authority to commit an enterprise, budget and supplier relationship. That is ERP's claim to the trust layer.</p>
+  <p>A consumer mandate can prove a human authorized an agent. It cannot prove that a corporate user had authority to commit an enterprise, budget and supplier relationship. That is ERP’s claim to the trust layer.</p>
 
-  <h2>ERP's commercial-control model becomes an advantage</h2>
+  <h2>ERP’s commercial-control model becomes an advantage</h2>
 
-  <p>ERP's standard critique is that it is rigid, permission-heavy and hard to use. In the agent era, that starts looking less like a flaw and more like a feature.</p>
+  <p>ERP’s standard critique is that it is rigid, permission-heavy and hard to use. In the agent era, that starts looking less like a flaw and more like a feature.</p>
 
-  <p>ERP controls were built around constrained action inside systems of financial consequence: role-based access, data privileges, approval limits, segregation of duties, audit trails and exception controls⁹. McKinsey frames AI agents as "digital insiders" operating inside systems with varying levels of privilege and authority¹⁰. An agent should not merely know what a user asked it to do; it should know what the user is allowed to do, for which entity, under which budget, against which supplier, within what approval threshold and with what audit trail.</p>
+  <p>ERP controls were built around constrained action inside systems of financial consequence: role-based access, data privileges, approval limits, segregation of duties, audit trails and exception controls⁹. McKinsey frames AI agents as “digital insiders” operating inside systems with varying levels of privilege and authority¹⁰. An agent should not merely know what a user asked it to do; it should know what the user is allowed to do, for which entity, under which budget, against which supplier, within what approval threshold and with what audit trail.</p>
 
   <p>That is the entitlement question ERP has answered for decades. In autonomous commerce, ERP can convert business intent into an approved commercial mandate. Payment networks should not need to recreate corporate authority; they should recognize the ERP-originated mandate, verify integrity, apply tokenization and payment-risk controls, and help the payment succeed.</p>
 
@@ -425,9 +483,7 @@ body {
 
   <p>That is a real counter. But the payment mandate is not just a workflow artifact. It has to prove that the transaction is valid for the enterprise: entity, supplier, budget, tax treatment, approval chain, segregation of duties, accounting controls and audit trail.</p>
 
-  <p>This sharpens ERP's role. Orchestration can coordinate the process, but coordination is not the same as financial authority. Even when these platforms extend deeper into procurement, they still have to reconcile back to the system that holds financial truth.</p>
-
-  <p>So the question is not whether ERP owns every interaction. It is whether ERP validates commercial intent before money moves. Orchestration and S2P platforms can still coordinate requests, approvals and exceptions — but the financially binding mandate should originate from, or be attested by, ERP.</p>
+  <p>So the question is not whether ERP owns every interaction. It is whether ERP validates commercial intent before invoices are paid. Orchestration and S2P platforms can still coordinate requests, approvals and exceptions — but the financially binding mandate should originate from, or be attested by, ERP.</p>
 
   <h2>The balance point</h2>
 
@@ -437,7 +493,7 @@ body {
 
   <p>If they do, ERP becomes where business intent turns into authorized commercial execution. That does not displace Mastercard, Visa or the broader payment ecosystem. It reuses their acceptance infrastructure: tokenization, issuer and acquirer controls, network authorization, merchant acceptance, fraud controls and dispute handling. The difference is that the corporate mandate originates from, or is attested by, ERP before it moves downstream.</p>
 
-  <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else's agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
+  <p>If ERP vendors do not make that control model agent-ready, orchestration layers may become the control plane above ERP, leaving ERP as the system of record beneath someone else’s agentic payment layer. ERP is the natural candidate for the B2B trust layer, but it has to make its control model legible to agents and payment networks before another layer makes it invisible.</p>
 
   <!-- References -->
   <div class="essay-references">
@@ -479,42 +535,81 @@ body {
 </div>
 
 <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
-<script src="/js/starfield.js"></script>
+<script src="/js/starfield.js?v=20260524-constellation-frame"></script>
 <script>
 (function () {
-  // Pixel-perfect sticky offset regardless of font rendering
-  var headerH = document.querySelector('.site-header').offsetHeight;
-  document.documentElement.style.setProperty('--header-h', headerH + 'px');
-
+  var root      = document.documentElement;
+  var header    = document.querySelector('.site-header');
   var zone      = document.getElementById('scroll-zone');
   var heroPanel = document.getElementById('hero-panel');
   var titleEl   = document.getElementById('article-title');
   var sfLayer   = document.getElementById('starfield-layer');
   var ktBox     = document.getElementById('key-takeaways');
 
-  var titleMaxFS = parseFloat(window.getComputedStyle(titleEl).fontSize);
+  var headerH, titleMaxFS, titleStartBottom;
   var titleMinFS = 24;
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+  function ease(t) {
+    t = clamp(t, 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+
+  function refreshMetrics() {
+    headerH = header.offsetHeight;
+    root.style.setProperty('--header-h', headerH + 'px');
+    titleEl.style.fontSize = '';
+    titleMaxFS = parseFloat(window.getComputedStyle(titleEl).fontSize);
+    titleStartBottom = titleEl.getBoundingClientRect().bottom;
+    onScroll();
+  }
+
+  function setHeroFrame(a) {
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var mobile = vw <= 680;
+    var side = 24;
+    var gap = mobile ? 26 : 32;
+    var startTop = titleStartBottom + gap;
+    var startLeft = side;
+    var startWidth = vw - side * 2;
+    var startHeight = clamp(vh - startTop - gap, mobile ? 220 : 360, vh * (mobile ? 0.48 : 0.64));
+    var endTop = headerH + (mobile ? 92 : 110);
+    var endLeft = 0;
+    var endWidth = vw;
+    var endHeight = vh - endTop;
+
+    heroPanel.style.top = lerp(startTop, endTop, a) + 'px';
+    heroPanel.style.left = lerp(startLeft, endLeft, a) + 'px';
+    heroPanel.style.width = lerp(startWidth, endWidth, a) + 'px';
+    heroPanel.style.height = lerp(startHeight, endHeight, a) + 'px';
+    heroPanel.style.borderRadius = lerp(mobile ? 16 : 22, 0, a) + 'px';
+    heroPanel.style.boxShadow = '0 22px 60px rgba(4, 6, 12, ' + lerp(0.18, 0, a).toFixed(3) + ')';
+  }
 
   function onScroll() {
     var scrollY    = window.scrollY;
     var scrollable = zone.offsetHeight - window.innerHeight;
     var p          = Math.max(0, Math.min(scrollY / scrollable, 1));
 
-    // Phase A (p 0→0.85): hero panel rises, title shrinks, key takeaways fade in
-    var a = Math.min(p / 0.85, 1);
+    // Phase A (p 0→0.92): hero panel expands, title shrinks, key takeaways fade in
+    var rawA = Math.min(p / 0.92, 1);
+    var a = ease(rawA);
 
-    heroPanel.style.transform = 'translateY(' + (100 * (1 - a)) + '%)';
     titleEl.style.fontSize    = lerp(titleMaxFS, titleMinFS, a) + 'px';
-    sfLayer.style.transform   = 'scale(' + lerp(0.95, 1.05, p) + ')';
+    setHeroFrame(a);
+    sfLayer.style.transform   = 'scale(' + lerp(0.95, 1.04, ease(p)) + ')';
 
-    // Key takeaways: fade in between 30%–80% of phase A
-    ktBox.style.opacity = Math.min(Math.max((a - 0.30) / 0.50, 0), 1);
+    // At a glance reveals slowly with the hero expansion instead of popping in.
+    var ktReveal = ease((rawA - 0.24) / 0.68);
+    ktBox.style.opacity = ktReveal;
+    ktBox.style.transform = 'translateY(' + lerp(18, 0, ktReveal) + 'px)';
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll(); // apply initial state at scrollY = 0
+  window.addEventListener('resize', refreshMetrics);
+  refreshMetrics(); // apply initial state at scrollY = 0
 
   // Share sidebar: appears once hero zone is fully scrolled past
   var sidebar  = document.getElementById('share-sidebar');
