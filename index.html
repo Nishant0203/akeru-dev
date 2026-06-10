@@ -65,15 +65,28 @@ body {
 
 .article-title {
   font-family: 'Source Serif Pro', Georgia, serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 300;
   color: #1a1a1a;
-  line-height: 1.1;
+  line-height: 1.12;
   max-width: 800px;
 }
-@media (min-width: 768px)  { .article-title { font-size: 46px; } }
-@media (min-width: 1024px) { .article-title { font-size: 56px; } }
-@media (min-width: 1440px) { .article-title { font-size: 68px; } }
+@media (min-width: 768px)  { .article-title { font-size: 34px; } }
+@media (min-width: 1024px) { .article-title { font-size: 42px; } }
+@media (min-width: 1440px) { .article-title { font-size: 48px; } }
+
+.article-subtitle {
+  font-family: 'Source Serif Pro', Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.45;
+  color: #555;
+  max-width: 640px;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+@media (min-width: 768px)  { .article-subtitle { font-size: 18px; margin-top: 12px; } }
+@media (min-width: 1024px) { .article-subtitle { font-size: 20px; } }
 
 /* ── Panel 1: Title — fixed, full viewport below header, sits behind hero ── */
 .title-panel {
@@ -414,7 +427,10 @@ body {
 
 <!-- 2a. Panel 1: Title — fixed, behind hero; title shrinks as hero panel expands -->
 <div class="title-panel" id="title-panel">
-  <h1 class="article-title" id="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+  <div class="title-stack" id="title-stack">
+    <h1 class="article-title" id="article-title">Will ERP Become the Trust Layer for Autonomous Commerce?</h1>
+    <p class="article-subtitle">Consumer commerce runs on intent. Commercial commerce runs on corporate authority.</p>
+  </div>
   <p class="meta">Essay · May 2026 · 5 min read</p>
 </div>
 
@@ -533,19 +549,21 @@ body {
 </div>
 
 <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
-<script src="/js/starfield.js?v=20260524-constellation-frame"></script>
+<script src="js/starfield.js?v=20260610-live-frame"></script>
 <script>
 (function () {
   var root      = document.documentElement;
   var header    = document.querySelector('.site-header');
   var zone      = document.getElementById('scroll-zone');
   var heroPanel = document.getElementById('hero-panel');
-  var titleEl   = document.getElementById('article-title');
-  var sfLayer   = document.getElementById('starfield-layer');
-  var ktBox     = document.getElementById('key-takeaways');
+  var titleEl    = document.getElementById('article-title');
+  var titleStack = document.getElementById('title-stack');
+  var metaEl     = document.querySelector('.title-panel .meta');
+  var sfLayer    = document.getElementById('starfield-layer');
+  var ktBox      = document.getElementById('key-takeaways');
 
   var headerH, titleMaxFS, titleStartBottom;
-  var titleMinFS = 24;
+  var titleMinFS = 20;
 
   function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
@@ -559,7 +577,7 @@ body {
     root.style.setProperty('--header-h', headerH + 'px');
     titleEl.style.fontSize = '';
     titleMaxFS = parseFloat(window.getComputedStyle(titleEl).fontSize);
-    titleStartBottom = titleEl.getBoundingClientRect().bottom;
+    titleStartBottom = (metaEl || titleStack || titleEl).getBoundingClientRect().bottom;
     onScroll();
   }
 

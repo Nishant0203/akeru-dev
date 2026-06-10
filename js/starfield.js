@@ -7,6 +7,7 @@
    On mobile #ui is transparent so the fixed sky shows through.
 ═════════════════════════════════════════════════════════════════ */
 var canvas  = document.getElementById('sky');
+if (!canvas) return;
 var ctx     = canvas.getContext('2d');
 var heroMedia = document.getElementById('hero-media');
 var CW, CH, VW, VH, IS_MOBILE;
