@@ -120,7 +120,7 @@ body {
   font-family: 'Source Serif Pro', Georgia, serif;
   font-size: clamp(2.4rem, 5.5vw, 4.4rem);
   font-weight: 300;
-  color: #ffffff;
+  color: #FCF9F7;
   line-height: 1.15;
   margin-bottom: 24px;
 }
@@ -140,7 +140,7 @@ body {
 .feed-blanket {
   position: relative;
   z-index: 20;
-  background: #ffffff;
+  background: #FCF9F7;
   color: #1a1a1a;
   padding: 100px 48px 140px;
   width: 100%;
@@ -393,9 +393,9 @@ body {
         shootingStar.x, shootingStar.y,
         shootingStar.x - shootingStar.length * 0.8, shootingStar.y - shootingStar.length * 0.35
       );
-      trailGrad.addColorStop(0, `rgba(255, 255, 255, ${shootingStar.opacity * 0.85})`);
+      trailGrad.addColorStop(0, `rgba(252, 249, 247, ${shootingStar.opacity * 0.85})`);
       trailGrad.addColorStop(0.1, `rgba(219, 234, 254, ${shootingStar.opacity * 0.60})`);
-      trailGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      trailGrad.addColorStop(1, 'rgba(252, 249, 247, 0)');
       
       ctx.strokeStyle = trailGrad;
       ctx.lineWidth = 1.2;

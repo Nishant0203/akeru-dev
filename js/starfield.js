@@ -269,7 +269,7 @@ function drawConstellation (M) {
     ctx.beginPath(); ctx.arc(p.x,p.y, r*4, 0, Math.PI*2);
     ctx.fillStyle = g1; ctx.fill();
     var g2 = ctx.createRadialGradient(p.x-r*0.28,p.y-r*0.28,0, p.x,p.y, r);
-    g2.addColorStop(0,   'rgba(255,255,255,'+brt.toFixed(3)+')');
+    g2.addColorStop(0,   'rgba(252,249,247,'+brt.toFixed(3)+')');
     g2.addColorStop(0.5, 'rgba('+star.col+',0.90)');
     g2.addColorStop(1,   'rgba('+star.col+',0.60)');
     ctx.beginPath(); ctx.arc(p.x,p.y, r, 0, Math.PI*2);

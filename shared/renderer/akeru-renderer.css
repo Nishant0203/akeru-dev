@@ -18,7 +18,7 @@
   --ar-glass-bg-deep:  rgba(2, 6, 20, 0.58);
   --ar-glass-border:   rgba(160, 185, 255, 0.09);
   --ar-glass-border-hi:rgba(180, 205, 255, 0.18);
-  --ar-glass-shine:    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  --ar-glass-shine:    inset 0 1px 0 rgba(252, 249, 247, 0.055);
   --ar-star-white:     rgba(225, 232, 255, 0.92);
   --ar-star-dim:       rgba(155, 172, 215, 0.50);
   --ar-star-ghost:     rgba(120, 140, 185, 0.30);
@@ -70,7 +70,7 @@
   backdrop-filter: blur(8px);
   border-color: rgba(143, 180, 232, 0.12);
   color: rgba(200, 218, 255, 0.88);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: inset 0 1px 0 rgba(252,249,247,0.04);
 }
 
 .ar-msg--assistant .ar-msg-body {
