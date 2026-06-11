@@ -123,22 +123,30 @@ body {
 }
 
 /* ── Hero media — full-bleed inside hero panel ── */
+/* Update your hero-media to mirror the index.html dark immersion */
 .hero-media {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #04060C;
+  /* Match the dark master background */
+  background: #030712; 
+  
+  /* Apply the Gradient variables from index.html */
+  --gradient-color-1: #020617; 
+  --gradient-color-2: #071e3d; 
+  --gradient-color-3: #1e3a8a; 
+  --gradient-color-4: #0f172a;
 }
 
-/* Starfield fills the entire media section */
 .starfield-layer {
   position: absolute;
   inset: 0;
-  background: #04060C;
-  transform-origin: center;
-  will-change: transform;
+  background: transparent; 
+  z-index: 2; 
+  pointer-events: none;
 }
+
 
 #sky {
   position: absolute;
@@ -550,6 +558,18 @@ body {
 
 <script>window.VANIK_API_URL = "https://api.akeru.dev";</script>
 <script src="js/starfield.js?v=20260610-live-frame"></script>
+<script src="https://cdn.jsdelivr.net/gh/videsigns/webflow-tools@main/webgl-gradient.js"></script>
+<script>
+  // Initialize Liquid Gradient
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (typeof Gradient !== 'undefined') {
+        const gradient = new Gradient();
+        gradient.initGradient('#hero-media'); 
+      }
+    } catch (err) { console.warn("Gradient init skipped:", err); }
+  });
+</script>
 <script>
 (function () {
   var root      = document.documentElement;
