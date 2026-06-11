@@ -89,6 +89,38 @@ body {
   display: inline-block;
 }
 
+.kanji-glass-box {
+  /* Retain glass properties */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  /* 1. Sharper Edges: Reduced radius from 24px to 12px */
+  border-radius: 12px;
+  
+  /* 2. Structured Padding: Thinner, more precise fit */
+  padding: 6px 18px;
+  
+  /* 3. Refined Border: Higher contrast for the 'straight' look */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* Volume: Subtle shadow to anchor the shape */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  display: inline-flex;
+  margin-bottom: 24px;
+  width: auto;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wordmark-glass {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #FCF9F7;
+  text-decoration: none;
+}
+
 /* ── 3. High-Performance Interpolated Scroll Track ── */
 .scroll-zone {
   position: relative;
@@ -241,14 +273,16 @@ body {
 </div>
 
 <header class="site-header">
-  <a href="https://akeru.dev/" class="wordmark">明ける</a>
+  <div class="kanji-glass-box">
+    <a href="https://akeru.dev/" class="wordmark-glass">明ける</a>
+  </div>
 </header>
 
 <div class="scroll-zone">
   <section class="hero-stage">
     <div class="title-panel" id="title-panel">
       <h1 class="article-title" id="article-title">Featured Insights and Perspectives</h1>
-      <p class="article-subtitle" id="article-subtitle">The latest insights, ideas, and perspectives exploring a cross-section of up-to-date content on the trends shaping the future of business and society.</p>
+      <p class="article-subtitle" id="article-subtitle">The latest insights, ideas, and perspectives exploring a cross-section of up-to-date content on the trends shaping the future of Payments.</p>
     </div>
   </section>
 </div>
