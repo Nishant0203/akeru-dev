@@ -34,23 +34,40 @@ body {
   font-family: 'Source Serif Pro', Georgia, serif;
 }
 
-/* ── White sticky header ── */
+/* ── Header: fixed glass kanji box (matches index.html) ── */
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
   z-index: 100;
-  background: #FCF9F7;
-  border-bottom: 1px solid #e8e8e8;
-  padding: 18px 40px;
+  padding: 24px 48px;
+  background: transparent;
+  pointer-events: none;
 }
 
-.wordmark {
+.kanji-glass-box {
+  background: rgba(252, 249, 247, 0.14);
+  border: 1px solid rgba(252, 249, 247, 0.32);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 6px 18px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.15);
+  display: inline-flex;
+  margin-left: 0px;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.wordmark-glass {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 20px;
-  font-weight: 300;
-  color: #1a1a1a;
+  font-size: 18px;
+  font-weight: 700;
+  color: #020408;
   text-decoration: none;
-  letter-spacing: 0.04em;
+  pointer-events: auto;
+  display: inline-block;
 }
 
 /* ── Shared type ── */
@@ -428,9 +445,11 @@ body {
 </head>
 <body>
 
-<!-- 1. White sticky header -->
+<!-- 1. Glass kanji header (aligned with index.html) -->
 <header class="site-header">
-  <a href="/" class="wordmark">明ける</a>
+  <div class="kanji-glass-box">
+    <a href="/" class="wordmark-glass">𑀅𑀓𑁄𑀭𑀼</a>
+  </div>
 </header>
 
 <!-- 2a. Panel 1: Title — fixed, behind hero; title shrinks as hero panel expands -->

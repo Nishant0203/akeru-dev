@@ -97,24 +97,39 @@ body {
   border: 1px solid rgba(252, 249, 247, 0.32);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(12px);
-  
   /* 1. Sharper Edges: Reduced radius from 24px to 12px */
   border-radius: 12px;
-  
+
   /* 2. Structured Padding: Thinner, more precise fit */
   padding: 6px 18px;
-  
-  /* 3. Refined Border: Higher contrast for the 'straight' look */
+
+  /* 3. Refined Border: Higher contrast for the 'straight' look — single declaration */
   border: 1px solid rgba(255, 255, 255, 0.12);
-  
+
   /* Volume: Subtle shadow to anchor the shape */
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15);
-  
+
   display: inline-flex;
   margin-bottom: 24px;
   width: auto;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Required for internal gradient canvas containment */
+  position: relative;
+  overflow: hidden;
 }
+
+#logo-gradient-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+--gradient-color-1: #FCF9F7;
+--gradient-color-2: #FDF8F2;
+--gradient-color-3: #FDFAF5;
+}
+
 
 .wordmark-glass {
   font-family: 'Cormorant Garamond', serif;
@@ -122,6 +137,8 @@ body {
   font-weight: 700;
   color: #020408;
   text-decoration: none;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── 3. High-Performance Interpolated Scroll Track ── */
@@ -277,6 +294,7 @@ body {
 
 <header class="site-header">
   <div class="kanji-glass-box">
+    <canvas id="logo-gradient-canvas"></canvas>
     <a href="https://akeru.dev/" class="wordmark-glass"> 𑀅𑀓𑁄𑀭𑀼 </a>
   </div>
 </header>
@@ -330,14 +348,17 @@ body {
 <script src="https://cdn.jsdelivr.net/gh/videsigns/webflow-tools@main/webgl-gradient.js"></script>
 <script>
   // --- 1. AMBIENT STARFIELD GENERATION ENGINE (SANDBOXED & PROTECTED) ---
-  try {
-    if (typeof Gradient !== 'undefined') {
-      const gradient = new Gradient();
-      gradient.initGradient('#reflection-canvas');
-    }
-  } catch (err) {
-    console.warn("WebGL Gradient Initialization intercepted cleanly to prevent thread crashes:", err);
+try {
+  if (typeof Gradient !== 'undefined') {
+    const gradient = new Gradient();
+    gradient.initGradient('#reflection-canvas');
+
+    const logoGradient = new Gradient();
+    logoGradient.initGradient('#logo-gradient-canvas');
   }
+} catch (err) {
+  console.warn("WebGL Gradient Initialization intercepted cleanly to prevent thread crashes:", err);
+}
 
   const skyCanvas = document.getElementById('sky-canvas');
   const ctx = skyCanvas ? skyCanvas.getContext('2d') : null;
